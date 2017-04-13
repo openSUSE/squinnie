@@ -31,3 +31,5 @@ for node in all_nodes:
     print("There are in total %d processes running on this system." % len(collected_data))
 
     print("")
+
+# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
