@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/env python2
 """
 This is the scanner file running on the client. We have to use Python 2 for
 now, since Python 3 is not available by default in the latest SLES.
