@@ -1,1 +1,2 @@
 execnet==1.4.1
+-e git+https://github.com/BenjaminDeuter/execnet-importhook@fix_logical_flaw#egg=execnet-importhook
