@@ -5,8 +5,12 @@ Tested only on Python 3, since the execnet_importhook module only
 supports Python 3.
 """
 
+# The following packages have to be installed on the master using the package
+# manager (e.g. zypper) or pip.
 import execnet
-import execnet_importhook # https://github.com/kelleyk/execnet-importhook
+import execnet_importhook
+
+# Local packages
 import slave as collector
 
 entry_node = "crowbar.c9.cloud.suse.de"

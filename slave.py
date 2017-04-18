@@ -5,14 +5,14 @@ on any host as a standalone script.
 Tested only on Python 3, since the execnet_importhook module only
 supports Python 3.
 """
+
+# Packages that Python ships with
 import os
 import sys
 import re
 
-"""
-The following packages have to be installed on the master using the package
-manager (e.g. zypper) or pip.
-"""
+# The following packages have to be installed on the master using the package
+# manager (e.g. zypper) or pip.
 import proc
 
 if __name__ == '__channelexec__':
