@@ -4,4 +4,4 @@ This is a simple test suite for automating the analysis of the SUSE OpenStack Cl
 
 ## Installation
 
-This project now uses Python 3 since execnet-importhook does not support Python 2. The requirements can be found in `requirements.txt`.
+The requirements for this project can be found in `requirements.txt`.

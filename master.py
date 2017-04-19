@@ -5,6 +5,7 @@ This script is intended to be run on the master.
 
 # Standard library modules.
 from __future__ import print_function
+from __future__ import with_statement
 import sys
 from collections import OrderedDict
 import json
@@ -44,5 +45,11 @@ for node in all_nodes:
     collected_data_str = slave.remote_exec(collector).receive()
     collected_data = json.loads(collected_data_str, object_pairs_hook=OrderedDict)
     print("There are in total %d processes running on this system." % len(collected_data["status"].keys()))
+
+    print("Here are the first 20 lines of the JSON data:")
+    for l in collected_data_str.split("\n")[:20]:
+        print(l)
+    print("...")
+    print("")
 
     print("")

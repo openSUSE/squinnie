@@ -6,10 +6,12 @@ on any host as a standalone script.
 
 # Standard library modules.
 from __future__ import print_function
+from __future__ import with_statement
 import os
 import re
 from collections import OrderedDict
 import json
+import copy
 
 interesting_status_fields = [
     # "PPid",
@@ -44,25 +46,38 @@ for entry in os.listdir("/proc"):
 
 parents = {}
 status = {}
-for p in pids:
-    with open("/proc/%d/status" % (p), "r") as fi:
-        text = fi.read()
-        status_field = get_corresponding_regex("PPid")
-        ppid_str = re.search(status_field, text, re.MULTILINE).group(1)
-        ppid_key = int(ppid_str)
-        parents[p] = ppid_key
+for p in copy.copy(pids):
+    try:
+        with open("/proc/%d/status" % (p), "r") as fi:
+            text = fi.read()
+            status_field = get_corresponding_regex("PPid")
+            ppid_str = re.search(status_field, text, re.MULTILINE).group(1)
+            ppid_key = int(ppid_str)
+            parents[p] = ppid_key
 
-        ppid_val = {}
-        for isf_key in interesting_status_fields:
-            status_field = get_corresponding_regex(isf_key)
-            isf_val = re.search(status_field, text, re.MULTILINE).group(1)
-            ppid_val[isf_key] = isf_val
+            ppid_val = {}
+            for isf_key in interesting_status_fields:
+                status_field = get_corresponding_regex(isf_key)
+                isf_val = re.search(status_field, text, re.MULTILINE).group(1)
+                ppid_val[isf_key] = isf_val
 
-        ppid_val = dict_to_sorteddict(ppid_val)
-        status[ppid_key] = ppid_val
+            ppid_val = dict_to_sorteddict(ppid_val)
+            status[ppid_key] = ppid_val
+    except EnvironmentError:
+        # The process does not exist anymore
+        # Ignore because this is not a problem
+        pids.remove(p)
+        continue
 
-parents     = dict_to_sorteddict(parents)
-status = dict_to_sorteddict(status)
+for key, value in parents.items():
+    if value not in status.keys():
+        # The process does not exist anymore
+        # Make the parent be PID 1
+        # We may want to change this behaviour in the future
+        parents[key] = 1
+
+parents = dict_to_sorteddict(parents)
+status  = dict_to_sorteddict(status)
 
 children = {}
 for p in pids:
