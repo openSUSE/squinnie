@@ -1,21 +1,23 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2
 """
 This script is intended to be run on the master.
-Tested only on Python 3, since the execnet_importhook module only
-supports Python 3.
 """
 
-# The following packages have to be installed on the master using the package
-# manager (e.g. zypper) or pip.
-import execnet
-import execnet_importhook
+# Standard library modules.
+from __future__ import print_function
+import sys
+from collections import OrderedDict
+import json
 
-# Local packages
+# PyPy modules
+import execnet
+
+# External dependencies.
 import slave as collector
 
 entry_node = "crowbar.c9.cloud.suse.de"
 group = execnet.Group()
-master = group.makegateway("python=python3//id=master//ssh=root@"+entry_node)
+master = group.makegateway("id=master//python=python%d//ssh=root@%s" % (sys.version_info.major, entry_node))
 
 cmd = "crowbar machines list"
 exec_cmd = "import os; channel.send(os.popen('%s').read())" % (cmd)
@@ -34,14 +36,13 @@ print("Running the module on all nodes:")
 for node in all_nodes:
     print("Node:     "+node)
 
-    slave  = group.makegateway("python=python3//via=master//ssh=root@"+node)
-    execnet_importhook.install_import_hook(slave)
+    slave  = group.makegateway("via=master//python=python%d//ssh=root@%s" % (sys.version_info.major, node))
     python_cmd = "import os; channel.send(os.uname()[1])"
     str_slave = slave.remote_exec(python_cmd).receive()
     print("Hostname: "+str_slave)
 
-    collected_data = slave.remote_exec(collector).receive()
-    # print("There are in total %d processes running on this system." % len(collected_data))
-    print(collected_data)
+    collected_data_str = slave.remote_exec(collector).receive()
+    collected_data = json.loads(collected_data_str, object_pairs_hook=OrderedDict)
+    print("There are in total %d processes running on this system." % len(collected_data["status"].keys()))
 
     print("")
