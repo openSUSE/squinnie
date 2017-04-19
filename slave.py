@@ -32,6 +32,7 @@ def get_corresponding_regex(field_to_search_for):
 def dict_to_sorteddict(d):
     return OrderedDict(sorted(d.items(), key=lambda t: t[0]))
 
+
 pids = []
 # traverse root directory, and list directories as dirs and files as files
 for entry in os.listdir("/proc"):
@@ -52,8 +53,8 @@ for p in copy.copy(pids):
             text = fi.read()
             status_field = get_corresponding_regex("PPid")
             ppid_str = re.search(status_field, text, re.MULTILINE).group(1)
-            ppid_key = int(ppid_str)
-            parents[p] = ppid_key
+            ppid = int(ppid_str)
+            parents[p] = ppid
 
             ppid_val = {}
             for isf_key in interesting_status_fields:
@@ -62,19 +63,23 @@ for p in copy.copy(pids):
                 ppid_val[isf_key] = isf_val
 
             ppid_val = dict_to_sorteddict(ppid_val)
-            status[ppid_key] = ppid_val
+            status[p] = ppid_val
+
     except EnvironmentError:
         # The process does not exist anymore
         # Ignore because this is not a problem
         pids.remove(p)
         continue
 
-for key, value in parents.items():
-    if value not in status.keys():
-        # The process does not exist anymore
-        # Make the parent be PID 1
-        # We may want to change this behaviour in the future
-        parents[key] = 1
+# print(len(status.keys()))
+# print("len(parents.keys): %d" % len(parents.keys()))
+
+# for key, value in parents.items():
+#     if value not in status.keys():
+#         # The process does not exist anymore
+#         # Make the parent be PID 1
+#         # We may want to change this behaviour in the future
+#         parents[key] = 1
 
 parents = dict_to_sorteddict(parents)
 status  = dict_to_sorteddict(status)
