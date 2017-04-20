@@ -1,43 +1,42 @@
-#!/usr/bin/env python2
 """
-This script is intended to be run on the master.
+This script is not intended to be run manually, but via the clsc main script.
 """
 
-# Standard library modules.
+# Standard library modules
 from __future__ import print_function
 from __future__ import with_statement
-import sys
 from collections import OrderedDict
+import sys
 import json
 
 # PyPy modules
 import execnet
 
-# External dependencies.
+# External dependencies
 import slave as collector
 
-entry_node = "crowbar.c9.cloud.suse.de"
-group = execnet.Group()
-master = group.makegateway("id=master//python=python%d//ssh=root@%s" % (sys.version_info.major, entry_node))
+def get_crowbar_config(entry_node):
+    group = execnet.Group()
+    master = group.makegateway("id=master//python=python%d//ssh=root@%s" % (sys.version_info.major, entry_node))
 
-cmd = "crowbar machines list"
-exec_cmd = "import os; channel.send(os.popen('%s').read())" % (cmd)
-str_crowbar = master.remote_exec(exec_cmd).receive()
+    cmd = "crowbar machines list"
+    exec_cmd = "import os; channel.send(os.popen('%s').read())" % (cmd)
+    str_crowbar = master.remote_exec(exec_cmd).receive()
 
-# One newline too much leads to one empty string
-all_nodes = str_crowbar.split("\n")
-all_nodes = list(filter(None, all_nodes))
+    # One newline too much leads to one empty string
+    all_nodes_strs = str_crowbar.split("\n")
+    all_nodes_strs = list(filter(None, all_nodes_strs))
 
-print("Found the following nodes:")
-for node in all_nodes:
-    print(node)
-print("")
+    print("Found the following nodes:")
+    for node in all_nodes_strs:
+        print(node)
+    print("")
 
-print("Running the module on all nodes:")
-for node in all_nodes:
-    print("Node:     "+node)
+    return (group, all_nodes_strs)
 
-    slave  = group.makegateway("via=master//python=python%d//ssh=root@%s" % (sys.version_info.major, node))
+def scan_generic(node_str, group):
+    print("Node:     "+node_str)
+    slave  = group.makegateway("via=master//python=python%d//ssh=root@%s" % (sys.version_info.major, node_str))
     python_cmd = "import os; channel.send(os.uname()[1])"
     str_slave = slave.remote_exec(python_cmd).receive()
     print("Hostname: "+str_slave)
@@ -45,11 +44,15 @@ for node in all_nodes:
     collected_data_str = slave.remote_exec(collector).receive()
     collected_data = json.loads(collected_data_str, object_pairs_hook=OrderedDict)
     print("There are in total %d processes running on this system." % len(collected_data["status"].keys()))
-
-    print("Here are the first 20 lines of the JSON data:")
-    for l in collected_data_str.split("\n")[:20]:
-        print(l)
-    print("...")
     print("")
 
-    print("")
+def scan_entry_node(entry_node):
+    group, all_nodes_strs = get_crowbar_config(entry_node)
+
+    scan_generic(entry_node, group)
+
+def scan_all(entry_node):
+    group, all_nodes_strs = get_crowbar_config(entry_node)
+
+    for node_str in all_nodes_strs:
+        scan_generic(node_str, group)

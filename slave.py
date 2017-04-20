@@ -1,7 +1,6 @@
-#!/usr/bin/env python2
 """
-This script is intended to be run on the slave, even though also be run
-on any host as a standalone script.
+This script is intended to be run on the client remotely via execnet.
+It can however also be called as a standalone script for testing purposes.
 """
 
 # Standard library modules.
