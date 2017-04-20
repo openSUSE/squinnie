@@ -13,21 +13,24 @@ from collections import OrderedDict
 import json
 import copy
 
-interesting_status_fields = [
+cap_lambda     = lambda a: int(a, base = 16)
+gid_uid_lambda = lambda a: tuple(a.split("\t"))
+
+interesting_status_fields = { # TODO: Finish lambdas here... Code broken right now
     # "PPid",
-    "Gid",
-    "Uid",
-    "Groups",
-    "Seccomp",
-    "CapInh",
-    "CapPrm",
-    "CapEff",
-    "CapBnd",
-    "CapAmb",
-]
+    "CapInh" : cap_lambda,
+    "CapPrm" : cap_lambda,
+    "CapEff" : cap_lambda,
+    "CapBnd" : cap_lambda,
+    "CapAmb" : cap_lambda,
+    "Gid"    : gid_uid_lambda,
+    "Groups" : lambda a: a.split(),
+    "Seccomp": lambda a: a == 1,
+    "Uid"    : gid_uid_lambda,
+}
 
 def get_corresponding_regex(field_to_search_for):
-    return "^%s:\s*(.+)\s*$" % (field_to_search_for)
+    return "^%s:\s(.*)$" % (field_to_search_for)
 
 def dict_to_sorteddict(d):
     return OrderedDict(sorted(d.items(), key=lambda t: t[0]))
@@ -57,10 +60,12 @@ for p in copy.copy(pids):
             parents[p] = ppid
 
             ppid_val = {}
-            for isf_key in interesting_status_fields:
+            for isf_key in interesting_status_fields.keys():
                 status_field = get_corresponding_regex(isf_key)
                 isf_val = re.search(status_field, text, re.MULTILINE).group(1)
-                ppid_val[isf_key] = isf_val
+                # print(isf_val)
+                transform = interesting_status_fields[isf_key]
+                ppid_val[isf_key] = transform(isf_val)
 
             ppid_val = dict_to_sorteddict(ppid_val)
             status[p] = ppid_val

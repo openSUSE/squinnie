@@ -47,7 +47,7 @@ for node in all_nodes:
     print("There are in total %d processes running on this system." % len(collected_data["status"].keys()))
 
     print("Here are the first 20 lines of the JSON data:")
-    for l in collected_data_str.split("\n")[:5]:
+    for l in collected_data_str.split("\n")[:20]:
         print(l)
     print("...")
     print("")
