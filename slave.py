@@ -13,9 +13,9 @@ import json
 import copy
 
 cap_lambda     = lambda a: int(a, base = 16)
-gid_uid_lambda = lambda a: tuple(a.split("\t"))
+gid_uid_lambda = lambda a: tuple(int(i) for i in a.split("\t"))
 
-interesting_status_fields = { # TODO: Finish lambdas here... Code broken right now
+interesting_status_fields = {
     # "PPid",
     "CapInh" : cap_lambda,
     "CapPrm" : cap_lambda,
@@ -23,7 +23,7 @@ interesting_status_fields = { # TODO: Finish lambdas here... Code broken right n
     "CapBnd" : cap_lambda,
     "CapAmb" : cap_lambda,
     "Gid"    : gid_uid_lambda,
-    "Groups" : lambda a: a.split(),
+    "Groups" : lambda a: [int(i) for i in a.split()],
     "Seccomp": lambda a: a == 1,
     "Uid"    : gid_uid_lambda,
 }
@@ -31,8 +31,8 @@ interesting_status_fields = { # TODO: Finish lambdas here... Code broken right n
 def get_corresponding_regex(field_to_search_for):
     return "^%s:\s(.*)$" % (field_to_search_for)
 
-def dict_to_sorteddict(d):
-    return OrderedDict(sorted(d.items(), key=lambda t: t[0]))
+# def dict_to_sorteddict(d):
+#     return OrderedDict(sorted(d.items(), key=lambda t: t[0]))
 
 
 pids = []
@@ -66,7 +66,7 @@ for p in copy.copy(pids):
                 transform = interesting_status_fields[isf_key]
                 ppid_val[isf_key] = transform(isf_val)
 
-            ppid_val = dict_to_sorteddict(ppid_val)
+            # ppid_val = dict_to_sorteddict(ppid_val)
             status[p] = ppid_val
 
     except EnvironmentError:
@@ -85,24 +85,21 @@ for p in copy.copy(pids):
 #         # We may want to change this behaviour in the future
 #         parents[key] = 1
 
-parents = dict_to_sorteddict(parents)
-status  = dict_to_sorteddict(status)
-
-children = {}
-for p in pids:
-    the_parent = parents[p]
-    if not the_parent in children.keys():
-        children[the_parent] = []
-    children[the_parent].append(p)
-children = dict_to_sorteddict(children)
+# parents = dict_to_sorteddict(parents)
+# status  = dict_to_sorteddict(status)
 
 
-data = OrderedDict()
-data["status"  ] = status
-data["parents" ] = parents
-data["children"] = children
 
-result = json.dumps(data, fi, indent=4)
+
+data = {}
+data["status" ] = status
+data["parents"] = parents
+# data["children"] = children
+
+# result = json.dumps(data, fi, indent=4)
+# result = dict(data)
+
+result = data
 
 if __name__ == '__channelexec__':
     channel.send(result)
