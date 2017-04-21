@@ -1,6 +1,10 @@
 """
 This script is intended to be run on the client remotely via execnet.
 It can however also be called as a standalone script for testing purposes.
+
+Unfortunately, to send a module via execnet, it has to be self-contained. This
+results in this file being very long, as it is not possible to use external
+imports, unless execnet_importhook gets ported to python2.
 """
 
 # Standard library modules.
@@ -14,26 +18,27 @@ import copy
 
 cap_lambda     = lambda a: int(a, base = 16)
 gid_uid_lambda = lambda a: tuple(int(i) for i in a.split("\t"))
+groups_lambda  = lambda a: [int(i) for i in a.split()]
+seccomp_lambda = lambda a: a == 1
 
 interesting_status_fields = {
-    # "PPid",
     "CapInh" : cap_lambda,
     "CapPrm" : cap_lambda,
     "CapEff" : cap_lambda,
     "CapBnd" : cap_lambda,
     "CapAmb" : cap_lambda,
     "Gid"    : gid_uid_lambda,
-    "Groups" : lambda a: [int(i) for i in a.split()],
-    "Seccomp": lambda a: a == 1,
+    "Groups" : groups_lambda,
+    "Seccomp": seccomp_lambda,
     "Uid"    : gid_uid_lambda,
 }
 
 def get_corresponding_regex(field_to_search_for):
     return "^%s:\s(.*)$" % (field_to_search_for)
 
-# def dict_to_sorteddict(d):
-#     return OrderedDict(sorted(d.items(), key=lambda t: t[0]))
 
+# Send one big dictionary at the end
+result = {}
 
 pids = []
 # traverse root directory, and list directories as dirs and files as files
@@ -62,48 +67,23 @@ for p in copy.copy(pids):
             for isf_key in interesting_status_fields.keys():
                 status_field = get_corresponding_regex(isf_key)
                 isf_val = re.search(status_field, text, re.MULTILINE).group(1)
-                # print(isf_val)
                 transform = interesting_status_fields[isf_key]
                 ppid_val[isf_key] = transform(isf_val)
 
-            # ppid_val = dict_to_sorteddict(ppid_val)
             status[p] = ppid_val
-
     except EnvironmentError:
         # The process does not exist anymore
-        # Ignore because this is not a problem
+        # Remove it from the global list of all processes
         pids.remove(p)
-        continue
 
-# print(len(status.keys()))
-# print("len(parents.keys): %d" % len(parents.keys()))
-
-# for key, value in parents.items():
-#     if value not in status.keys():
-#         # The process does not exist anymore
-#         # Make the parent be PID 1
-#         # We may want to change this behaviour in the future
-#         parents[key] = 1
-
-# parents = dict_to_sorteddict(parents)
-# status  = dict_to_sorteddict(status)
+result["status" ] = status
+result["parents"] = parents
 
 
+# TODO: Now parse file descriptors and add to result
 
-
-data = {}
-data["status" ] = status
-data["parents"] = parents
-# data["children"] = children
-
-# result = json.dumps(data, fi, indent=4)
-# result = dict(data)
-
-result = data
 
 if __name__ == '__channelexec__':
     channel.send(result)
-# else:
-#     print(result)
-
-# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
+elif __name__ == "__main__":
+    print(result)
