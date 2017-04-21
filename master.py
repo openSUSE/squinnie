@@ -53,20 +53,31 @@ def print_proc_indent(status_data, children_data, not_printed_pids, pid, indenti
     indenter = indention_count * " "
     result_line = ""
 
-    proc_data = indenter * level + "+---" + str(pid)
-    result_line += "".join(proc_data.ljust(25))
+    str_proc = indenter * level + "+---" + str(pid)
+    result_line += "".join(str_proc.ljust(25))
 
-    uid_data = str(status_data[pid]["Uid"])
-    result_line += "".join(uid_data.ljust(30))
+    str_Uid = str(status_data[pid]["Uid"])
+    result_line += "".join(str_Uid.ljust(30))
 
-    gid_data = str(status_data[pid]["Gid"])
-    result_line += "".join(gid_data.ljust(30))
+    str_Gid = str(status_data[pid]["Gid"])
+    result_line += "".join(str_Gid.ljust(30))
 
-    groups_data = str(status_data[pid]["Groups"])
-    result_line += "".join(groups_data.ljust(25))
+    str_Groups = str(status_data[pid]["Groups"])
+    result_line += "".join(str_Groups.ljust(15))
 
-    seccomp_data = str(status_data[pid]["Seccomp"])
-    result_line += "".join(seccomp_data.ljust(25))
+    str_Seccomp = str(status_data[pid]["Seccomp"])
+    result_line += "".join(str_Seccomp.ljust(10))
+
+    str_CapInh = str(status_data[pid]["CapInh"])
+    result_line += "".join(str_CapInh.ljust(5))
+    str_CapPrm = str(status_data[pid]["CapPrm"])
+    result_line += "".join(str_CapPrm.ljust(15))
+    str_CapEff = str(status_data[pid]["CapEff"])
+    result_line += "".join(str_CapEff.ljust(15))
+    str_CapBnd = str(status_data[pid]["CapBnd"])
+    result_line += "".join(str_CapBnd.ljust(15))
+    str_CapAmb = str(status_data[pid]["CapAmb"])
+    result_line += "".join(str_CapAmb.ljust(5))
 
     print(result_line)
     not_printed_pids.remove(pid)
