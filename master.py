@@ -11,12 +11,16 @@ import json
 
 # PyPy modules
 import execnet
+import termcolor
 
 # External dependencies
 import slave as collector
 
+# http://stackoverflow.com/questions/3787908/python-determine-if-all-items-of-a-list-are-the-same-item
+def all_same(items):
+    return all(x == items[0] for x in items)
 
-def print_process_tree(collected_data_dict):
+def print_process_tree(collected_data_dict, kthreads):
     """
     Has access to:
     - status
@@ -30,12 +34,13 @@ def print_process_tree(collected_data_dict):
     indention_count  = 4
     level = 0
     print_proc_indent(status_data, children_data, not_printed_pids, 1, indention_count, level)
-    print_proc_indent(status_data, children_data, not_printed_pids, 2, indention_count, level)
+
+    if kthreads:
+        print_proc_indent(status_data, children_data, not_printed_pids, 2, indention_count, level)
+        assert not not_printed_pids
 
     print("")
     print("")
-
-    assert not not_printed_pids
 
 
 def parents_to_children(pids, parents):
@@ -48,36 +53,49 @@ def parents_to_children(pids, parents):
 
     return children
 
+def get_cap_str(status_data_pid, cap_str, the_len):
+    current_cap = '%016x' % status_data_pid[cap_str]
+    result = "".join(current_cap.ljust(the_len))
+    if 0 not in status_data_pid["Uid"] and 0 not in status_data_pid["Gid"]:
+        if status_data_pid[cap_str] != 0:
+            result = termcolor.colored(result, 'green', 'on_red')
+    return result
+
 
 def print_proc_indent(status_data, children_data, not_printed_pids, pid, indention_count, level):
+
     indenter = indention_count * " "
     result_line = ""
 
     str_proc = indenter * level + "+---" + str(pid)
-    result_line += "".join(str_proc.ljust(25))
+    result_line += "".join(str_proc.ljust(30))
 
     str_Uid = str(status_data[pid]["Uid"])
-    result_line += "".join(str_Uid.ljust(30))
+    str_Uid = "".join(str_Uid.ljust(25))
+    if not all_same(status_data[pid]["Uid"]):
+        str_Uid = termcolor.colored(str_Uid, 'green', 'on_red')
+    result_line += str_Uid
 
     str_Gid = str(status_data[pid]["Gid"])
-    result_line += "".join(str_Gid.ljust(30))
+    str_Gid = "".join(str_Gid.ljust(28))
+    if not all_same(status_data[pid]["Gid"]):
+        str_Gid = termcolor.colored(str_Gid, 'green', 'on_red')
+    result_line += str_Gid
 
     str_Groups = str(status_data[pid]["Groups"])
     result_line += "".join(str_Groups.ljust(15))
 
     str_Seccomp = str(status_data[pid]["Seccomp"])
-    result_line += "".join(str_Seccomp.ljust(10))
+    str_Seccomp = "".join(str_Seccomp.ljust(6))
+    if status_data[pid]["Seccomp"]:
+        str_Seccomp = termcolor.colored(str_Seccomp, 'green', 'on_red')
+    result_line += str_Seccomp
 
-    str_CapInh = str(status_data[pid]["CapInh"])
-    result_line += "".join(str_CapInh.ljust(5))
-    str_CapPrm = str(status_data[pid]["CapPrm"])
-    result_line += "".join(str_CapPrm.ljust(15))
-    str_CapEff = str(status_data[pid]["CapEff"])
-    result_line += "".join(str_CapEff.ljust(15))
-    str_CapBnd = str(status_data[pid]["CapBnd"])
-    result_line += "".join(str_CapBnd.ljust(15))
-    str_CapAmb = str(status_data[pid]["CapAmb"])
-    result_line += "".join(str_CapAmb.ljust(5))
+    result_line += get_cap_str(status_data[pid], "CapInh", 17)
+    result_line += get_cap_str(status_data[pid], "CapPrm", 17)
+    result_line += get_cap_str(status_data[pid], "CapEff", 17)
+    result_line += get_cap_str(status_data[pid], "CapBnd", 17)
+    result_line += get_cap_str(status_data[pid], "CapAmb", 17)
 
     print(result_line)
     not_printed_pids.remove(pid)
@@ -108,7 +126,7 @@ def get_crowbar_config(entry_node):
     return (group, all_nodes_strs)
 
 
-def scan_generic(node_str, group):
+def scan_generic(node_str, group, kthreads):
     print("Node:     "+node_str)
     slave  = group.makegateway("via=master//python=python%d//ssh=root@%s" % (sys.version_info.major, node_str))
     python_cmd = "import os; channel.send(os.uname()[1])"
@@ -123,17 +141,17 @@ def scan_generic(node_str, group):
 
     print("There are %d processes running on this host." % len(pids))
 
-    print_process_tree(collected_data_dict)
+    print_process_tree(collected_data_dict, kthreads)
 
 
-def scan_entry_node(entry_node):
+def scan_entry_node(entry_node, kthreads=False):
     group, all_nodes_strs = get_crowbar_config(entry_node)
 
-    scan_generic(entry_node, group)
+    scan_generic(entry_node, group, kthreads)
 
 
-def scan_all(entry_node):
+def scan_all(entry_node, kthreads=False):
     group, all_nodes_strs = get_crowbar_config(entry_node)
 
     for node_str in all_nodes_strs:
-        scan_generic(node_str, group)
+        scan_generic(node_str, group, kthreads)

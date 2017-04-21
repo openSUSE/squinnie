@@ -14,6 +14,9 @@ def main():
     a_desc = "Scan all nodes. Only the entry node is scanned by default."
     parser.add_argument("-a", "--all", action="store_true", help=a_desc)
 
+    a_desc = "Include kernel threads. Kernel threads are excluded by default."
+    parser.add_argument("-k", "--kthreads", action="store_true", help=a_desc)
+
     requiredNamed = parser.add_argument_group('required named arguments')
     entry_desc = "The host on which crowbar is running."
     requiredNamed.add_argument('-e', '--entry', type=str, help=entry_desc, required=True)
@@ -24,9 +27,9 @@ def main():
         exit("Please provide an entry node.")
 
     if not args.all:
-        master.scan_entry_node(args.entry)
+        master.scan_entry_node(args.entry, args.kthreads)
     else:
-        master.scan_all(args.entry)
+        master.scan_all(args.entry, args.kthreads)
 
 if __name__ == "__main__":
     main()
