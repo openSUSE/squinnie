@@ -4,7 +4,8 @@ It can however also be called as a standalone script for testing purposes.
 
 Unfortunately, to send a module via execnet, it has to be self-contained. This
 results in this file being very long, as it is not possible to use external
-imports, unless execnet_importhook gets ported to python2.
+imports, unless execnet_importhook gets ported to python2 or SUSE Enterprise
+Linux gets shipped with Python 3 by default.
 """
 
 # Standard library modules.
@@ -42,21 +43,23 @@ result = {}
 
 pids = []
 # traverse root directory, and list directories as dirs and files as files
-for entry in os.listdir("/proc"):
-    fp = os.path.join( "/proc", entry )
+for pid_str in os.listdir("/proc"):
+    fp = os.path.join( "/proc", pid_str )
     if not os.path.isdir(fp):
         continue
     try:
-        pid = int(entry)
+        pid = int(pid_str)
     except ValueError:
         continue
     pids.append(pid)
 
 parents = {}
 status = {}
+open_file_pointers = {}
+
 for p in copy.copy(pids):
     try:
-        with open("/proc/%d/status" % (p), "r") as fi:
+        with open("/proc/%d/status" % p, "r") as fi:
             text = fi.read()
             status_field = get_corresponding_regex("PPid")
             ppid_str = re.search(status_field, text, re.MULTILINE).group(1)
@@ -71,6 +74,16 @@ for p in copy.copy(pids):
                 ppid_val[isf_key] = transform(isf_val)
 
             status[p] = ppid_val
+
+        # print("%d" % p)
+        # TODO: Now parse file descriptors and add to result
+        open_file_pointers[p] = []
+        fd_dir = "/proc/%d/fd/" % p
+        for fd_str in os.listdir(fd_dir):
+
+            resolved_symlink_name = os.path.realpath(fd_dir + fd_str)
+            open_file_pointers[p].append(resolved_symlink_name)
+
     except EnvironmentError:
         # The process does not exist anymore
         # Remove it from the global list of all processes
@@ -78,9 +91,7 @@ for p in copy.copy(pids):
 
 result["status" ] = status
 result["parents"] = parents
-
-
-# TODO: Now parse file descriptors and add to result
+result["open_file_pointers"] = open_file_pointers
 
 
 if __name__ == '__channelexec__':

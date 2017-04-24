@@ -20,29 +20,6 @@ import slave as collector
 def all_same(items):
     return all(x == items[0] for x in items)
 
-def print_process_tree(collected_data_dict, kthreads):
-    """
-    Has access to:
-    - status
-    - parents
-    - children
-    """
-
-    children_data    = collected_data_dict["children"]
-    status_data      = collected_data_dict["status"]
-    not_printed_pids = status_data.keys()
-    indention_count  = 4
-    level = 0
-    print_proc_indent(status_data, children_data, not_printed_pids, 1, indention_count, level)
-
-    if kthreads:
-        print_proc_indent(status_data, children_data, not_printed_pids, 2, indention_count, level)
-        assert not not_printed_pids
-
-    print("")
-    print("")
-
-
 def parents_to_children(pids, parents):
     children = {}
     for p in pids:
@@ -60,49 +37,6 @@ def get_cap_str(status_data_pid, cap_str, the_len):
         if status_data_pid[cap_str] != 0:
             result = termcolor.colored(result, 'green', 'on_red')
     return result
-
-
-def print_proc_indent(status_data, children_data, not_printed_pids, pid, indention_count, level):
-
-    indenter = indention_count * " "
-    result_line = ""
-
-    str_proc = indenter * level + "+---" + str(pid)
-    result_line += "".join(str_proc.ljust(30))
-
-    str_Uid = str(status_data[pid]["Uid"])
-    str_Uid = "".join(str_Uid.ljust(25))
-    if not all_same(status_data[pid]["Uid"]):
-        str_Uid = termcolor.colored(str_Uid, 'green', 'on_red')
-    result_line += str_Uid
-
-    str_Gid = str(status_data[pid]["Gid"])
-    str_Gid = "".join(str_Gid.ljust(28))
-    if not all_same(status_data[pid]["Gid"]):
-        str_Gid = termcolor.colored(str_Gid, 'green', 'on_red')
-    result_line += str_Gid
-
-    str_Groups = str(status_data[pid]["Groups"])
-    result_line += "".join(str_Groups.ljust(15))
-
-    str_Seccomp = str(status_data[pid]["Seccomp"])
-    str_Seccomp = "".join(str_Seccomp.ljust(6))
-    if status_data[pid]["Seccomp"]:
-        str_Seccomp = termcolor.colored(str_Seccomp, 'green', 'on_red')
-    result_line += str_Seccomp
-
-    result_line += get_cap_str(status_data[pid], "CapInh", 17)
-    result_line += get_cap_str(status_data[pid], "CapPrm", 17)
-    result_line += get_cap_str(status_data[pid], "CapEff", 17)
-    result_line += get_cap_str(status_data[pid], "CapBnd", 17)
-    result_line += get_cap_str(status_data[pid], "CapAmb", 17)
-
-    print(result_line)
-    not_printed_pids.remove(pid)
-
-    if pid in children_data.keys():
-        for c in sorted(children_data[pid]):
-            print_proc_indent(status_data, children_data, not_printed_pids, c, indention_count, level+1)
 
 
 def get_crowbar_config(entry_node):
@@ -155,3 +89,75 @@ def scan_all(entry_node, kthreads=False):
 
     for node_str in all_nodes_strs:
         scan_generic(node_str, group, kthreads)
+
+
+
+def print_process_tree(collected_data_dict, kthreads):
+
+    # not_printed_pids will be consecutively emptied
+    not_printed_pids = collected_data_dict["status"].keys()
+    indention_count  = 4
+    level = 0
+
+    print_proc_indent(collected_data_dict, not_printed_pids, 1, indention_count, level)
+
+    if kthreads:
+        print_proc_indent(collected_data_dict, not_printed_pids, 2, indention_count, level)
+        assert not not_printed_pids
+
+    print("")
+    print("")
+
+
+def print_proc_indent(collected_data_dict, not_printed_pids, pid, indention_count, level):
+    """
+    Recursive function
+    """
+
+    children_data    = collected_data_dict["children"]
+    status_data      = collected_data_dict["status"]
+    open_file_pointers = collected_data_dict["open_file_pointers"]
+
+    indenter = indention_count * " "
+    result_line = ""
+
+    str_proc = indenter * level + "+---" + str(pid)
+    result_line += "".join(str_proc.ljust(30))
+
+    str_fp = str(len(open_file_pointers[pid]))
+    str_fp = "".join(str_fp.ljust(3))
+    result_line += str_fp
+
+    str_Uid = str(status_data[pid]["Uid"])
+    str_Uid = "".join(str_Uid.ljust(25))
+    if not all_same(status_data[pid]["Uid"]):
+        str_Uid = termcolor.colored(str_Uid, 'green', 'on_red')
+    result_line += str_Uid
+
+    str_Gid = str(status_data[pid]["Gid"])
+    str_Gid = "".join(str_Gid.ljust(28))
+    if not all_same(status_data[pid]["Gid"]):
+        str_Gid = termcolor.colored(str_Gid, 'green', 'on_red')
+    result_line += str_Gid
+
+    str_Groups = str(status_data[pid]["Groups"])
+    result_line += "".join(str_Groups.ljust(15))
+
+    str_Seccomp = str(status_data[pid]["Seccomp"])
+    str_Seccomp = "".join(str_Seccomp.ljust(6))
+    if status_data[pid]["Seccomp"]:
+        str_Seccomp = termcolor.colored(str_Seccomp, 'green', 'on_red')
+    result_line += str_Seccomp
+
+    result_line += get_cap_str(status_data[pid], "CapInh", 17)
+    result_line += get_cap_str(status_data[pid], "CapPrm", 17)
+    result_line += get_cap_str(status_data[pid], "CapEff", 17)
+    result_line += get_cap_str(status_data[pid], "CapBnd", 17)
+    result_line += get_cap_str(status_data[pid], "CapAmb", 17)
+
+    print(result_line)
+    not_printed_pids.remove(pid)
+
+    if pid in children_data.keys():
+        for c in sorted(children_data[pid]):
+            print_proc_indent(collected_data_dict, not_printed_pids, c, indention_count, level+1)
