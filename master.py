@@ -7,10 +7,12 @@ from __future__ import print_function
 from __future__ import with_statement
 from collections import OrderedDict
 import sys
+import codecs
 
 # PyPy modules
 import execnet
 import termcolor
+import yaml
 
 # External dependencies
 import slave as collector
@@ -60,18 +62,58 @@ def get_crowbar_config(entry_node):
 
 
 
-def scan(args):
-    group, all_nodes_strs = get_crowbar_config(args.entry)
+def produce_global_datastructure(args):
 
-    if not args.all:
-        scan_once(args.entry, group, args.kthreads)
+    datastructure = {}
+
+    # Use input file, no need for scanning again
+    if args.input:
+        file_name = args.input
+        with codecs.open(file_name, "r", encoding="utf-8") as fi:
+            datastructure = yaml.load(fi)
+
+    # No input file, so we have to scan
     else:
-        for node_str in all_nodes_strs:
-            scan_once(node_str, group, args.kthreads)
+        group, all_nodes_strs = get_crowbar_config(args.entry)
+        if not args.all:
+            node_str = args.entry
+            datastructure[node_str] = build_data(node_str, group, args)
+        else:
+            for node_str in all_nodes_strs:
+                datastructure[node_str] = build_data(node_str, group, args)
+    # data_structure is now complete
+
+    # Dump data to the output file using yaml
+    if args.output:
+
+        file_name = args.output
+        with codecs.open(file_name, "w", encoding="utf-8") as fi:
+            yaml.dump(datastructure, fi, default_flow_style=False)
+
+    # No output file, so we print to stdout
+    else:
+        if not args.all:
+            collected_data_dict = datastructure[args.entry]
+            print_process_tree(collected_data_dict, args)
+        else:
+            for node_str in all_nodes_strs:
+                collected_data_dict = datastructure[node_str]
+                print_process_tree(collected_data_dict, args)
 
 
 
-def scan_once(node_str, group, kthreads):
+
+
+def build_data(node_str, group, args):
+    collected_data_dict = scan_once(node_str, group, args)
+    pids = collected_data_dict["status"].keys()
+    parents = collected_data_dict["parents"]
+    collected_data_dict["children"] = parents_to_children(pids, parents)
+    return collected_data_dict
+
+
+
+def scan_once(node_str, group, args):
     print("Node:     "+node_str)
     slave  = group.makegateway("via=master//python=python%d//ssh=root@%s" % (sys.version_info.major, node_str))
     python_cmd = "import os; channel.send(os.uname()[1])"
@@ -80,20 +122,13 @@ def scan_once(node_str, group, kthreads):
 
     collected_data_dict = slave.remote_exec(collector).receive()
 
-    pids = collected_data_dict["status"].keys()
-    parents = collected_data_dict["parents"]
-    collected_data_dict["children"] = parents_to_children(pids, parents)
 
-    print("There are %d processes running on this host." % len(pids))
+    print("There are %d processes running on this host." % len(collected_data_dict["status"].keys()))
 
-    print_process_tree(collected_data_dict, kthreads)
+    return collected_data_dict
 
 
-
-
-
-
-def print_process_tree(collected_data_dict, kthreads):
+def print_process_tree(collected_data_dict, args):
 
     # not_printed_pids will be consecutively emptied
     not_printed_pids = collected_data_dict["status"].keys()
@@ -102,7 +137,7 @@ def print_process_tree(collected_data_dict, kthreads):
 
     print_proc_indent(collected_data_dict, not_printed_pids, 1, indention_count, level)
 
-    if kthreads:
+    if args.kthreads:
         print_proc_indent(collected_data_dict, not_printed_pids, 2, indention_count, level)
         assert not not_printed_pids
 
