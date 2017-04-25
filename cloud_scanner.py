@@ -26,10 +26,8 @@ def main():
     if not args.entry:
         exit("Please provide an entry node.")
 
-    if not args.all:
-        master.scan_entry_node(args.entry, args.kthreads)
-    else:
-        master.scan_all(args.entry, args.kthreads)
+    master.scan(args)
+
 
 if __name__ == "__main__":
     main()

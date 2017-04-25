@@ -7,7 +7,6 @@ from __future__ import print_function
 from __future__ import with_statement
 from collections import OrderedDict
 import sys
-import json
 
 # PyPy modules
 import execnet
@@ -60,7 +59,19 @@ def get_crowbar_config(entry_node):
     return (group, all_nodes_strs)
 
 
-def scan_generic(node_str, group, kthreads):
+
+def scan(args):
+    group, all_nodes_strs = get_crowbar_config(args.entry)
+
+    if not args.all:
+        scan_once(args.entry, group, args.kthreads)
+    else:
+        for node_str in all_nodes_strs:
+            scan_once(node_str, group, args.kthreads)
+
+
+
+def scan_once(node_str, group, kthreads):
     print("Node:     "+node_str)
     slave  = group.makegateway("via=master//python=python%d//ssh=root@%s" % (sys.version_info.major, node_str))
     python_cmd = "import os; channel.send(os.uname()[1])"
@@ -78,17 +89,7 @@ def scan_generic(node_str, group, kthreads):
     print_process_tree(collected_data_dict, kthreads)
 
 
-def scan_entry_node(entry_node, kthreads=False):
-    group, all_nodes_strs = get_crowbar_config(entry_node)
 
-    scan_generic(entry_node, group, kthreads)
-
-
-def scan_all(entry_node, kthreads=False):
-    group, all_nodes_strs = get_crowbar_config(entry_node)
-
-    for node_str in all_nodes_strs:
-        scan_generic(node_str, group, kthreads)
 
 
 

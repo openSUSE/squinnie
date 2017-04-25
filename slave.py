@@ -14,7 +14,6 @@ from __future__ import with_statement
 import os
 import re
 from collections import OrderedDict
-import json
 import copy
 
 cap_lambda     = lambda a: int(a, base = 16)
