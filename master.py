@@ -83,6 +83,7 @@ def produce_global_datastructure(args):
                 datastructure[node_str] = build_data(node_str, group, args)
     # data_structure is now complete
 
+
     # Dump data to the output file using yaml
     if args.output:
 
@@ -95,12 +96,8 @@ def produce_global_datastructure(args):
 
     # No output file, so we print to stdout
     else:
-        if not args.all:
-            node_str = args.entry
+        for node_str in datastructure.keys():
             print_process_tree(node_str, datastructure, args)
-        else:
-            for node_str in all_nodes_strs:
-                print_process_tree(node_str, datastructure, args)
 
 
 
@@ -129,6 +126,7 @@ def scan_once(node_str, group, args):
 
 def print_process_tree(node_str, datastructure, args):
 
+    print("Accessing: %s" % node_str)
     collected_data_dict = datastructure[node_str]
     print("Node:     "+node_str)
     print("There are %d processes running on this host." % len(collected_data_dict["status"].keys()))
