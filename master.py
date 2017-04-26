@@ -90,15 +90,17 @@ def produce_global_datastructure(args):
         with codecs.open(file_name, "w", encoding="utf-8") as fi:
             yaml.dump(datastructure, fi, default_flow_style=False)
 
+        print("Saved data to %s" % args.output)
+        print("")
+
     # No output file, so we print to stdout
     else:
         if not args.all:
-            collected_data_dict = datastructure[args.entry]
-            print_process_tree(collected_data_dict, args)
+            node_str = args.entry
+            print_process_tree(node_str, datastructure, args)
         else:
             for node_str in all_nodes_strs:
-                collected_data_dict = datastructure[node_str]
-                print_process_tree(collected_data_dict, args)
+                print_process_tree(node_str, datastructure, args)
 
 
 
@@ -114,21 +116,23 @@ def build_data(node_str, group, args):
 
 
 def scan_once(node_str, group, args):
-    print("Node:     "+node_str)
+
     slave  = group.makegateway("via=master//python=python%d//ssh=root@%s" % (sys.version_info.major, node_str))
-    python_cmd = "import os; channel.send(os.uname()[1])"
-    str_slave = slave.remote_exec(python_cmd).receive()
-    print("Hostname: "+str_slave)
 
     collected_data_dict = slave.remote_exec(collector).receive()
 
 
-    print("There are %d processes running on this host." % len(collected_data_dict["status"].keys()))
+
 
     return collected_data_dict
 
 
-def print_process_tree(collected_data_dict, args):
+def print_process_tree(node_str, datastructure, args):
+
+    collected_data_dict = datastructure[node_str]
+    print("Node:     "+node_str)
+    print("There are %d processes running on this host." % len(collected_data_dict["status"].keys()))
+    print("")
 
     # not_printed_pids will be consecutively emptied
     not_printed_pids = collected_data_dict["status"].keys()
