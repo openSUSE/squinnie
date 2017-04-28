@@ -92,6 +92,7 @@ def produce_global_datastructure(args):
 
 
 def build_data(node_str, group, args):
+    print("Collecting data from %s" % node_str)
     slave  = group.makegateway("via=master//python=python%d//ssh=root@%s" % (sys.version_info.major, node_str))
     collected_data_dict = slave.remote_exec(collector).receive()
 
@@ -135,11 +136,42 @@ def print_process_tree(node_str, datastructure, args):
     if args.kthreads:
         data_table += get_unformatted_table(column_headers, collected_data_dict, 2, indention_count, level)
 
+    uninteresting_values = {
+        "Seccomp":"False",
+        "CapInh":["", "0000000000000000","0000003fffffffff"],
+        "CapAmb":["", "0000000000000000","0000003fffffffff"],
+        "CapPrm":["", "0000000000000000","0000003fffffffff"],
+        "CapEff":["", "0000000000000000","0000003fffffffff"],
+        "CapBnd":["", "0000000000000000","0000003fffffffff"],
+    }
+
+    if not args.verbose:
+        remove_some_values(data_table, uninteresting_values)
 
     print_table_spaces(data_table)
 
     print("")
-    print("")
+
+
+def remove_some_values(data_table, uninteresting_values):
+    for u_column, u_cond_list in uninteresting_values.items():
+        assert u_column in data_table[0]
+
+        number_of_columns = len(data_table[0])
+        u_v_index = data_table[0].index(u_column)
+
+        delete_it = True
+        for row in data_table[1:]: # Skip header row
+            if row[u_v_index] in u_cond_list:
+                row[u_v_index] = ""
+            else:
+                delete_it = False
+
+        if delete_it:
+            for row in data_table:
+                del row[u_v_index]
+
+    return data_table
 
 
 def print_table_spaces(data_table):
@@ -176,8 +208,14 @@ def get_unformatted_table(column_headers, collected_data_dict, pid, indention_co
         result = ""
         if column_name in status_data[pid].keys():
             column_data = status_data[pid][column_name]
-            if column_name[0:3] == "Cap":
-                column_data = '%016x' % column_data
+
+            if column_name == "Uid" or column_name == "Gid":
+                if all_same(column_data):
+                    column_data = column_data[0]
+
+            elif column_name[0:3] == "Cap":
+                    column_data = '%016x' % column_data
+
             elif column_name == "cmdline":
                 column_data = column_data[:40]
             result_str = str(column_data)

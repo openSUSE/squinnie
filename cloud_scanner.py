@@ -20,6 +20,9 @@ def main():
     description = "The output file you want your data to be dumped to."
     parser.add_argument("-o", "--output", type=str, help=description)
 
+    description = "Print more useful information."
+    parser.add_argument("-v", "--verbose", action="store_true", help=description)
+
 
     group = parser.add_mutually_exclusive_group(required=True)
     description = "The input file to view your dumped data from."

@@ -15,6 +15,7 @@ import os
 import re
 from collections import OrderedDict
 import copy
+import codecs
 
 cap_lambda     = lambda a: int(a, base = 16)
 gid_uid_lambda = lambda a: tuple(int(i) for i in a.split("\t"))
@@ -59,7 +60,7 @@ open_file_pointers = {}
 for p in copy.copy(pids):
     try:
         status[p] = {}
-        with open("/proc/%d/status" % p, "r") as fi:
+        with codecs.open("/proc/%d/status" % p, "r", encoding="utf-8") as fi:
             text = fi.read()
             status_field = get_corresponding_regex("PPid")
             ppid_str = re.search(status_field, text, re.MULTILINE).group(1)
@@ -72,7 +73,7 @@ for p in copy.copy(pids):
                 transform = interesting_status_fields[isf_key]
                 status[p][isf_key] = transform(isf_val)
 
-        with open("/proc/%d/cmdline" % p, "r") as fi:
+        with codecs.open("/proc/%d/cmdline" % p, "r", encoding="utf-8") as fi:
             status[p]["cmdline"] = fi.read().replace("\n", "")
 
         open_file_pointers[p] = []
@@ -87,9 +88,23 @@ for p in copy.copy(pids):
         # Remove it from the global list of all processes
         pids.remove(p)
 
+with codecs.open("/etc/passwd", "r", encoding="utf-8") as fi:
+    etcpasswd = fi.readlines()
+
+username_uid_gid = {}
+for line in etcpasswd:
+    line = line.replace("\n", "")
+    regex = "^([a-zA-Z0-9\-]+):x:(\d+):(\d+):.*$"
+    username = re.search(regex, line, re.MULTILINE).group(1)
+    Uid      = re.search(regex, line, re.MULTILINE).group(2)
+    Gid      = re.search(regex, line, re.MULTILINE).group(3)
+
+    username_uid_gid[username] = [Uid, Gid]
+
 result["status" ] = status
 result["parents"] = parents
 result["open_file_pointers"] = open_file_pointers
+result["username_uid_gid"] = username_uid_gid
 
 
 if __name__ == '__channelexec__':
