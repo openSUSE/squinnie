@@ -74,8 +74,6 @@ for p in copy.copy(pids):
 
             status[p] = ppid_val
 
-        # print("%d" % p)
-        # TODO: Now parse file descriptors and add to result
         open_file_pointers[p] = []
         fd_dir = "/proc/%d/fd/" % p
         for fd_str in os.listdir(fd_dir):

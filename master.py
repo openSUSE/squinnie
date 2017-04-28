@@ -31,14 +31,6 @@ def parents_to_children(pids, parents):
 
     return children
 
-def get_cap_str(status_data_pid, cap_str, the_len):
-    current_cap = '%016x' % status_data_pid[cap_str]
-    result = "".join(current_cap.ljust(the_len))
-    if 0 not in status_data_pid["Uid"] and 0 not in status_data_pid["Gid"]:
-        if status_data_pid[cap_str] != 0:
-            result = termcolor.colored(result, 'green', 'on_red')
-    return result
-
 
 def get_crowbar_config(entry_node):
     group = execnet.Group()
@@ -81,8 +73,7 @@ def produce_global_datastructure(args):
         else:
             for node_str in all_nodes_strs:
                 datastructure[node_str] = build_data(node_str, group, args)
-    # data_structure is now complete
-
+    # building the datastructure is now complete
 
     # Dump data to the output file using yaml
     if args.output:
@@ -100,27 +91,13 @@ def produce_global_datastructure(args):
             print_process_tree(node_str, datastructure, args)
 
 
-
-
-
 def build_data(node_str, group, args):
-    collected_data_dict = scan_once(node_str, group, args)
+    slave  = group.makegateway("via=master//python=python%d//ssh=root@%s" % (sys.version_info.major, node_str))
+    collected_data_dict = slave.remote_exec(collector).receive()
+
     pids = collected_data_dict["status"].keys()
     parents = collected_data_dict["parents"]
     collected_data_dict["children"] = parents_to_children(pids, parents)
-    return collected_data_dict
-
-
-
-def scan_once(node_str, group, args):
-
-    slave  = group.makegateway("via=master//python=python%d//ssh=root@%s" % (sys.version_info.major, node_str))
-
-    collected_data_dict = slave.remote_exec(collector).receive()
-
-
-
-
     return collected_data_dict
 
 
@@ -132,22 +109,57 @@ def print_process_tree(node_str, datastructure, args):
     print("There are %d processes running on this host." % len(collected_data_dict["status"].keys()))
     print("")
 
-    # not_printed_pids will be consecutively emptied
-    not_printed_pids = collected_data_dict["status"].keys()
+    column_headers = [
+        "process tree",
+        "Uid",
+        "Gid",
+        "Groups",
+        "Seccomp",
+        "CapInh",
+        "CapPrm",
+        "CapEff",
+        "CapBnd",
+        "CapAmb",
+    ]
+
     indention_count  = 4
     level = 0
 
-    print_proc_indent(collected_data_dict, not_printed_pids, 1, indention_count, level)
+    data_table = []
+
+    data_table.append(column_headers)
+
+    data_table += get_unformatted_table(column_headers, collected_data_dict, 1, indention_count, level)
 
     if args.kthreads:
-        print_proc_indent(collected_data_dict, not_printed_pids, 2, indention_count, level)
-        assert not not_printed_pids
+        data_table += get_unformatted_table(column_headers, collected_data_dict, 2, indention_count, level)
+
+
+    print_table_spaces(data_table)
 
     print("")
     print("")
 
 
-def print_proc_indent(collected_data_dict, not_printed_pids, pid, indention_count, level):
+def print_table_spaces(data_table):
+
+    number_of_columns = len(data_table[0])
+    max_data = []
+    for i in range(number_of_columns):
+        maxchars = 0
+        for row in data_table:
+            chars_count = len(row[i])
+            if chars_count > maxchars:
+                maxchars = chars_count
+        max_data.append(maxchars)
+
+    for row in data_table:
+        for i in range(number_of_columns):
+            print(row[i].ljust(max_data[i]), end=" ")
+        print("")
+
+
+def get_unformatted_table(column_headers, collected_data_dict, pid, indention_count, level):
     """
     Recursive function
     """
@@ -157,45 +169,26 @@ def print_proc_indent(collected_data_dict, not_printed_pids, pid, indention_coun
     open_file_pointers = collected_data_dict["open_file_pointers"]
 
     indenter = indention_count * " "
-    result_line = ""
 
-    str_proc = indenter * level + "+---" + str(pid)
-    result_line += "".join(str_proc.ljust(30))
+    self_row = []
+    for column_name in column_headers:
+        result = ""
+        if column_name in status_data[pid].keys():
+            column_data = status_data[pid][column_name]
+            if column_name[0:3] == "Cap":
+                column_data = '%016x' % column_data
+            result_str = str(column_data)
 
-    str_fp = str(len(open_file_pointers[pid]))
-    str_fp = "".join(str_fp.ljust(3))
-    result_line += str_fp
+        elif column_name == "process tree":
+            result_str = indenter * level + "+---" + str(pid)
 
-    str_Uid = str(status_data[pid]["Uid"])
-    str_Uid = "".join(str_Uid.ljust(25))
-    if not all_same(status_data[pid]["Uid"]):
-        str_Uid = termcolor.colored(str_Uid, 'green', 'on_red')
-    result_line += str_Uid
+        self_row.append(result_str)
 
-    str_Gid = str(status_data[pid]["Gid"])
-    str_Gid = "".join(str_Gid.ljust(28))
-    if not all_same(status_data[pid]["Gid"]):
-        str_Gid = termcolor.colored(str_Gid, 'green', 'on_red')
-    result_line += str_Gid
+    # self_row is now complete !
 
-    str_Groups = str(status_data[pid]["Groups"])
-    result_line += "".join(str_Groups.ljust(15))
+    children_rows = []
 
-    str_Seccomp = str(status_data[pid]["Seccomp"])
-    str_Seccomp = "".join(str_Seccomp.ljust(6))
-    if status_data[pid]["Seccomp"]:
-        str_Seccomp = termcolor.colored(str_Seccomp, 'green', 'on_red')
-    result_line += str_Seccomp
-
-    result_line += get_cap_str(status_data[pid], "CapInh", 17)
-    result_line += get_cap_str(status_data[pid], "CapPrm", 17)
-    result_line += get_cap_str(status_data[pid], "CapEff", 17)
-    result_line += get_cap_str(status_data[pid], "CapBnd", 17)
-    result_line += get_cap_str(status_data[pid], "CapAmb", 17)
-
-    print(result_line)
-    not_printed_pids.remove(pid)
-
-    if pid in children_data.keys():
-        for c in sorted(children_data[pid]):
-            print_proc_indent(collected_data_dict, not_printed_pids, c, indention_count, level+1)
+    if pid in children_data.keys(): # if current pid has children
+        for child_pid in sorted(children_data[pid]):
+            children_rows += get_unformatted_table(column_headers, collected_data_dict, child_pid, indention_count, level+1)
+    return [self_row] + children_rows
