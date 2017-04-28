@@ -58,6 +58,7 @@ open_file_pointers = {}
 
 for p in copy.copy(pids):
     try:
+        status[p] = {}
         with open("/proc/%d/status" % p, "r") as fi:
             text = fi.read()
             status_field = get_corresponding_regex("PPid")
@@ -65,14 +66,14 @@ for p in copy.copy(pids):
             ppid = int(ppid_str)
             parents[p] = ppid
 
-            ppid_val = {}
             for isf_key in interesting_status_fields.keys():
                 status_field = get_corresponding_regex(isf_key)
                 isf_val = re.search(status_field, text, re.MULTILINE).group(1)
                 transform = interesting_status_fields[isf_key]
-                ppid_val[isf_key] = transform(isf_val)
+                status[p][isf_key] = transform(isf_val)
 
-            status[p] = ppid_val
+        with open("/proc/%d/cmdline" % p, "r") as fi:
+            status[p]["cmdline"] = fi.read().replace("\n", "")
 
         open_file_pointers[p] = []
         fd_dir = "/proc/%d/fd/" % p

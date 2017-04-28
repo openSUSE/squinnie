@@ -120,6 +120,7 @@ def print_process_tree(node_str, datastructure, args):
         "CapEff",
         "CapBnd",
         "CapAmb",
+        "cmdline",
     ]
 
     indention_count  = 4
@@ -177,6 +178,8 @@ def get_unformatted_table(column_headers, collected_data_dict, pid, indention_co
             column_data = status_data[pid][column_name]
             if column_name[0:3] == "Cap":
                 column_data = '%016x' % column_data
+            elif column_name == "cmdline":
+                column_data = column_data[:40]
             result_str = str(column_data)
 
         elif column_name == "process tree":
