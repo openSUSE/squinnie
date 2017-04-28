@@ -32,6 +32,28 @@ def parents_to_children(pids, parents):
     return children
 
 
+def username_to_uid(usernames):
+    return username_to_xid(usernames, "Uid")
+
+def username_to_gid(usernames):
+    return username_to_xid(usernames, "Gid")
+
+
+def username_to_xid(usernames, mode):
+    if mode == "Uid":
+        mode_index = 0
+    elif mode == "Gid":
+        mode_index = 1
+    else:
+        exit("Error: Not implemented.")
+
+    xid_data = {}
+    for uname in usernames:
+        current_xid = usernames[uname][mode_index]
+        xid_data.setdefault(current_xid,[]).append(uname)
+
+    return xid_data
+
 def get_crowbar_config(entry_node):
     group = execnet.Group()
     master = group.makegateway("id=master//python=python%d//ssh=root@%s" % (sys.version_info.major, entry_node))
@@ -91,6 +113,8 @@ def produce_global_datastructure(args):
             print_process_tree(node_str, datastructure, args)
 
 
+
+
 def build_data(node_str, group, args):
     print("Collecting data from %s" % node_str)
     slave  = group.makegateway("via=master//python=python%d//ssh=root@%s" % (sys.version_info.major, node_str))
@@ -99,6 +123,11 @@ def build_data(node_str, group, args):
     pids = collected_data_dict["status"].keys()
     parents = collected_data_dict["parents"]
     collected_data_dict["children"] = parents_to_children(pids, parents)
+
+    name_uidgid = collected_data_dict["name_uidgid"]
+    collected_data_dict["uid_name"] = username_to_uid(name_uidgid)
+    collected_data_dict["gid_name"] = username_to_gid(name_uidgid)
+
     return collected_data_dict
 
 
@@ -114,6 +143,7 @@ def print_process_tree(node_str, datastructure, args):
         "process tree",
         "Uid",
         "Gid",
+        "username",
         "Groups",
         "Seccomp",
         "CapInh",
@@ -137,12 +167,12 @@ def print_process_tree(node_str, datastructure, args):
         data_table += get_unformatted_table(column_headers, collected_data_dict, 2, indention_count, level)
 
     uninteresting_values = {
-        "Seccomp":"False",
-        "CapInh":["", "0000000000000000","0000003fffffffff"],
-        "CapAmb":["", "0000000000000000","0000003fffffffff"],
-        "CapPrm":["", "0000000000000000","0000003fffffffff"],
-        "CapEff":["", "0000000000000000","0000003fffffffff"],
-        "CapBnd":["", "0000000000000000","0000003fffffffff"],
+        "Seccomp":["False"],
+        "CapInh" :["", "0000000000000000","0000003fffffffff"],
+        "CapAmb" :["", "0000000000000000","0000003fffffffff"],
+        "CapPrm" :["", "0000000000000000","0000003fffffffff"],
+        "CapEff" :["", "0000000000000000","0000003fffffffff"],
+        "CapBnd" :["", "0000000000000000","0000003fffffffff"],
     }
 
     if not args.verbose:
@@ -201,27 +231,35 @@ def get_unformatted_table(column_headers, collected_data_dict, pid, indention_co
     status_data      = collected_data_dict["status"]
     open_file_pointers = collected_data_dict["open_file_pointers"]
 
+    name_uidgid = collected_data_dict["name_uidgid"]
+    uid_name = collected_data_dict["uid_name"]
+    gid_name = collected_data_dict["gid_name"]
+
     indenter = indention_count * " "
 
     self_row = []
     for column_name in column_headers:
-        result = ""
+        result_str = ""
+        column_data = ""
         if column_name in status_data[pid].keys():
             column_data = status_data[pid][column_name]
 
             if column_name == "Uid" or column_name == "Gid":
                 if all_same(column_data):
                     column_data = column_data[0]
-
             elif column_name[0:3] == "Cap":
-                    column_data = '%016x' % column_data
-
+                column_data = '%016x' % column_data
             elif column_name == "cmdline":
                 column_data = column_data[:40]
+
             result_str = str(column_data)
 
         elif column_name == "process tree":
             result_str = indenter * level + "+---" + str(pid)
+        elif column_name == "username":
+            pid_uid = status_data[pid]["Uid"][0]
+            unames = uid_name[pid_uid]
+            result_str = "|".join(unames)
 
         self_row.append(result_str)
 

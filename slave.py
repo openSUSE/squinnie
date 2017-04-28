@@ -91,20 +91,20 @@ for p in copy.copy(pids):
 with codecs.open("/etc/passwd", "r", encoding="utf-8") as fi:
     etcpasswd = fi.readlines()
 
-username_uid_gid = {}
+name_uidgid = {}
 for line in etcpasswd:
     line = line.replace("\n", "")
     regex = "^([a-zA-Z0-9\-]+):x:(\d+):(\d+):.*$"
-    username = re.search(regex, line, re.MULTILINE).group(1)
-    Uid      = re.search(regex, line, re.MULTILINE).group(2)
-    Gid      = re.search(regex, line, re.MULTILINE).group(3)
+    username = str(re.search(regex, line, re.MULTILINE).group(1))
+    Uid      = int(re.search(regex, line, re.MULTILINE).group(2))
+    Gid      = int(re.search(regex, line, re.MULTILINE).group(3))
 
-    username_uid_gid[username] = [Uid, Gid]
+    name_uidgid[username] = [Uid, Gid]
 
 result["status" ] = status
 result["parents"] = parents
 result["open_file_pointers"] = open_file_pointers
-result["username_uid_gid"] = username_uid_gid
+result["name_uidgid"] = name_uidgid
 
 
 if __name__ == '__channelexec__':
