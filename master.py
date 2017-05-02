@@ -51,11 +51,20 @@ def produce_global_datastructure(args):
 
     # No output file, so we print to stdout
     else:
-        for node_str in datastructure.keys():
+
+        if args.node:
+            nodes_to_print = [args.node]
+        else:
+            nodes_to_print = datastructure.keys()
+
+        for node_str in nodes_to_print:
             print("")
-            print("")
+            try:
+                collected_data_dict = datastructure[node_str]
+            except:
+                exit("Sorry, but there seems to be no node with the name '%s'.\nExiting now.\n" % node_str)
+
             print("Accessing: %s" % node_str)
-            collected_data_dict = datastructure[node_str]
             print("There are %d processes running on this host." % len(collected_data_dict["status"].keys()))
             print("")
             print_process_tree(collected_data_dict, args)
@@ -131,10 +140,13 @@ def username_to_xid(usernames, mode):
 def parents_to_children(pids, parents):
     children = {}
     for p in pids:
-        the_parent = parents[p]
-        if not the_parent in children.keys():
-            children[the_parent] = []
-        children[the_parent].append(p)
+        if p in parents.keys():
+            the_parent = parents[p]
+            if not the_parent in children.keys():
+                children[the_parent] = []
+            children[the_parent].append(p)
+        else:
+            continue
 
     return children
 
@@ -331,7 +343,10 @@ def convert_table_compact(data_table):
         if all_same(data_row[indices["Gid"]]):
             str_row[indices["Gid"]] = data_row[indices["Gid"]][0]
 
-        str_row[indices["cmdline"]] = data_row[indices["cmdline"]][:40]
+        str_row[indices["cmdline"]] = data_row[indices["cmdline"]]
+        cmdline_len = 60
+        if len(data_row[indices["cmdline"]]) > cmdline_len:
+            str_row[indices["cmdline"]] = str_row[indices["cmdline"]][:cmdline_len - 3] + "..."
 
         for c in used_caps:
             if str_row[indices[c]] != "":
