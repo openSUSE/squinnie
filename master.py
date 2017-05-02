@@ -51,23 +51,29 @@ def produce_global_datastructure(args):
 
     # No output file, so we print to stdout
     else:
+        nodes_to_print = datastructure.keys()
 
-        if args.node:
+        if args.list:
+            print("\nThe following nodes are known by crowbar:\n")
+            for node in nodes_to_print:
+                print("- %s" % node)
+            print("\nYou may wish to print all of them using -a/--all or only one using -n/--node.\n")
+
+        elif args.node:
             nodes_to_print = [args.node]
-        else:
-            nodes_to_print = datastructure.keys()
 
-        for node_str in nodes_to_print:
-            print("")
-            try:
-                collected_data_dict = datastructure[node_str]
-            except:
-                exit("Sorry, but there seems to be no node with the name '%s'.\nExiting now.\n" % node_str)
 
-            print("Accessing: %s" % node_str)
-            print("There are %d processes running on this host." % len(collected_data_dict["status"].keys()))
-            print("")
-            print_process_tree(collected_data_dict, args)
+            for node_str in nodes_to_print:
+                print("")
+                try:
+                    collected_data_dict = datastructure[node_str]
+                except:
+                    exit("Sorry, but there seems to be no node with the name '%s'.\nExiting now.\n" % node_str)
+
+                print("Accessing: %s" % node_str)
+                print("There are %d processes running on this host." % len(collected_data_dict["status"].keys()))
+                print("")
+                print_process_tree(collected_data_dict, args)
 
 
 
@@ -174,10 +180,26 @@ def print_process_tree(collected_data_dict, args):
 
     data_table = []
 
+
     data_table.append(column_headers)
-    data_table += get_unformatted_table(column_headers, collected_data_dict, 1, indention_count, level)
-    if args.kthreads:
-        data_table += get_unformatted_table(column_headers, collected_data_dict, 2, indention_count, level)
+
+    # Standard behaviour
+    if not args.pid:
+        data_table += get_unformatted_table(column_headers, collected_data_dict, 1, indention_count, level, True)
+        if args.kthreads:
+            data_table += get_unformatted_table(column_headers, collected_data_dict, 2, indention_count, level, True)
+    # In case user wants to examine a process
+    else:
+        single_pid = int(args.pid)
+        if args.parent:
+            single_pid = collected_data_dict["parents"][single_pid]
+
+        if not single_pid in collected_data_dict["status"]:
+            exit("There is no process that has pid %d on this node.\n" % single_pid)
+
+        recursive = args.children
+        data_table += get_unformatted_table(column_headers, collected_data_dict, single_pid, indention_count, level, recursive)
+
 
     uninteresting_values = {
         "Seccomp":[False],
@@ -204,7 +226,7 @@ def print_process_tree(collected_data_dict, args):
 
 
 
-def get_unformatted_table(column_headers, collected_data_dict, pid, indention_count, level):
+def get_unformatted_table(column_headers, collected_data_dict, pid, indention_count, level, recursive):
     """
     Recursive function
     """
@@ -241,10 +263,11 @@ def get_unformatted_table(column_headers, collected_data_dict, pid, indention_co
     # self_row is now complete !
 
     children_rows = []
-
-    if pid in children_data.keys(): # if current pid has children
+    # if current pid has children and unless the user does not explicitly want them printed
+    if recursive and pid in children_data.keys():
         for child_pid in sorted(children_data[pid]):
-            children_rows += get_unformatted_table(column_headers, collected_data_dict, child_pid, indention_count, level+1)
+            children_rows += get_unformatted_table(column_headers, collected_data_dict, child_pid, indention_count, level+1, recursive)
+
     return [self_row] + children_rows
 
 
@@ -344,7 +367,7 @@ def convert_table_compact(data_table):
             str_row[indices["Gid"]] = data_row[indices["Gid"]][0]
 
         str_row[indices["cmdline"]] = data_row[indices["cmdline"]]
-        cmdline_len = 60
+        cmdline_len = 35
         if len(data_row[indices["cmdline"]]) > cmdline_len:
             str_row[indices["cmdline"]] = str_row[indices["cmdline"]][:cmdline_len - 3] + "..."
 

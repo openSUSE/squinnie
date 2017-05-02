@@ -30,16 +30,30 @@ def main():
     description = "Include kernel threads. Kernel threads are excluded by default."
     parser.add_argument("-k", "--kthreads", action="store_true", help=description)
 
+    description = "List all hosts known by crowbar."
+    parser.add_argument("-l", "--list", action="store_true", help=description)
+
     description = "Print more useful information."
     parser.add_argument("-v", "--verbose", action="store_true", help=description)
 
-    description = "Only show results of the specified node."
+    description = "Filter so that only data from the given node is printed."
     parser.add_argument("-n", "--node", type=str, help=description)
 
+    description = "Filter so that only data from the given pid is printed."
+    parser.add_argument("-p", "--pid", type=str, help=description)
+
+    description = "Also print all the children of the process given by -p/--pid."
+    parser.add_argument("--children", action="store_true", help=description)
+
+    description = "Print the parent of the process given by -p/--pid and all its children."
+    parser.add_argument("--parent", action="store_true", help=description)
 
 
 
     args = parser.parse_args()
+
+    if not args.node and args.pid:
+        exit("To use -p/--pid, you have to use -n/--node.")
 
     if args.output and args.input:
         exit("You cannot combine -i/--input and -o/--output.")
