@@ -11,9 +11,9 @@ Linux gets shipped with Python 3 by default.
 # Standard library modules.
 from __future__ import print_function
 from __future__ import with_statement
+from collections import OrderedDict
 import os
 import re
-from collections import OrderedDict
 import copy
 import codecs
 
