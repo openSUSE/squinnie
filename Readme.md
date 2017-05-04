@@ -5,3 +5,12 @@ This is a simple test suite for automating the analysis of the SUSE OpenStack Cl
 ## Installation
 
 The requirements for this project can be found in `requirements.txt`.
+
+## Usage
+
+```
+$ ./dump_crowbar_network.py -e <crowbar-entry-node> -o data/network.json
+$ ./update_cap_data.py -o data/cap_data.json
+$ ./dump_node_data.py -i data/network.json -o data/
+$ ./view_node_data.py -i data/crowbar-c9-cloud-suse-de.yml
+```

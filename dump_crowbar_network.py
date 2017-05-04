@@ -39,6 +39,7 @@ def dump_crowbar_to_file(args):
     file_name = args.output
     with codecs.open(file_name, "w", encoding="utf-8") as fi:
         json.dump(network_tree, fi, indent=4, sort_keys=True)
+        print("Wrote to network configuration to %s\n" % file_name)
 
 
 

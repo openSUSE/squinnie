@@ -21,13 +21,16 @@ def main():
 
     args = parser.parse_args()
 
-    file_name = args.input
-    with codecs.open(file_name, "r", encoding="utf-8") as fi:
-        datastructure = yaml.load(fi)
-    assert len(datastructure.keys()) == 1
+    enrich_if_necessary(node_str, collected_data_dict, args.input)
 
-    node_str = datastructure.keys()[0]
-    collected_data_dict = datastructure[node_str]
+
+
+def enrich_if_necessary(file_name):
+
+    (node_str, collected_data_dict) = read_data(file_name)
+
+    if is_enriched(collected_data_dict):
+        return
 
     pids = collected_data_dict["status"].keys()
     parents = collected_data_dict["parents"]
@@ -39,6 +42,29 @@ def main():
 
     with codecs.open(file_name, "w", encoding="utf-8") as fi:
         yaml.dump({node_str:collected_data_dict}, fi, default_flow_style=False)
+
+
+
+def read_data(file_name):
+    with codecs.open(file_name, "r", encoding="utf-8") as fi:
+        datastructure = yaml.load(fi)
+    assert len(datastructure.keys()) == 1
+
+    node_str = datastructure.keys()[0]
+    collected_data_dict = datastructure[node_str]
+
+    return (node_str, collected_data_dict)
+
+
+
+def is_enriched(collected_data_dict):
+    enriched_keys = ["children","uid_name","gid_name"]
+
+    for key in enriched_keys:
+        if key not in collected_data_dict.keys():
+            return False
+
+    return True
 
 
 

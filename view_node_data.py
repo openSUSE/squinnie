@@ -16,6 +16,7 @@ from terminaltables import AsciiTable
 
 # Local modules.
 import cap_bitstring_name
+import enrich_node_data
 
 
 
@@ -55,13 +56,20 @@ def main():
 
 def view_data(args):
 
-    with codecs.open(args.input, "r", encoding="utf-8") as fi:
+    file_name = args.input
+
+    enrich_node_data.enrich_if_necessary(file_name)
+
+    with codecs.open(file_name, "r", encoding="utf-8") as fi:
         datastructure = yaml.load(fi)
     assert len(datastructure.keys()) == 1
 
     node_str = datastructure.keys()[0]
 
     collected_data_dict = datastructure[node_str]
+
+
+
 
     print("There are %d processes running on this host." % len(collected_data_dict["status"].keys()))
     print("")
