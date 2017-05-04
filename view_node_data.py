@@ -10,6 +10,7 @@ import copy
 
 # PyPy modules
 import yaml
+import termcolor
 from terminaltables import AsciiTable
 
 
@@ -121,7 +122,7 @@ def print_process_tree(collected_data_dict, args):
 
     # str_table = convert_table_spaces(str_table)
 
-    # str_table = convert_table_color(data_table, str_table)
+    str_table = convert_table_color(data_table, str_table)
 
     # cap_table = get_cap_table(data_table)
     # cap_table = {}
@@ -315,6 +316,64 @@ def get_index(data_table, column):
 # http://stackoverflow.com/questions/3787908/python-determine-if-all-items-of-a-list-are-the-same-item
 def all_same(items):
     return all(x == items[0] for x in items)
+
+
+
+def convert_table_color(data_table, str_table):
+    """
+    Note: The information in data_table and str_table is identical,
+    except that the values inside str_table are padded with spaces.
+
+    This function will color the data in str_table based on the data values
+    in data_table.
+    """
+
+    columns = [
+    "Uid",
+    "Gid",
+    "Seccomp",
+    "CapInh",
+    "CapAmb",
+    "CapPrm",
+    "CapEff",
+    "CapBnd",
+    ]
+
+    indices = {}
+    for c in columns:
+        indices[c] = get_index(data_table, c)
+
+    used_columns = [column for column,index in indices.items() if index != None]
+
+    used_caps = [item for item in used_columns if item[0:3] == "Cap"]
+
+    for (data_row, str_row) in zip(data_table[1:], str_table[1:]): # Use table with padded values here
+
+        # processes running as non-root and non-suid, but that have certain capabilities set
+        if indices["Uid"] and indices["Gid"]:
+            # if none of uid or gid is 0
+            if 0 == ( data_row[indices["Uid"]].count(0) + data_row[indices["Gid"]].count(0) ):
+
+                for c in used_caps:
+                    # if cap is set
+                    if data_row[indices[c]] != 0:
+                        str_row[indices[c]] = termcolor.colored(str_row[indices[c]], "red")
+                        # print("CALL: color_it complex")
+
+        # processes whose real/effective uid/gid are different
+        if indices["Uid"] and not all_same(data_row[indices["Uid"]]):
+            str_row[indices["Uid"]] = termcolor.colored(str_row[indices["Uid"]], "red")
+            # print("CALL: color_it uid")
+        if indices["Gid"] and not all_same(data_row[indices["Gid"]]):
+            str_row[indices["Gid"]] = termcolor.colored(str_row[indices["Gid"]], "red")
+            # print("CALL: color_it gid")
+
+        # processes having seccomp activated
+        if indices["Seccomp"] and data_row[indices["Seccomp"]] == True:
+            str_row[indices["Seccomp"]] = termcolor.colored(str_row[indices["Seccomp"]], "red")
+            # print("CALL: color_it seccomp")
+
+    return str_table
 
 
 
