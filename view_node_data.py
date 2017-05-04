@@ -13,6 +13,9 @@ import yaml
 import termcolor
 from terminaltables import AsciiTable
 
+# Local modules.
+import cap_bitstring_name
+
 
 
 def main():
@@ -30,6 +33,9 @@ def main():
 
     description = "Print more detailed information."
     parser.add_argument("-v", "--verbose", action="store_true", help=description)
+
+    description = "Show capabilities as string names rather than bitstrings."
+    parser.add_argument("--cap", action="store_true", help=description)
 
     description = "Also print all the children of the process given by -p/--pid."
     parser.add_argument("--children", action="store_true", help=description)
@@ -118,7 +124,7 @@ def print_process_tree(collected_data_dict, args):
         data_table = remove_blank_columns(data_table)
         data_table = remove_columns(data_table, ["CapAmb", "CapBnd"])
 
-    str_table = convert_table_compact(data_table)
+    str_table = convert_table_compact(data_table, args.cap)
 
     # str_table = convert_table_spaces(str_table)
 
@@ -259,7 +265,7 @@ def remove_blank_columns(data_table):
 
 
 
-def convert_table_compact(data_table):
+def convert_table_compact(data_table, show_capabilities):
 
     columns = [
         "Uid",
@@ -299,7 +305,15 @@ def convert_table_compact(data_table):
 
         for c in used_caps:
             if str_row[indices[c]] != "":
-                str_row[indices[c]] = "%016x" % data_row[indices[c]]
+                cap_num = data_row[indices[c]]
+
+                if show_capabilities:
+                    cap_data = cap_bitstring_name.get_cap_data("data/cap_data.json")
+                    cap_names = cap_bitstring_name.get_cap_strings(cap_data, cap_num)
+
+                    str_row[indices[c]] = "\n".join(cap_names)
+                else:
+                    str_row[indices[c]] = "%016x" % cap_num
 
     return str_table
 
