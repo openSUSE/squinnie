@@ -7,6 +7,7 @@ import codecs
 import sys
 import argparse
 import copy
+import re
 
 # PyPy modules
 import yaml
@@ -28,7 +29,7 @@ def main():
     description = "Include kernel threads. Kernel threads are excluded by default."
     parser.add_argument("-k", "--kthreads", action="store_true", help=description)
 
-    description = "Filter so that only data from the given pid is printed."
+    description = "Only show data that belongs to the provided pid."
     parser.add_argument("-p", "--pid", type=str, help=description)
 
     description = "Print more detailed information."
@@ -37,10 +38,13 @@ def main():
     description = "Show capabilities as string names rather than bitstrings."
     parser.add_argument("--cap", action="store_true", help=description)
 
-    description = "Also print all the children of the process given by -p/--pid."
+    description = "Show detailed information on all open file descriptors."
+    parser.add_argument("--fd", action="store_true", help=description)
+
+    description = "Also print all the children of the process provided by -p/--pid."
     parser.add_argument("--children", action="store_true", help=description)
 
-    description = "Print the parent of the process given by -p/--pid."
+    description = "Print the parent of the process provided by -p/--pid."
     parser.add_argument("--parent", action="store_true", help=description)
 
     args = parser.parse_args()
@@ -73,6 +77,7 @@ def print_process_tree(collected_data_dict, args):
         "Uid",
         "Gid",
         "Groups",
+        "open_fd_count",
         "Seccomp",
         "CapInh",
         "CapPrm",
@@ -124,7 +129,7 @@ def print_process_tree(collected_data_dict, args):
         data_table = remove_blank_columns(data_table)
         data_table = remove_columns(data_table, ["CapAmb", "CapBnd"])
 
-    str_table = convert_table_compact(data_table, args.cap)
+    str_table = convert_table_compact(data_table, args.cap, args.fd)
 
     # str_table = convert_table_spaces(str_table)
 
@@ -175,6 +180,8 @@ def get_unformatted_table(column_headers, collected_data_dict, pid, indention_co
     status_data   = collected_data_dict["status"]
     open_file_pointers = collected_data_dict["open_file_pointers"]
 
+    # import pdb; pdb.set_trace()
+
     name_uidgid = collected_data_dict["name_uidgid"]
     gid_name = collected_data_dict["gid_name"]
 
@@ -184,11 +191,16 @@ def get_unformatted_table(column_headers, collected_data_dict, pid, indention_co
     for column_name in column_headers:
         result_str = ""
         column_data = ""
-        if column_name == "pid":
+
+        if column_name in status_data[pid].keys():
+            result_str = status_data[pid][column_name]
+
+        elif column_name == "open_fd_count":
+            result_str = open_file_pointers[pid]
+
+        elif column_name == "pid":
             # result_str = pid
             result_str = indenter * level + "+---" + str(pid)
-        elif column_name in status_data[pid].keys():
-            result_str = status_data[pid][column_name]
 
         elif column_name == "username":
             unames = []
@@ -197,6 +209,7 @@ def get_unformatted_table(column_headers, collected_data_dict, pid, indention_co
                     unames.append(name)
                 unames = list(set(unames))
             result_str = "|".join(unames)
+
         self_row.append(result_str)
 
     # self_row is now complete !
@@ -265,12 +278,13 @@ def remove_blank_columns(data_table):
 
 
 
-def convert_table_compact(data_table, show_capabilities):
+def convert_table_compact(data_table, expand_capabilities, expand_fds):
 
     columns = [
         "Uid",
         "Gid",
         "cmdline",
+        "open_fd_count",
         "CapInh",
         "CapPrm",
         "CapEff",
@@ -284,12 +298,51 @@ def convert_table_compact(data_table, show_capabilities):
     for c in columns:
         indices[c] = get_index(data_table, c)
 
+    # import pdb; pdb.set_trace()
+
     used_columns = [column for column,index in indices.items() if index != None]
     used_caps = [item for item in used_columns if item[0:3] == "Cap"]
 
     str_table = copy.deepcopy(data_table)
 
     for (data_row, str_row) in zip(data_table[1:], str_table[1:]):
+
+        if expand_fds:
+
+            max_len = 40
+
+            temp_list = []
+            for file_descriptor in data_row[indices["open_fd_count"]]:
+                fd_tmp = file_descriptor
+
+                # Convert fds to more easy-to-read strings
+                regex = re.compile("^\/proc\/(\d+)\/fd\/(pipe|socket):\[(\d+)\]$")
+                match = re.match(regex, file_descriptor)
+
+                if match:
+                    the_pid   = re.match(regex, file_descriptor).group(1)
+                    the_type  = re.match(regex, file_descriptor).group(2)
+                    the_value = re.match(regex, file_descriptor).group(3)
+
+                    if the_type == "pipe":
+                        fd_tmp = "[pipe to proc %s]" % the_value
+                    elif the_type == "socket":
+                        fd_tmp = "[socket listening on port %s]" % the_value
+                    else:
+                        assert False
+
+                # import pdb; pdb.set_trace()
+
+
+                if len(fd_tmp) > max_len:
+                    fd_tmp = fd_tmp[:max_len] + "..."
+
+                temp_list.append(fd_tmp)
+
+
+            str_row[indices["open_fd_count"]] = "\n".join(temp_list)
+        else:
+            str_row[indices["open_fd_count"]] = len(data_row[indices["open_fd_count"]])
 
         # If all uids are equal, only show one for compact view
         if all_same(data_row[indices["Uid"]]):
@@ -307,7 +360,7 @@ def convert_table_compact(data_table, show_capabilities):
             if str_row[indices[c]] != "":
                 cap_num = data_row[indices[c]]
 
-                if show_capabilities:
+                if expand_capabilities:
                     cap_data = cap_bitstring_name.get_cap_data("data/cap_data.json")
                     cap_names = cap_bitstring_name.get_cap_strings(cap_data, cap_num)
 
