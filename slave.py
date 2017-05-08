@@ -55,7 +55,7 @@ for pid_str in os.listdir("/proc"):
 
 parents = {}
 status = {}
-open_file_pointers = {}
+open_file_descriptors = {}
 
 for p in copy.copy(pids):
     try:
@@ -76,12 +76,34 @@ for p in copy.copy(pids):
         with codecs.open("/proc/%d/cmdline" % p, "r", encoding="utf-8") as fi:
             status[p]["cmdline"] = fi.read().replace("\n", "")
 
-        open_file_pointers[p] = []
+        open_file_descriptors[p] = {}
         fd_dir = "/proc/%d/fd/" % p
         for fd_str in os.listdir(fd_dir):
 
-            resolved_symlink_name = os.path.realpath(fd_dir + fd_str)
-            open_file_pointers[p].append(resolved_symlink_name)
+            file_path_name = fd_dir + fd_str
+            resolved_symlink_name = os.path.realpath(file_path_name)
+
+            fd_identity_uid = os.stat(file_path_name).st_uid
+            fd_identity_gid = os.stat(file_path_name).st_gid
+            fd_perm_all     = os.stat(file_path_name).st_mode & 0777
+
+            fd_data = {
+                "file_identity": {
+                    "Uid": fd_identity_uid,
+                    "Gid": fd_identity_gid,
+                },
+
+                "file_perm"    : {
+                    "Uid"  : (fd_perm_all & 0b111000000) >> 6,
+                    "Gid"  : (fd_perm_all & 0b000111000) >> 3,
+                    "other":  fd_perm_all & 0b000000111,
+                }
+            }
+
+            # import pdb; pdb.set_trace()
+
+
+            open_file_descriptors[p][resolved_symlink_name] = fd_data
 
     except EnvironmentError:
         # The process does not exist anymore
@@ -103,7 +125,7 @@ for line in etcpasswd:
 
 result["status" ] = status
 result["parents"] = parents
-result["open_file_pointers"] = open_file_pointers
+result["open_file_descriptors"] = open_file_descriptors
 result["name_uidgid"] = name_uidgid
 
 

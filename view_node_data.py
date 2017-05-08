@@ -8,15 +8,17 @@ import sys
 import argparse
 import copy
 import re
+import os
 
 # PyPy modules
 import yaml
 import termcolor
-from terminaltables import AsciiTable
+from terminaltables import SingleTable
 
 # Local modules.
 import cap_bitstring_name
 import enrich_node_data
+import file_permissions
 
 
 
@@ -141,16 +143,20 @@ def print_process_tree(collected_data_dict, args):
 
     # str_table = convert_table_spaces(str_table)
 
-    str_table = convert_table_color(data_table, str_table)
+    str_table = convert_table_color(data_table, str_table, args.fd)
 
     # cap_table = get_cap_table(data_table)
     # cap_table = {}
 
     # print_table(str_table, cap_table)
 
-    table = AsciiTable(str_table)
-    table.inner_column_border = False
+    table = SingleTable(str_table)
+    # table.inner_column_border = False
     table.outer_border = False
+
+    # maximum window width
+    rows, columns = os.popen('stty size', 'r').read().split()
+
     print(table.table)
 
 
@@ -170,8 +176,6 @@ def remove_columns(data_table, columns_to_remove):
 
         column_index = indices[column]
 
-        # import pdb; pdb.set_trace()
-
         for row in data_table:
             del row[column_index]
 
@@ -186,9 +190,7 @@ def get_unformatted_table(column_headers, collected_data_dict, pid, indention_co
 
     children_data = collected_data_dict["children"]
     status_data   = collected_data_dict["status"]
-    open_file_pointers = collected_data_dict["open_file_pointers"]
-
-    # import pdb; pdb.set_trace()
+    open_file_descriptors = collected_data_dict["open_file_descriptors"]
 
     name_uidgid = collected_data_dict["name_uidgid"]
     gid_name = collected_data_dict["gid_name"]
@@ -204,7 +206,7 @@ def get_unformatted_table(column_headers, collected_data_dict, pid, indention_co
             result_str = status_data[pid][column_name]
 
         elif column_name == "open_fd_count":
-            result_str = open_file_pointers[pid]
+            result_str = open_file_descriptors[pid]
 
         elif column_name == "pid":
             # result_str = pid
@@ -306,8 +308,6 @@ def convert_table_compact(data_table, expand_capabilities, expand_fds):
     for c in columns:
         indices[c] = get_index(data_table, c)
 
-    # import pdb; pdb.set_trace()
-
     used_columns = [column for column,index in indices.items() if index != None]
     used_caps = [item for item in used_columns if item[0:3] == "Cap"]
 
@@ -317,40 +317,44 @@ def convert_table_compact(data_table, expand_capabilities, expand_fds):
 
         if expand_fds:
 
-            max_len = 40
+            max_len = 60
 
             temp_list = []
-            for file_descriptor in data_row[indices["open_fd_count"]]:
-                fd_tmp = file_descriptor
+            for file_descriptor in data_row[indices["open_fd_count"]].keys():
 
-                # Convert fds to more easy-to-read strings
-                regex = re.compile("^\/proc\/(\d+)\/fd\/(pipe|socket):\[(\d+)\]$")
-                match = re.match(regex, file_descriptor)
+                # fd_tmp = file_descriptor
+                #
+                # # Convert fds to more easy-to-read strings
+                # regex = re.compile("^\/proc\/(\d+)\/fd\/(pipe|socket):\[(\d+)\]$")
+                # match = re.match(regex, file_descriptor)
+                #
+                # if match:
+                #     the_pid   = re.match(regex, file_descriptor).group(1)
+                #     the_type  = re.match(regex, file_descriptor).group(2)
+                #     the_value = re.match(regex, file_descriptor).group(3)
+                #
+                #     if the_type == "pipe":
+                #         # fd_tmp = "[pipe to proc %s]" % the_value
+                #         fd_tmp = "%s listening on inode %s" % (the_type, the_value)
+                #     elif the_type == "socket":
+                #         # fd_tmp = "[socket listening on port %s]" % the_value
+                #         fd_tmp = "%s listening on inode %s" % (the_type, the_value)
+                #     else:
+                #         assert False
+                #
+                # assert len(data_row[indices["open_fd_count"]][file_descriptor]) == 3
+                #
+                # fd_tmp = str(data_row[indices["open_fd_count"]][file_descriptor]) + " ~ " + fd_tmp
+                #
+                # if len(fd_tmp) > max_len:
+                #     fd_tmp = fd_tmp[:max_len] + "..."
 
-                if match:
-                    the_pid   = re.match(regex, file_descriptor).group(1)
-                    the_type  = re.match(regex, file_descriptor).group(2)
-                    the_value = re.match(regex, file_descriptor).group(3)
-
-                    if the_type == "pipe":
-                        fd_tmp = "[pipe to proc %s]" % the_value
-                    elif the_type == "socket":
-                        fd_tmp = "[socket listening on port %s]" % the_value
-                    else:
-                        assert False
-
-                # import pdb; pdb.set_trace()
+                temp_list.append(file_descriptor)
 
 
-                if len(fd_tmp) > max_len:
-                    fd_tmp = fd_tmp[:max_len] + "..."
-
-                temp_list.append(fd_tmp)
-
-
-            str_row[indices["open_fd_count"]] = "\n".join(temp_list)
+            str_row[indices["open_fd_count"]] = temp_list
         else:
-            str_row[indices["open_fd_count"]] = len(data_row[indices["open_fd_count"]])
+            str_row[indices["open_fd_count"]] = len(data_row[indices["open_fd_count"]].keys())
 
         # If all uids are equal, only show one for compact view
         if all_same(data_row[indices["Uid"]]):
@@ -362,7 +366,7 @@ def convert_table_compact(data_table, expand_capabilities, expand_fds):
         str_row[indices["cmdline"]] = data_row[indices["cmdline"]]
         cmdline_len = 35
         if len(data_row[indices["cmdline"]]) > cmdline_len:
-            str_row[indices["cmdline"]] = str_row[indices["cmdline"]][:cmdline_len - 3] + "..."
+            str_row[indices["cmdline"]] = str_row[indices["cmdline"]][:cmdline_len] + "..."
 
         for c in used_caps:
             if str_row[indices[c]] != "":
@@ -394,24 +398,22 @@ def all_same(items):
 
 
 
-def convert_table_color(data_table, str_table):
+def convert_table_color(data_table, str_table, expand_fds):
     """
-    Note: The information in data_table and str_table is identical,
-    except that the values inside str_table are padded with spaces.
-
     This function will color the data in str_table based on the data values
     in data_table.
     """
 
     columns = [
-    "Uid",
-    "Gid",
-    "Seccomp",
-    "CapInh",
-    "CapAmb",
-    "CapPrm",
-    "CapEff",
-    "CapBnd",
+        "Uid",
+        "Gid",
+        "open_fd_count",
+        "Seccomp",
+        "CapInh",
+        "CapAmb",
+        "CapPrm",
+        "CapEff",
+        "CapBnd",
     ]
 
     indices = {}
@@ -424,29 +426,74 @@ def convert_table_color(data_table, str_table):
 
     for (data_row, str_row) in zip(data_table[1:], str_table[1:]): # Use table with padded values here
 
+
         # processes running as non-root and non-suid, but that have certain capabilities set
         if indices["Uid"] and indices["Gid"]:
             # if none of uid or gid is 0
             if 0 == ( data_row[indices["Uid"]].count(0) + data_row[indices["Gid"]].count(0) ):
 
                 for c in used_caps:
+
+                    import string
+                    import random
+
                     # if cap is set
-                    if data_row[indices[c]] != 0:
-                        str_row[indices[c]] = termcolor.colored(str_row[indices[c]], "red")
-                        # print("CALL: color_it complex")
+                    if data_row[indices[c]] != "":
+
+                        new_lines = []
+                        for line in str_row[indices[c]].split("\n"):
+                            # a_letter = random.choice(string.lowercase)
+                            new_lines.append(termcolor.colored(line, "red"))
+                        str_row[indices[c]] = "\n".join(new_lines)
+
+
 
         # processes whose real/effective uid/gid are different
         if indices["Uid"] and not all_same(data_row[indices["Uid"]]):
             str_row[indices["Uid"]] = termcolor.colored(str_row[indices["Uid"]], "red")
-            # print("CALL: color_it uid")
         if indices["Gid"] and not all_same(data_row[indices["Gid"]]):
             str_row[indices["Gid"]] = termcolor.colored(str_row[indices["Gid"]], "red")
-            # print("CALL: color_it gid")
 
         # processes having seccomp activated
         if indices["Seccomp"] and data_row[indices["Seccomp"]] == True:
             str_row[indices["Seccomp"]] = termcolor.colored(str_row[indices["Seccomp"]], "red")
-            # print("CALL: color_it seccomp")
+
+        # Among the open file descriptors: highlight regular files that could
+        # not have been directly openened with the processes current access
+        # rights, indicating that the process dropped priviledges some time ago
+        if expand_fds and indices["Uid"] and indices["Gid"] and indices["open_fd_count"]:
+
+            max_len = 40
+
+            result_str = []
+            for open_fd, fd_perm in data_row[indices["open_fd_count"]].items():
+
+                fd_line_str = open_fd
+
+                # If it is a regular file and in theory could not have been opened
+                # by the current process, color this entry
+                if ":" not in open_fd: # TODO: Ugly hack, improve this
+
+                    user_identity = {
+                        "Uid":data_row[indices["Uid"]][0],
+                        "Gid_set":data_row[indices["Gid"]],
+                    }
+
+
+                    file_identity = fd_perm["file_identity"]
+                    file_perm     = fd_perm["file_perm"]
+
+                    if not file_permissions.can_access_file(user_identity, file_identity, file_perm):
+                        fd_line_str = termcolor.colored(fd_line_str, "red")
+
+
+                if len(fd_line_str) > max_len:
+                    fd_line_str = fd_line_str[:max_len-3] + "..."
+
+                result_str.append(fd_line_str)
+
+            str_row[indices["open_fd_count"]] = "\n".join(result_str)
+
 
     return str_table
 
