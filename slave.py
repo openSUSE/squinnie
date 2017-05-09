@@ -20,119 +20,127 @@ import re
 import copy
 import codecs
 
-cap_lambda     = lambda a: int(a, base = 16)
-gid_uid_lambda = lambda a: tuple(int(i) for i in a.split("\t"))
-groups_lambda  = lambda a: [int(i) for i in a.split()]
-seccomp_lambda = lambda a: a == 1
-
-interesting_status_fields = {
-    "CapInh" : cap_lambda,
-    "CapPrm" : cap_lambda,
-    "CapEff" : cap_lambda,
-    "CapBnd" : cap_lambda,
-    "CapAmb" : cap_lambda,
-    "Gid"    : gid_uid_lambda,
-    "Groups" : groups_lambda,
-    "Seccomp": seccomp_lambda,
-    "Uid"    : gid_uid_lambda,
-}
-
-def get_corresponding_regex(field_to_search_for):
-    return "^%s:\s(.*)$" % (field_to_search_for)
 
 
-# Send one big dictionary at the end
-result = {}
+def collect_data():
 
-pids = []
-# traverse root directory, and list directories as dirs and files as files
-for pid_str in os.listdir("/proc"):
-    fp = os.path.join( "/proc", pid_str )
-    if not os.path.isdir(fp):
-        continue
-    try:
-        pid = int(pid_str)
-    except ValueError:
-        continue
-    pids.append(pid)
+    cap_lambda     = lambda a: int(a, base = 16)
+    gid_uid_lambda = lambda a: tuple(int(i) for i in a.split("\t"))
+    groups_lambda  = lambda a: [int(i) for i in a.split()]
+    seccomp_lambda = lambda a: a == 1
 
-parents = {}
-status = {}
-open_file_descriptors = {}
+    interesting_status_fields = {
+        "CapInh" : cap_lambda,
+        "CapPrm" : cap_lambda,
+        "CapEff" : cap_lambda,
+        "CapBnd" : cap_lambda,
+        "CapAmb" : cap_lambda,
+        "Gid"    : gid_uid_lambda,
+        "Groups" : groups_lambda,
+        "Seccomp": seccomp_lambda,
+        "Uid"    : gid_uid_lambda,
+    }
 
-for p in copy.copy(pids):
-    try:
-        status[p] = {}
-        with codecs.open("/proc/%d/status" % p, "r", encoding="utf-8") as fi:
-            text = fi.read()
-            status_field = get_corresponding_regex("PPid")
-            ppid_str = re.search(status_field, text, re.MULTILINE).group(1)
-            ppid = int(ppid_str)
-            parents[p] = ppid
+    def get_corresponding_regex(field_to_search_for):
+        return "^%s:\s(.*)$" % (field_to_search_for)
 
-            for isf_key in interesting_status_fields.keys():
-                status_field = get_corresponding_regex(isf_key)
-                isf_val = re.search(status_field, text, re.MULTILINE).group(1)
-                transform = interesting_status_fields[isf_key]
-                status[p][isf_key] = transform(isf_val)
 
-        with codecs.open("/proc/%d/cmdline" % p, "r", encoding="utf-8") as fi:
-            status[p]["cmdline"] = fi.read().replace("\n", "")
+    # Send one big dictionary at the end
+    result = {}
 
-        open_file_descriptors[p] = {}
-        fd_dir = "/proc/%d/fd/" % p
-        for fd_str in os.listdir(fd_dir):
+    pids = []
+    # traverse root directory, and list directories as dirs and files as files
+    for pid_str in os.listdir("/proc"):
+        fp = os.path.join( "/proc", pid_str )
+        if not os.path.isdir(fp):
+            continue
+        try:
+            pid = int(pid_str)
+        except ValueError:
+            continue
+        pids.append(pid)
 
-            file_path_name = fd_dir + fd_str
-            resolved_symlink_name = os.path.realpath(file_path_name)
+    parents = {}
+    status = {}
+    open_file_descriptors = {}
 
-            fd_identity_uid = os.stat(file_path_name).st_uid
-            fd_identity_gid = os.stat(file_path_name).st_gid
-            fd_perm_all     = os.stat(file_path_name).st_mode & 0777
+    for p in copy.copy(pids):
+        try:
+            status[p] = {}
+            with codecs.open("/proc/%d/status" % p, "r", encoding="utf-8") as fi:
+                text = fi.read()
+                status_field = get_corresponding_regex("PPid")
+                ppid_str = re.search(status_field, text, re.MULTILINE).group(1)
+                ppid = int(ppid_str)
+                parents[p] = ppid
 
-            fd_data = {
-                "file_identity": {
-                    "Uid": fd_identity_uid,
-                    "Gid": fd_identity_gid,
-                },
+                for isf_key in interesting_status_fields.keys():
+                    status_field = get_corresponding_regex(isf_key)
+                    isf_val = re.search(status_field, text, re.MULTILINE).group(1)
+                    transform = interesting_status_fields[isf_key]
+                    status[p][isf_key] = transform(isf_val)
 
-                "file_perm"    : {
-                    "Uid"  : (fd_perm_all & 0b111000000) >> 6,
-                    "Gid"  : (fd_perm_all & 0b000111000) >> 3,
-                    "other":  fd_perm_all & 0b000000111,
+            with codecs.open("/proc/%d/cmdline" % p, "r", encoding="utf-8") as fi:
+                status[p]["cmdline"] = fi.read().replace("\n", "")
+
+            open_file_descriptors[p] = {}
+            fd_dir = "/proc/%d/fd/" % p
+            for fd_str in os.listdir(fd_dir):
+
+                file_path_name = fd_dir + fd_str
+                resolved_symlink_name = os.path.realpath(file_path_name)
+
+                fd_identity_uid = os.stat(file_path_name).st_uid
+                fd_identity_gid = os.stat(file_path_name).st_gid
+                fd_perm_all     = os.stat(file_path_name).st_mode & 0777
+
+                fd_data = {
+                    "file_identity": {
+                        "Uid": fd_identity_uid,
+                        "Gid": fd_identity_gid,
+                    },
+
+                    "file_perm"    : {
+                        "Uid"  : (fd_perm_all & 0b111000000) >> 6,
+                        "Gid"  : (fd_perm_all & 0b000111000) >> 3,
+                        "other":  fd_perm_all & 0b000000111,
+                    }
                 }
-            }
 
-            # import pdb; pdb.set_trace()
+                # import pdb; pdb.set_trace()
 
 
-            open_file_descriptors[p][resolved_symlink_name] = fd_data
+                open_file_descriptors[p][resolved_symlink_name] = fd_data
 
-    except EnvironmentError:
-        # The process does not exist anymore
-        # Remove it from the global list of all processes
-        pids.remove(p)
+        except EnvironmentError:
+            # The process does not exist anymore
+            # Remove it from the global list of all processes
+            pids.remove(p)
 
-with codecs.open("/etc/passwd", "r", encoding="utf-8") as fi:
-    etcpasswd = fi.readlines()
+    with codecs.open("/etc/passwd", "r", encoding="utf-8") as fi:
+        etcpasswd = fi.readlines()
 
-name_uidgid = {}
-for line in etcpasswd:
-    line = line.replace("\n", "")
-    regex = "^([a-zA-Z0-9\-]+):x:(\d+):(\d+):.*$"
-    username = str(re.search(regex, line, re.MULTILINE).group(1))
-    Uid      = int(re.search(regex, line, re.MULTILINE).group(2))
-    Gid      = int(re.search(regex, line, re.MULTILINE).group(3))
+    name_uidgid = {}
+    for line in etcpasswd:
+        line = line.replace("\n", "")
+        regex = "^([a-zA-Z0-9\-]+):x:(\d+):(\d+):.*$"
+        username = str(re.search(regex, line, re.MULTILINE).group(1))
+        Uid      = int(re.search(regex, line, re.MULTILINE).group(2))
+        Gid      = int(re.search(regex, line, re.MULTILINE).group(3))
 
-    name_uidgid[username] = [Uid, Gid]
+        name_uidgid[username] = [Uid, Gid]
 
-result["status" ] = status
-result["parents"] = parents
-result["open_file_descriptors"] = open_file_descriptors
-result["name_uidgid"] = name_uidgid
+    result["status" ] = status
+    result["parents"] = parents
+    result["open_file_descriptors"] = open_file_descriptors
+    result["name_uidgid"] = name_uidgid
+
+    return result
 
 
 if __name__ == '__channelexec__':
+    result = collect_data()
     channel.send(result)
 elif __name__ == "__main__":
+    result = collect_data()
     print(result)
