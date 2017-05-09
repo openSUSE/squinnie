@@ -8,8 +8,14 @@ import codecs
 import sys
 import argparse
 
+error_msg = "The module %s could not be found. Please use your system's packages manager or pip to install it."
+
 # PyPy modules
-import yaml
+try:
+    import yaml
+except ImportError:
+    print(error_msg % "yaml")
+    sys.exit(1)
 
 
 

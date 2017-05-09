@@ -11,9 +11,20 @@ import argparse
 import json
 from collections import OrderedDict
 
+error_msg = "The module %s could not be found. Please use your system's packages manager or pip to install it."
+
 # PyPy modules
-import execnet
-import yaml
+try:
+    import yaml
+except ImportError:
+    print(error_msg % "yaml")
+    sys.exit(1)
+
+try:
+    import execnet
+except ImportError:
+    print(error_msg % "execnet")
+    sys.exit(1)
 
 # local modules
 import slave

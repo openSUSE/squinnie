@@ -7,8 +7,14 @@ from __future__ import with_statement
 import codecs
 import sys
 
+error_msg = "The module %s could not be found. Please use your system's packages manager or pip to install it."
+
 # PyPy modules
-import yaml
+try:
+    import yaml
+except ImportError:
+    print(error_msg % "yaml")
+    sys.exit(1)
 
 def nth_bit_set(val, n):
     return 0 != val & (1 << n)
@@ -30,7 +36,7 @@ def main():
     if len(sys.argv) < 2:
         exit("You have to provide a bitstring.\n")
 
-    file_name = "data/cap_data.json"
+    file_name = "cap_data.json"
     cap_data = get_cap_data(file_name)
     print("\nThe given bitstring maps to the following capabilities:\n")
     cap_num = int(sys.argv[1], 16)

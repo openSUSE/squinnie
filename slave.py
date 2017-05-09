@@ -30,6 +30,12 @@ def get_name_uidgid():
     for user in pwd.getpwall():
         name_uidgid[user.pw_name] = [user.pw_uid, user.pw_gid]
 
+    # TODO: Change API to use this chache format
+    # for user in pwd.getpwall():
+    #     uid_name[user.pw_uid] = user.pw_name
+    # for group in grp.getgrall():
+    #     gid_name[group.gr_gid] = group.gr_name
+
     return name_uidgid
 
 

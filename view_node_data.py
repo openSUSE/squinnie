@@ -11,14 +11,30 @@ import copy
 import re
 import os
 
-# PyPy modules
-import yaml
-import termcolor
-from terminaltables import SingleTable
-
 # Local modules.
 import cap_bitstring_name
 import file_permissions
+
+error_msg = "The module %s could not be found. Please use your system's packages manager or pip to install it."
+
+# PyPy modules
+try:
+    import yaml
+except ImportError:
+    print(error_msg % "yaml")
+    sys.exit(1)
+
+try:
+    import termcolor
+except ImportError:
+    print(error_msg % "termcolor")
+    sys.exit(1)
+
+try:
+    from terminaltables import SingleTable
+except ImportError:
+    print(error_msg % "terminaltables")
+    sys.exit(1)
 
 
 

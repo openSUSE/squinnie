@@ -11,7 +11,12 @@ import json
 from collections import OrderedDict
 
 # PyPy modules
-import execnet
+try:
+    import execnet
+except ImportError:
+    print("The module execnet could not be found. Please use your system's packages manager or pip to install it.")
+    sys.exit(1)
+
 
 def get_crowbar_config(entry_node):
     group = execnet.Group()
