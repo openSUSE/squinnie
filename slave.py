@@ -1,3 +1,6 @@
+#!/usr/bin/env python2
+# vim: ts=4 et sw=4 sts=4 :
+
 """
 This script is intended to be run on the client remotely via execnet.
 It can however also be called as a standalone script for testing purposes.
