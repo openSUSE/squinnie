@@ -10,12 +10,13 @@ import re
 import json
 import argparse
 import sys
+import os
 
 def main():
-    description = "View a data dump of any single node."
+    description = "Update the capability data cache generated from capability.h"
     parser = argparse.ArgumentParser(prog=sys.argv[0], description=description)
 
-    description = "The capability.h file, usually located under /usr/include/linux/capability.h"
+    description = "The capability.h file. If not provided, /usr/include/linux/capability.h will be used."
     parser.add_argument("-i", "--input", type=str, help=description)
 
     description = "The output file for capability configuration in JSON format."
@@ -30,8 +31,15 @@ def main():
     else:
         file_name = "/usr/include/linux/capability.h"
 
-    with codecs.open(file_name, "r", encoding="utf-8") as fi:
-        file_data = fi.read()
+
+    if os.path.isfile(file_name):
+        try:
+            with codecs.open(file_name, "r", encoding="utf-8") as fi:
+                file_data = fi.read()
+        except EnvironmentError:
+            exit("The file %s exists, but cannot be opened." % file_name)
+    else:
+        exit("The file %s does not exist." % file_name)
 
     assert file_data
 
@@ -42,9 +50,6 @@ def main():
         cap_int  = int(m.group(2))
         cap_name = str(m.group(1))
         cap_data[cap_name] = cap_int
-
-        # print("%s : %s" % (cap_int, cap_name))
-
 
     file_name = args.output
 

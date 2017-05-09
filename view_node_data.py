@@ -18,7 +18,6 @@ from terminaltables import SingleTable
 
 # Local modules.
 import cap_bitstring_name
-import enrich_node_data
 import file_permissions
 
 
@@ -60,8 +59,6 @@ def main():
 def view_data(args):
 
     file_name = args.input
-
-    enrich_node_data.enrich_if_necessary(file_name)
 
     with codecs.open(file_name, "r", encoding="utf-8") as fi:
         datastructure = yaml.load(fi)
@@ -374,7 +371,7 @@ def convert_table_compact(data_table, expand_capabilities, expand_fds):
                 cap_num = data_row[indices[c]]
 
                 if expand_capabilities:
-                    cap_data = cap_bitstring_name.get_cap_data("data/cap_data.json")
+                    cap_data = cap_bitstring_name.get_cap_data("cap_data.json")
                     cap_names = cap_bitstring_name.get_cap_strings(cap_data, cap_num)
 
                     str_row[indices[c]] = "\n".join(cap_names)

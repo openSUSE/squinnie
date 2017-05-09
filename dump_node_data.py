@@ -5,6 +5,7 @@
 from __future__ import print_function
 from __future__ import with_statement
 import codecs
+import os
 import sys
 import argparse
 import json
@@ -16,6 +17,7 @@ import yaml
 
 # local modules
 import slave
+import enrich_node_data
 
 
 
@@ -30,6 +32,16 @@ def main():
     parser.add_argument("-o", "--output", required=True, type=str, help=description)
 
     args = parser.parse_args()
+
+    if not os.path.exists(args.input):
+        exit("The file given by the -i/--input parameter does not exist.\n")
+    elif not os.path.isfile(args.input):
+        exit("The -i/--input parameter must be a file.\n")
+
+    if not os.path.exists(args.output):
+        exit("The directory given by the -o/--output parameter does not exist.\n")
+    elif not os.path.isdir(args.output):
+        exit("The -o/--output parameter must be a directory.\n")
 
     tree_dict_str = read_network_config(args.input)
 
@@ -133,11 +145,16 @@ def read_network_config(file_name):
 def write_data(datastructure, node_list, file_path):
     for node_str in node_list:
         file_name = "%s.yml" % node_str.replace(".", "-")
-        file_path_name = file_path + file_name
+        file_path_name = os.path.join(file_path, file_name)
         print("Saving data to %s" % file_path_name)
+
+        # import pdb; pdb.set_trace()
 
         with codecs.open(file_path_name, "w", encoding="utf-8") as fi:
             yaml.dump({node_str:datastructure[node_str]}, fi, default_flow_style=False)
+
+        enrich_node_data.enrich_if_necessary(file_path_name)
+
     print("")
 
 
