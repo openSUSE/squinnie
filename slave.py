@@ -19,6 +19,18 @@ import os
 import re
 import copy
 import codecs
+import pwd
+import grp
+
+
+
+def get_name_uidgid():
+
+    name_uidgid = {}
+    for user in pwd.getpwall():
+        name_uidgid[user.pw_name] = [user.pw_uid, user.pw_gid]
+
+    return name_uidgid
 
 
 
@@ -64,6 +76,9 @@ def collect_data():
     status = {}
     open_file_descriptors = {}
 
+    all_uids = set()
+    all_gids = set()
+
     for p in copy.copy(pids):
         try:
             status[p] = {}
@@ -79,6 +94,9 @@ def collect_data():
                     isf_val = re.search(status_field, text, re.MULTILINE).group(1)
                     transform = interesting_status_fields[isf_key]
                     status[p][isf_key] = transform(isf_val)
+
+                all_uids.add(status[p]["Uid"])
+                all_gids.add(status[p]["Gid"])
 
             with codecs.open("/proc/%d/cmdline" % p, "r", encoding="utf-8") as fi:
                 status[p]["cmdline"] = fi.read().replace("\n", "")
@@ -117,18 +135,8 @@ def collect_data():
             # Remove it from the global list of all processes
             pids.remove(p)
 
-    with codecs.open("/etc/passwd", "r", encoding="utf-8") as fi:
-        etcpasswd = fi.readlines()
 
-    name_uidgid = {}
-    for line in etcpasswd:
-        line = line.replace("\n", "")
-        regex = "^([a-zA-Z0-9\-]+):x:(\d+):(\d+):.*$"
-        username = str(re.search(regex, line, re.MULTILINE).group(1))
-        Uid      = int(re.search(regex, line, re.MULTILINE).group(2))
-        Gid      = int(re.search(regex, line, re.MULTILINE).group(3))
-
-        name_uidgid[username] = [Uid, Gid]
+    name_uidgid = get_name_uidgid()
 
     result["status" ] = status
     result["parents"] = parents
@@ -139,8 +147,6 @@ def collect_data():
 
 
 if __name__ == '__channelexec__':
-    result = collect_data()
-    channel.send(result)
+    channel.send( collect_data() )
 elif __name__ == "__main__":
-    result = collect_data()
-    print(result)
+    print( collect_data() )
