@@ -24,19 +24,22 @@ import grp
 
 
 
-def get_name_uidgid():
+def get_uid_name():
 
-    name_uidgid = {}
+    uid_name = {}
     for user in pwd.getpwall():
-        name_uidgid[user.pw_name] = [user.pw_uid, user.pw_gid]
+        uid_name[user.pw_uid] = user.pw_name
 
-    # TODO: Change API to use this chache format
-    # for user in pwd.getpwall():
-    #     uid_name[user.pw_uid] = user.pw_name
-    # for group in grp.getgrall():
-    #     gid_name[group.gr_gid] = group.gr_name
+    return uid_name
 
-    return name_uidgid
+
+def get_gid_name():
+
+    gid_name = {}
+    for group in grp.getgrall():
+        gid_name[group.gr_gid] = group.gr_name
+
+    return gid_name
 
 
 
@@ -105,9 +108,17 @@ def collect_data():
                 all_gids.add(status[p]["Gid"])
 
             with codecs.open("/proc/%d/cmdline" % p, "r", encoding="utf-8") as fi:
-                status[p]["cmdline"] = fi.read().replace("\n", "")
+                cmdline_str = fi.read().replace("\n", "")
+                cmdline_items = [str(item) for item in cmdline_str.split("\x00")]
+                executable = cmdline_items[0]
+                parameters = " ".join(cmdline_items[1:])
 
-            open_file_descriptors[p] = {}
+                status[p]["executable"] = executable
+                status[p]["parameters"] = parameters
+
+
+            status[p]["real_files"] = {}
+            status[p]["pseudo_files"] = {}
             fd_dir = "/proc/%d/fd/" % p
             for fd_str in os.listdir(fd_dir):
 
@@ -131,10 +142,12 @@ def collect_data():
                     }
                 }
 
-                # import pdb; pdb.set_trace()
+                if ":[" in resolved_symlink_name:
+                    file_type = "pseudo_files"
+                else:
+                    file_type = "real_files"
 
-
-                open_file_descriptors[p][resolved_symlink_name] = fd_data
+                status[p][file_type][resolved_symlink_name] = fd_data
 
         except EnvironmentError:
             # The process does not exist anymore
@@ -142,17 +155,16 @@ def collect_data():
             pids.remove(p)
 
 
-    name_uidgid = get_name_uidgid()
-
-    result["status" ] = status
-    result["parents"] = parents
-    result["open_file_descriptors"] = open_file_descriptors
-    result["name_uidgid"] = name_uidgid
+    result["proc_data"] = status
+    result["parents"  ] = parents
+    result["uid_name" ] = get_uid_name()
+    result["gid_name" ] = get_gid_name()
 
     return result
 
 
+if __name__ == '__channelexec__' or __name__ == "__main__":
+    result = collect_data()
+
 if __name__ == '__channelexec__':
     channel.send( collect_data() )
-elif __name__ == "__main__":
-    print( collect_data() )

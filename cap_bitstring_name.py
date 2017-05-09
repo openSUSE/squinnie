@@ -7,7 +7,7 @@ from __future__ import with_statement
 import codecs
 import sys
 
-error_msg = "The module %s could not be found. Please use your system's packages manager or pip to install it."
+error_msg = "The module %s could not be found. Please use your system's package manager or pip to install it."
 
 # PyPy modules
 try:

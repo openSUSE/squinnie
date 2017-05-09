@@ -8,7 +8,7 @@ import codecs
 import sys
 import argparse
 
-error_msg = "The module %s could not be found. Please use your system's packages manager or pip to install it."
+error_msg = "The module %s could not be found. Please use your system's package manager or pip to install it."
 
 # PyPy modules
 try:
@@ -39,13 +39,9 @@ def enrich_if_necessary(file_name):
     if is_enriched(collected_data_dict):
         return
 
-    pids = collected_data_dict["status"].keys()
+    pids = collected_data_dict["proc_data"].keys()
     parents = collected_data_dict["parents"]
     collected_data_dict["children"] = parents_to_children(pids, parents)
-
-    name_uidgid = collected_data_dict["name_uidgid"]
-    collected_data_dict["uid_name"] = username_to_uid(name_uidgid)
-    collected_data_dict["gid_name"] = username_to_gid(name_uidgid)
 
     with codecs.open(file_name, "w", encoding="utf-8") as fi:
         yaml.dump({node_str:collected_data_dict}, fi, default_flow_style=False)
@@ -72,33 +68,6 @@ def is_enriched(collected_data_dict):
             return False
 
     return True
-
-
-
-def username_to_uid(usernames):
-    return username_to_xid(usernames, "Uid")
-
-
-
-def username_to_gid(usernames):
-    return username_to_xid(usernames, "Gid")
-
-
-
-def username_to_xid(usernames, mode):
-    if mode == "Uid":
-        mode_index = 0
-    elif mode == "Gid":
-        mode_index = 1
-    else:
-        exit("Error: Not implemented.")
-
-    xid_data = {}
-    for uname in usernames:
-        current_xid = usernames[uname][mode_index]
-        xid_data.setdefault(current_xid,[]).append(uname)
-
-    return xid_data
 
 
 

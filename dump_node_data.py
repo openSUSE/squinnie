@@ -11,7 +11,7 @@ import argparse
 import json
 from collections import OrderedDict
 
-error_msg = "The module %s could not be found. Please use your system's packages manager or pip to install it."
+error_msg = "The module %s could not be found. Please use your system's package manager or pip to install it."
 
 # PyPy modules
 try:

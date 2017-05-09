@@ -14,7 +14,7 @@ from collections import OrderedDict
 try:
     import execnet
 except ImportError:
-    print("The module execnet could not be found. Please use your system's packages manager or pip to install it.")
+    print("The module execnet could not be found. Please use your system's package manager or pip to install it.")
     sys.exit(1)
 
 
