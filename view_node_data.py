@@ -31,7 +31,7 @@ except ImportError:
     sys.exit(1)
 
 try:
-    from terminaltables import SingleTable
+    import terminaltables
 except ImportError:
     print(error_msg % "terminaltables")
     sys.exit(1)
@@ -87,7 +87,7 @@ def view_data(args):
         datastructure = yaml.load(fi)
     assert len(datastructure.keys()) == 1
 
-    node_str = datastructure.keys()[0]
+    node_str = list(datastructure.keys())[0]
 
     collected_data_dict = datastructure[node_str]
 
@@ -227,7 +227,7 @@ def print_process_tree(collected_data_dict, column_headers, args):
             for pid in all_pids:
                 str_table_data[column][pid] = get_str_rep(collected_data_dict, column, pid, args)
 
-            column_values = str_table_data[column].values()
+            column_values = list(str_table_data[column].values())
             if len(set(column_values)) == 1 and column_values[0] == "":
                 to_remove.add(column)
 
@@ -270,8 +270,13 @@ def print_process_tree(collected_data_dict, column_headers, args):
 
     # color_table(str_table, color_matrix)
 
-    table = SingleTable(str_table)
-    # table.inner_column_border = False
+    # Note: If this ever gets ported to Python 3, consider changing to this
+    # to DoubleTable which makes use of box-drawing characters that are much
+    # more pleasing to look at.
+    # Unfortunately, using this under Python 2 breaks output using less and grep
+    table = terminaltables.AsciiTable(str_table)
+
+    table.inner_column_border = False
     table.outer_border = False
 
     print(table.table)
