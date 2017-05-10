@@ -69,8 +69,13 @@ def main():
     description = "Show capabilities as string names rather than bitstrings."
     parser.add_argument("--cap", action="store_true", help=description)
 
-    # description = "Show detailed information on all open file descriptors."
-    # parser.add_argument("--fd", action="store_true", help=description)
+
+
+    description = "Show detailed information on all open ordinary files."
+    parser.add_argument("--realfiles", action="store_true", help=description)
+
+    description = "Show detailed information on all open pseudo files, such as pipes, sockets and or inodes."
+    parser.add_argument("--pseudofiles", action="store_true", help=description)
 
 
     args = parser.parse_args()
@@ -111,6 +116,30 @@ def view_data(args):
     ]
 
     print_process_tree(collected_data_dict, column_headers, args)
+
+
+
+def get_pseudo_file_str_rep(raw_pseudo_file_str):
+
+    # Convert fds to more easy-to-read strings
+    regex = re.compile("\/proc\/\d+\/fd\/(socket|pipe|anon\_inode)+:\[(\w+)\]")
+    match = re.match(regex, raw_pseudo_file_str)
+
+    if match:
+        the_type  = match.group(1)
+        the_value = match.group(2)
+
+        if the_type == "pipe":
+            result = "%s : %s" % (the_type, the_value)
+        elif the_type == "socket":
+            result = "%s : %s" % (the_type, the_value)
+        elif the_type == "anon_inode":
+            result = "%s : %s" % (the_type, the_value)
+        else:
+            assert False
+        return result
+    else:
+        assert False
 
 
 
@@ -164,10 +193,19 @@ def get_str_rep(collected_data_dict, column, pid, args):
             result = "\n".join(cmdline_chunks)
 
     elif column == "open real files":
-        result = len(pid_data["real_files"].keys())
+        if not args.realfiles:
+            result = len(pid_data["real_files"].keys())
+        else:
+            real_files_str = [x for x in pid_data["real_files"].keys()]
+            result = "\n".join(sorted(real_files_str))
 
     elif column == "open pseudo files":
-        result = len(pid_data["pseudo_files"].keys())
+        if not args.pseudofiles:
+            result = len(pid_data["pseudo_files"].keys())
+        else:
+            pseudo_files_str = [get_pseudo_file_str_rep(x) for x in pid_data["pseudo_files"].keys()]
+            result = "\n".join(sorted(pseudo_files_str))
+
 
 
 
