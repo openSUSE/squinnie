@@ -16,31 +16,39 @@ except ImportError:
     print(error_msg % "yaml")
     sys.exit(1)
 
-def nth_bit_set(val, n):
-    return 0 != val & (1 << n)
+class Cap_Translator():
 
-def get_cap_strings(cap_data, cap_num):
-    result = []
+    def __init__(self, file_name):
+        self.file_name = file_name
+        self.cap_data  = self.get_cap_data()
 
-    for cap_name, index in cap_data.items():
-        if nth_bit_set(cap_num, index):
-            result.append(cap_name)
+    def nth_bit_set(self, val, n):
+        return 0 != val & (1 << n)
 
-    return result
+    def get_cap_strings(self, cap_integer):
+        result = []
 
-def get_cap_data(file_name):
-    with codecs.open(file_name, "r", encoding="utf-8") as fi:
-        return yaml.load(fi)
+        for cap_name, index in self.cap_data.items():
+            if self.nth_bit_set(cap_integer, index):
+                result.append(cap_name)
+
+        return result
+
+    def get_cap_data(self):
+        with codecs.open(self.file_name, "r", encoding="utf-8") as fi:
+            return yaml.load(fi)
 
 def main():
     if len(sys.argv) < 2:
         exit("You have to provide a bitstring.\n")
 
     file_name = "cap_data.json"
-    cap_data = get_cap_data(file_name)
+    cap_trans = Cap_Translator(file_name)
+
+    cap_data = cap_trans.get_cap_data()
     print("\nThe given bitstring maps to the following capabilities:\n")
-    cap_num = int(sys.argv[1], 16)
-    for cap in get_cap_strings(cap_data, cap_num):
+    cap_integer = int(sys.argv[1], 16)
+    for cap in cap_trans.get_cap_strings(cap_integer):
         print("- %s" % cap)
     print("")
 

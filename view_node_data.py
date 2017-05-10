@@ -64,11 +64,11 @@ def main():
     description = "Print the parent of the process provided by -p/--pid."
     parser.add_argument("--parent", action="store_true", help=description)
 
-    # TODO
 
-    # description = "Show capabilities as string names rather than bitstrings."
-    # parser.add_argument("--cap", action="store_true", help=description)
-    #
+
+    description = "Show capabilities as string names rather than bitstrings."
+    parser.add_argument("--cap", action="store_true", help=description)
+
     # description = "Show detailed information on all open file descriptors."
     # parser.add_argument("--fd", action="store_true", help=description)
 
@@ -137,12 +137,20 @@ def get_str_rep(collected_data_dict, column, pid, args):
             result = "" if not args.verbose else pid_data[column]
 
     elif column[0:3] == "Cap":
-        if pid_data[column] == 0 or pid_data[column] == 274877906943:
-            result = "" if not args.verbose else "%016x" % pid_data[column]
-        elif len(set(pid_data["Uid"])) == 1 and pid_data["Uid"][0] == 0:
-            result = "" if not args.verbose else "%016x" % pid_data[column]
+        boring_cap_values = [0, 274877906943]
+        all_uids_equal = len(set(pid_data["Uid"])) == 1
+        all_uids_are_root = all_uids_equal and pid_data["Uid"][0] == 0
+
+        if all_uids_are_root:
+            result = ""
+        elif not args.verbose and pid_data[column] in boring_cap_values:
+            result = ""
         else:
-            result = "%016x" % pid_data[column]
+            if not args.cap:
+                result = "%016x" % pid_data[column]
+            else:
+                cap_trans = cap_bitstring_name.Cap_Translator("cap_data.json")
+                result = "\n".join(cap_trans.get_cap_strings(pid_data[column]))
 
     elif column == "parameters":
         max_len = 20
@@ -237,9 +245,8 @@ def print_process_tree(collected_data_dict, column_headers, args):
 
 
     # Remove empty columns since they only take up unnecessary space
-    if not args.verbose:
-        for empty_column in to_remove:
-            column_headers.remove(empty_column)
+    for empty_column in to_remove:
+        column_headers.remove(empty_column)
 
 
     indention_count  = 4
