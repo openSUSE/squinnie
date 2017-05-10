@@ -196,18 +196,20 @@ def get_str_rep(collected_data_dict, column, pid, args):
         if not args.realfiles:
             result = len(pid_data["real_files"].keys())
         else:
-            real_files_str = [x for x in pid_data["real_files"].keys()]
+            real_files_str = [rf_str for rf_str in pid_data["real_files"].keys()]
             result = "\n".join(sorted(real_files_str))
 
     elif column == "open pseudo files":
         if not args.pseudofiles:
             result = len(pid_data["pseudo_files"].keys())
         else:
-            pseudo_files_str = [get_pseudo_file_str_rep(x) for x in pid_data["pseudo_files"].keys()]
+            pseudo_files_str = []
+            for pf_str in pid_data["pseudo_files"].keys():
+                if not args.verbose:
+                    pseudo_files_str.append(get_pseudo_file_str_rep(pf_str))
+                else:
+                    pseudo_files_str.append(pf_str)
             result = "\n".join(sorted(pseudo_files_str))
-
-
-
 
     elif column in pid_data:
         result = pid_data[column]
