@@ -122,24 +122,27 @@ def get_str_rep(collected_data_dict, column, pid, args):
 
 
     if column == "user":
-        user_set = set(pid_data["Uid"])
-        if not args.verbose:
-            user_set = set(uid_name[item] for item in user_set)
-        else:
-            user_set = set(item for item in user_set)
-
+        user_set = set()
+        for item in set(pid_data["Uid"]):
+            user_set.add(uid_name[item] if not args.verbose else "%s(%s)" % (uid_name[item], item))
         result = "|".join(str(x) for x in user_set)
 
     elif column == "groups":
-        groups_set = set(pid_data["Gid"]) | set(pid_data["Groups"])
-        if not args.verbose:
-            groups_set = set(gid_name[item] for item in groups_set)
-        else:
-            groups_set = set(item for item in groups_set)
+        groups_set = set()
+        for item in  set(pid_data["Gid"]) | set(pid_data["Groups"]):
+            groups_set.add(gid_name[item] if not args.verbose else "%s(%s)" % (uid_name[item], item))
         result = "|".join(str(x) for x in groups_set)
 
+    elif column == "Seccomp":
+            result = "" if not args.verbose else pid_data[column]
+
     elif column[0:3] == "Cap":
-        result = "%016x" % pid_data[column]
+        if pid_data[column] == 0 or pid_data[column] == 274877906943:
+            result = "" if not args.verbose else "%016x" % pid_data[column]
+        elif len(set(pid_data["Uid"])) == 1 and pid_data["Uid"][0] == 0:
+            result = "" if not args.verbose else "%016x" % pid_data[column]
+        else:
+            result = "%016x" % pid_data[column]
 
     elif column == "parameters":
         max_len = 20
@@ -216,6 +219,7 @@ def print_process_tree(collected_data_dict, column_headers, args):
     parents  = collected_data_dict["parents"]
 
     str_table_data = {}
+    to_remove = set()
     for column in column_headers:
         if column != "pid":
 
@@ -223,12 +227,26 @@ def print_process_tree(collected_data_dict, column_headers, args):
             for pid in all_pids:
                 str_table_data[column][pid] = get_str_rep(collected_data_dict, column, pid, args)
 
+            column_values = str_table_data[column].values()
+            if len(set(column_values)) == 1 and column_values[0] == "":
+                to_remove.add(column)
+
+    # These values are generally uninteresting
+    to_remove.add("CapAmb")
+    to_remove.add("CapBnd")
+
+
+    # Remove empty columns since they only take up unnecessary space
+    if not args.verbose:
+        for empty_column in to_remove:
+            column_headers.remove(empty_column)
+
 
     indention_count  = 4
     level = 0
+
     # proc_tree
     # [ [1,0], [400,1], [945,1], [976,2], [1437, 3], ... ]
-
     proc_tree = []
     if not args.pid:
         proc_tree += recursive_proc_tree(children, 1, indention_count, level, True)
@@ -244,6 +262,7 @@ def print_process_tree(collected_data_dict, column_headers, args):
 
         recursive = args.children
         proc_tree += recursive_proc_tree(children, single_pid, indention_count, level, recursive)
+
 
 
     str_table = generate_table(column_headers, proc_tree, str_table_data)
