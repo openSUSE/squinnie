@@ -5,7 +5,6 @@
 from __future__ import print_function
 from __future__ import with_statement
 from collections import OrderedDict
-import codecs
 import re
 import json
 import argparse
@@ -34,7 +33,7 @@ def main(sys_args):
 
     if os.path.isfile(file_name):
         try:
-            with codecs.open(file_name, "r", encoding="utf-8") as fi:
+            with open(file_name, "r") as fi:
                 file_data = fi.read()
         except EnvironmentError:
             exit("The file %s exists, but cannot be opened." % file_name)
@@ -53,7 +52,7 @@ def main(sys_args):
 
     file_name = args.output
 
-    with codecs.open(file_name, "w", encoding="utf-8") as fi:
+    with open(file_name, "w") as fi:
         json.dump(cap_data, fi, indent=4, sort_keys=True)
         print("Wrote capability data to %s\n" % file_name)
 

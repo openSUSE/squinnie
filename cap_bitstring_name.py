@@ -4,17 +4,10 @@
 # Standard library modules
 from __future__ import print_function
 from __future__ import with_statement
-import codecs
+import cPickle as pickle
 import sys
 
-error_msg = "The module %s could not be found. Please use your system's package manager or pip to install it."
 
-# PyPy modules
-try:
-    import yaml
-except ImportError:
-    print(error_msg % "yaml")
-    sys.exit(1)
 
 class Cap_Translator():
 
@@ -35,8 +28,8 @@ class Cap_Translator():
         return result
 
     def get_cap_data(self):
-        with codecs.open(self.file_name, "r", encoding="utf-8") as fi:
-            return yaml.load(fi)
+        with open(self.file_name, "r") as fi:
+            return pickle.load(fi)
 
 def main():
     if len(sys.argv) < 2:

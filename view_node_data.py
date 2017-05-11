@@ -4,7 +4,7 @@
 # Standard library modules.
 from __future__ import print_function
 from __future__ import with_statement
-import codecs
+import cPickle as pickle
 import sys
 import argparse
 import copy
@@ -18,12 +18,6 @@ import file_permissions
 error_msg = "The module %s could not be found. Please use your system's package manager or pip to install it."
 
 # PyPy modules
-try:
-    import yaml
-except ImportError:
-    print(error_msg % "yaml")
-    sys.exit(1)
-
 try:
     import termcolor
 except ImportError:
@@ -88,8 +82,8 @@ def view_data(args):
 
     file_name = args.input
 
-    with codecs.open(file_name, "r", encoding="utf-8") as fi:
-        datastructure = yaml.load(fi)
+    with open(file_name, "r") as fi:
+        datastructure = pickle.load(fi)
     assert len(datastructure.keys()) == 1
 
     node_str = list(datastructure.keys())[0]

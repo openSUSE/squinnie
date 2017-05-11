@@ -4,18 +4,11 @@
 # Standard library modules.
 from __future__ import print_function
 from __future__ import with_statement
-import codecs
 import sys
 import argparse
+import cPickle as pickle
 
 error_msg = "The module %s could not be found. Please use your system's package manager or pip to install it."
-
-# PyPy modules
-try:
-    import yaml
-except ImportError:
-    print(error_msg % "yaml")
-    sys.exit(1)
 
 
 
@@ -43,14 +36,17 @@ def enrich_if_necessary(file_name):
     parents = collected_data_dict["parents"]
     collected_data_dict["children"] = parents_to_children(pids, parents)
 
-    with codecs.open(file_name, "w", encoding="utf-8") as fi:
-        yaml.dump({node_str:collected_data_dict}, fi, default_flow_style=False)
+    with open(file_name, "w") as fi:
+        pickle.dump({node_str:collected_data_dict}, fi)
 
 
 
 def read_data(file_name):
-    with codecs.open(file_name, "r", encoding="utf-8") as fi:
-        datastructure = yaml.load(fi)
+
+    with open(file_name, "r") as my_file:
+        datastructure = pickle.load(my_file)
+
+
     assert len(datastructure.keys()) == 1
 
     node_str = datastructure.keys()[0]

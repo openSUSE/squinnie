@@ -4,7 +4,6 @@
 # Standard library modules
 from __future__ import print_function
 from __future__ import with_statement
-import codecs
 import sys
 import argparse
 import copy
@@ -73,23 +72,31 @@ def main(sys_args):
     files_produced = []
 
     args = parser.parse_args()
-    nwconfig_filename = os.path.join(args.directory, "network.json")
+    nwconfig_file_name = "network.json"
+    nwconfig_file_name_path = os.path.join(args.directory, nwconfig_file_name)
+
 
     crowbar_args = argparse.Namespace()
     crowbar_args.entry = args.entry
-    crowbar_args.output = nwconfig_filename
+    crowbar_args.output = nwconfig_file_name_path
+    # import pdb; pdb.set_trace()
+
     dump_crowbar_network.dump_crowbar_to_file(crowbar_args)
-    files_produced.append(nwconfig_filename)
+    files_produced.append(nwconfig_file_name)
+
 
     dump_args = argparse.Namespace()
-    dump_args.input = nwconfig_filename
+    dump_args.input = nwconfig_file_name_path
     dump_args.output = args.directory
     dump_args.nocache = args.nocache
+
     node_filenames = dump_node_data.dump(dump_args)
     files_produced += node_filenames
 
-    view_args = argparse.Namespace()
 
+
+
+    view_args = argparse.Namespace()
     view_args.verbose     = args.verbose
     view_args.kthreads    = args.kthreads
     view_args.pid         = args.pid
@@ -108,14 +115,16 @@ def main(sys_args):
             view_args.input = os.path.join(args.directory, node_file)
             view_node_data.view_data(view_args)
 
-    if args.nocache:
-        print("")
-        print("Deleting cached files after protocol run:" % args.directory)
-        for file_name in files_produced:
-            file_name_path = os.path.join(args.directory, file_name)
-            os.remove(file_name_path)
-            print("Deleting %s" % file_name_path)
-        print("")
+    # This looked like a useful feature at first, but it was not
+
+    # if args.nocache:
+    #     print("")
+    #     print("Deleting cached files after protocol run:")
+    #     for file_name in files_produced:
+    #         file_name_path = os.path.join(args.directory, file_name)
+    #         os.remove(file_name_path)
+    #         print("Deleting %s" % file_name_path)
+    #     print("")
 
 
 if __name__ == "__main__":

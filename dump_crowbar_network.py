@@ -4,10 +4,10 @@
 # Standard library modules.
 from __future__ import print_function
 from __future__ import with_statement
-import codecs
 import sys
 import argparse
 import json
+import dump_node_data
 from collections import OrderedDict
 
 # PyPy modules
@@ -32,7 +32,7 @@ def get_crowbar_config(entry_node):
     all_nodes_strs = list(filter(None, all_nodes_strs))
     all_nodes_strs.remove(entry_node)
 
-    return all_nodes_strs
+    return [str(item) for item in all_nodes_strs]
 
 
 
@@ -43,15 +43,15 @@ def dump_crowbar_to_file(args):
     network_tree[entry_node] = get_crowbar_config(entry_node)
 
     file_name = args.output
-    with codecs.open(file_name, "w", encoding="utf-8") as fi:
+    with open(file_name, "w") as fi:
         json.dump(network_tree, fi, indent=4, sort_keys=True)
         print("Wrote to network configuration to %s\n" % file_name)
 
-    all_nodes = []
-    all_nodes.append(entry_node)
-    all_nodes.append(network_tree[entry_node])
+    all_nodes_strs = []
+    all_nodes_strs.append(entry_node)
+    all_nodes_strs += network_tree[entry_node]
 
-    return all_nodes
+    return [dump_node_data.get_filename(node_str) for node_str in all_nodes_strs]
 
 
 

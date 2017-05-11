@@ -4,21 +4,14 @@
 # Standard library modules.
 from __future__ import print_function
 from __future__ import with_statement
-import codecs
 import os
 import sys
 import argparse
 import json
 from collections import OrderedDict
+import cPickle as pickle
 
 error_msg = "The module %s could not be found. Please use your system's package manager or pip to install it."
-
-# PyPy modules
-try:
-    import yaml
-except ImportError:
-    print(error_msg % "yaml")
-    sys.exit(1)
 
 try:
     import execnet
@@ -29,6 +22,10 @@ except ImportError:
 # local modules
 import slave
 import enrich_node_data
+
+
+
+file_extension = "yml"
 
 
 
@@ -86,8 +83,6 @@ def dump(args):
     else:
 
         (datastructure, node_list) = receive_data(tree_dict_str)
-        for node_file in node_list:
-            node_list_filenames.append(node_file)
         write_data(directory_path, datastructure, node_list)
 
     return node_list_filenames
@@ -176,7 +171,7 @@ def receive_data(tree_dict_str):
 
 
 def read_network_config(file_name):
-    with codecs.open(file_name, "r", encoding="utf-8") as fi:
+    with open(file_name, "r") as fi:
         tree_dict_str = json.load(fi, object_pairs_hook=OrderedDict)
 
     assert len(tree_dict_str.keys()) == 1
@@ -186,7 +181,7 @@ def read_network_config(file_name):
 
 
 def get_filename(node_str):
-    return "%s.yml" % node_str.replace(".", "-")
+    return "%s.%s" % (node_str.replace(".", "-"), file_extension)
 
 
 
@@ -197,8 +192,8 @@ def write_data(file_path, datastructure, node_list):
         print("Saving data to %s" % file_path_name)
 
 
-        with codecs.open(file_path_name, "w", encoding="utf-8") as fi:
-            yaml.dump({node_str:datastructure[node_str]}, fi, default_flow_style=False)
+        with open(file_path_name, "w") as fi:
+            pickle.dump({node_str:datastructure[node_str]}, fi)
 
         enrich_node_data.enrich_if_necessary(file_path_name)
 

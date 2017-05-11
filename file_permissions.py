@@ -4,7 +4,6 @@
 # Standard library modules
 from __future__ import print_function
 from __future__ import with_statement
-import codecs
 import sys
 
 def perm_readable(file_perm):

@@ -18,7 +18,6 @@ from collections import OrderedDict
 import os
 import re
 import copy
-import codecs
 import pwd
 import grp
 
@@ -91,7 +90,7 @@ def collect_data():
     for p in copy.copy(pids):
         try:
             status[p] = {}
-            with codecs.open("/proc/%d/status" % p, "r", encoding="utf-8") as fi:
+            with open("/proc/%d/status" % p, "r") as fi:
                 text = fi.read()
                 status_field = get_corresponding_regex("PPid")
                 ppid_str = re.search(status_field, text, re.MULTILINE).group(1)
@@ -107,7 +106,7 @@ def collect_data():
                 all_uids.add(status[p]["Uid"])
                 all_gids.add(status[p]["Gid"])
 
-            with codecs.open("/proc/%d/cmdline" % p, "r", encoding="utf-8") as fi:
+            with open("/proc/%d/cmdline" % p, "r") as fi:
                 cmdline_str = fi.read().replace("\n", "")
                 cmdline_items = [str(item) for item in cmdline_str.split("\x00")]
                 executable = cmdline_items[0]
@@ -127,7 +126,7 @@ def collect_data():
 
                 fd_identity_uid = os.stat(file_path_name).st_uid
                 fd_identity_gid = os.stat(file_path_name).st_gid
-                fd_perm_all     = os.stat(file_path_name).st_mode & 0777
+                fd_perm_all     = os.stat(file_path_name).st_mode & 0b111111111
 
                 fd_data = {
                     "file_identity": {
