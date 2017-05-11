@@ -19,12 +19,6 @@ error_msg = "The module %s could not be found. Please use your system's package 
 
 # PyPy modules
 try:
-    import termcolor
-except ImportError:
-    print(error_msg % "termcolor")
-    sys.exit(1)
-
-try:
     import terminaltables
 except ImportError:
     print(error_msg % "terminaltables")
@@ -145,26 +139,34 @@ def get_str_rep(collected_data_dict, column, pid, args):
     uid_name = collected_data_dict["uid_name" ]
     gid_name = collected_data_dict["gid_name" ]
 
+    all_uids_equal = len(set(pid_data["Uid"])) == 1
+    all_gids_equal = len(set(pid_data["Gid"])) == 1
+
 
     if column == "user":
         user_set = set()
         for item in set(pid_data["Uid"]):
             user_set.add(uid_name[item] if not args.verbose else "%s(%s)" % (uid_name[item], item))
         result = "|".join(str(x) for x in user_set)
+        if not all_uids_equal:
+            result.get_color_str(result)
 
     elif column == "groups":
-        groups_set = set()
-        for item in  set(pid_data["Gid"]) | set(pid_data["Groups"]):
-            groups_set.add(gid_name[item] if not args.verbose else "%s(%s)" % (uid_name[item], item))
-        result = "|".join(str(x) for x in groups_set)
+        groups_set = set(pid_data["Gid"]) | set(pid_data["Groups"])
+        groups_set_str = set()
+        for item in groups_set:
+            groups_set_str.add(gid_name[item] if not args.verbose else "%s(%s)" % (uid_name[item], item))
+        result = "|".join(str(x) for x in groups_set_str)
+        if not all_gids_equal:
+            result.get_color_str(result)
 
     elif column == "Seccomp":
-            result = "" if not args.verbose else pid_data[column]
+        result = "" if not args.verbose else get_color_str(pid_data[column])
 
     elif column[0:3] == "Cap":
         boring_cap_values = [0, 274877906943]
-        all_uids_equal = len(set(pid_data["Uid"])) == 1
         all_uids_are_root = all_uids_equal and pid_data["Uid"][0] == 0
+        no_uids_are_root = pid_data["Uid"].count(0) == 0
 
         if all_uids_are_root:
             result = ""
@@ -173,6 +175,10 @@ def get_str_rep(collected_data_dict, column, pid, args):
         else:
             if not args.cap:
                 result = "%016x" % pid_data[column]
+
+                # Now color it if necessary
+                if no_uids_are_root:
+                    result = get_color_str(result)
             else:
                 cap_trans = cap_bitstring_name.Cap_Translator("cap_data.json")
                 result = "\n".join(cap_trans.get_cap_strings(pid_data[column]))
@@ -214,6 +220,42 @@ def get_str_rep(collected_data_dict, column, pid, args):
 
 
     return result
+
+
+
+def color_if_necessary(collected_data_dict, column, pid, args, tmp_str):
+    pid_data = collected_data_dict["proc_data"][pid]
+    uid_name = collected_data_dict["uid_name" ]
+    gid_name = collected_data_dict["gid_name" ]
+
+    if column[0:3] == "Cap":
+        if tmp_str != "":
+            if not args.cap:
+                result = get_color_str(tmp_str)
+            else:
+                all_caps = tmp_str.split("\n")
+
+                # for (cap_str, cap_int) in zip(all_caps, pid_data[column]):
+                #     if : # TODO: Here condition
+                #
+                #
+                #
+                # # TODO
+                # # result is the new string
+                # # we need access to the old string
+
+
+    elif column in pid_data:
+        result = pid_data[column]
+    else:
+        assert False
+
+    return result
+
+
+
+def get_color_str(a_string):
+    return "^%s^" % a_string
 
 
 
@@ -269,7 +311,9 @@ def print_process_tree(collected_data_dict, column_headers, args):
 
             str_table_data[column] = {}
             for pid in all_pids:
-                str_table_data[column][pid] = get_str_rep(collected_data_dict, column, pid, args)
+                tmp_str = get_str_rep(collected_data_dict, column, pid, args)
+                # tmp_str = color_if_necessary(collected_data_dict, column, pid, args, tmp_str)
+                str_table_data[column][pid] = tmp_str
 
             column_values = list(str_table_data[column].values())
             if len(set(column_values)) == 1 and column_values[0] == "":
