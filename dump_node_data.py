@@ -25,7 +25,7 @@ import enrich_node_data
 
 
 
-file_extension = "yml"
+file_extension = "p" # apparently .p is commonly for pickled data
 
 
 

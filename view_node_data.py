@@ -10,6 +10,7 @@ import argparse
 import copy
 import re
 import os
+import termcolor
 
 # Local modules.
 import cap_bitstring_name
@@ -139,6 +140,9 @@ def get_str_rep(collected_data_dict, column, pid, args):
     uid_name = collected_data_dict["uid_name" ]
     gid_name = collected_data_dict["gid_name" ]
 
+    if "Uid" not in pid_data.keys():
+        return ""
+
     all_uids_equal = len(set(pid_data["Uid"])) == 1
     all_gids_equal = len(set(pid_data["Gid"])) == 1
 
@@ -161,7 +165,9 @@ def get_str_rep(collected_data_dict, column, pid, args):
             result.get_color_str(result)
 
     elif column == "Seccomp":
-        result = "" if not args.verbose else get_color_str(pid_data[column])
+        result = "" if not args.verbose else pid_data[column]
+        if pid_data[column]:
+            result = get_color_str(result)
 
     elif column[0:3] == "Cap":
         boring_cap_values = [0, 274877906943]
@@ -175,13 +181,17 @@ def get_str_rep(collected_data_dict, column, pid, args):
         else:
             if not args.cap:
                 result = "%016x" % pid_data[column]
-
-                # Now color it if necessary
                 if no_uids_are_root:
                     result = get_color_str(result)
             else:
                 cap_trans = cap_bitstring_name.Cap_Translator("cap_data.json")
-                result = "\n".join(cap_trans.get_cap_strings(pid_data[column]))
+                tmp_cap_list = cap_trans.get_cap_strings(pid_data[column])
+                new_cap_list = []
+                for tmp_cap in tmp_cap_list:
+                    if no_uids_are_root:
+                        new_cap_list.append(get_color_str(tmp_cap))
+                result = "\n".join(new_cap_list)
+
 
     elif column == "parameters":
         max_len = 20
@@ -198,8 +208,29 @@ def get_str_rep(collected_data_dict, column, pid, args):
         if not args.realfiles:
             result = len(pid_data["real_files"].keys())
         else:
-            real_files_str = [rf_str for rf_str in pid_data["real_files"].keys()]
-            result = "\n".join(sorted(real_files_str))
+            tmp_list = []
+            for rf_str in sorted(pid_data["real_files"].keys()):
+                fd_perm = pid_data["real_files"][rf_str]
+                file_identity = fd_perm["file_identity"]
+                file_perm     = fd_perm["file_perm"]
+
+                color_it = False
+                for uid_type in pid_data["Uid"]:
+
+                    user_identity = {
+                        "Uid":uid_type,
+                        "Gid_set":pid_data["Gid"],
+                    }
+
+                    if not file_permissions.can_access_file(user_identity, file_identity, file_perm):
+                        color_it = True
+
+                tmp_rf_str = rf_str
+                if color_it:
+                    tmp_rf_str = get_color_str(tmp_rf_str)
+                tmp_list.append(tmp_rf_str)
+
+            result = "\n".join(tmp_list)
 
     elif column == "open pseudo files":
         if not args.pseudofiles:
@@ -223,39 +254,11 @@ def get_str_rep(collected_data_dict, column, pid, args):
 
 
 
-def color_if_necessary(collected_data_dict, column, pid, args, tmp_str):
-    pid_data = collected_data_dict["proc_data"][pid]
-    uid_name = collected_data_dict["uid_name" ]
-    gid_name = collected_data_dict["gid_name" ]
-
-    if column[0:3] == "Cap":
-        if tmp_str != "":
-            if not args.cap:
-                result = get_color_str(tmp_str)
-            else:
-                all_caps = tmp_str.split("\n")
-
-                # for (cap_str, cap_int) in zip(all_caps, pid_data[column]):
-                #     if : # TODO: Here condition
-                #
-                #
-                #
-                # # TODO
-                # # result is the new string
-                # # we need access to the old string
-
-
-    elif column in pid_data:
-        result = pid_data[column]
-    else:
-        assert False
-
-    return result
-
-
-
 def get_color_str(a_string):
-    return "^%s^" % a_string
+    result = a_string
+    if sys.stdout.isatty():
+        result = termcolor.colored(a_string, "red")
+    return result
 
 
 
@@ -357,14 +360,14 @@ def print_process_tree(collected_data_dict, column_headers, args):
 
     # color_table(str_table, color_matrix)
 
-    # Note: If this ever gets ported to Python 3, consider changing to this
-    # to DoubleTable which makes use of box-drawing characters that are much
-    # more pleasing to look at.
-    # Unfortunately, using this under Python 2 breaks output using less and grep
-    table = terminaltables.AsciiTable(str_table)
+    # DoubleTable uses box-drawing characters which causes problems with less and grep
+    if not sys.stdout.isatty():
+        table = terminaltables.AsciiTable(str_table)
+    else:
+        table = terminaltables.DoubleTable(str_table)
 
-    table.inner_column_border = False
-    table.outer_border = False
+    # table.inner_column_border = False
+    # table.outer_border = False
 
     print(table.table)
 

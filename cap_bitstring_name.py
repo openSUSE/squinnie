@@ -4,7 +4,7 @@
 # Standard library modules
 from __future__ import print_function
 from __future__ import with_statement
-import cPickle as pickle
+import json
 import sys
 
 
@@ -29,7 +29,7 @@ class Cap_Translator():
 
     def get_cap_data(self):
         with open(self.file_name, "r") as fi:
-            return pickle.load(fi)
+            return json.load(fi)
 
 def main():
     if len(sys.argv) < 2:
