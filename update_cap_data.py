@@ -12,9 +12,9 @@ import argparse
 import sys
 import os
 
-def main():
+def main(sys_args):
     description = "Update the capability data cache generated from capability.h"
-    parser = argparse.ArgumentParser(prog=sys.argv[0], description=description)
+    parser = argparse.ArgumentParser(prog=sys_args, description=description)
 
     description = "The capability.h file. If not provided, /usr/include/linux/capability.h will be used."
     parser.add_argument("-i", "--input", type=str, help=description)
@@ -60,4 +60,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[0])

@@ -19,9 +19,9 @@ except ImportError:
 
 
 
-def main():
+def main(sys_args):
     description = "View a data dump of any single node."
-    parser = argparse.ArgumentParser(prog=sys.argv[0], description=description)
+    parser = argparse.ArgumentParser(prog=sys_args, description=description)
 
     description = "The scanned data dump from the file that will get modified."
     parser.add_argument("-i", "--input", required=True, type=str, help=description)
@@ -87,4 +87,4 @@ def parents_to_children(pids, parents):
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[0])

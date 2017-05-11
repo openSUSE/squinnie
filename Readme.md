@@ -9,9 +9,8 @@ The requirements for this project can be found in `requirements.txt`.
 ## Usage
 
 ```
-$ ./update_cap_data.py -o cap_data.json
-$ ./dump_crowbar_network.py -e <crowbar-entry-node> -o network.json
-$ mkdir data
-$ ./dump_node_data.py -i network.json -o data/
-$ ./view_node_data.py -i data/<some-node>.yml
+$ mkdir -p /tmp/myproject/
+$ ./dump_crowbar_network.py -o /tmp/myproject/network.json -e <crowbar-entry-node>
+$ ./dump_node_data.py -i /tmp/myproject/network.json -o /tmp/myproject/
+$ ./view_node_data.py -i /tmp/myproject/<some-node>.yml
 ```

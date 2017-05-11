@@ -32,15 +32,18 @@ import enrich_node_data
 
 
 
-def main():
+def main(sys_args):
     description = "Dump one file per node configured as network."
-    parser = argparse.ArgumentParser(prog=sys.argv[0], description=description)
+    parser = argparse.ArgumentParser(prog=sys_args, description=description)
 
     description = "The input file your network is described with."
     parser.add_argument("-i", "--input", required=True, type=str, help=description)
 
     description = "The output path you want your data files to be dumped to."
     parser.add_argument("-o", "--output", required=True, type=str, help=description)
+
+    description = "Force overwriting files, even if cached files are already present."
+    parser.add_argument("--nocache", action="store_true", help=description)
 
     args = parser.parse_args()
 
@@ -54,11 +57,40 @@ def main():
     elif not os.path.isdir(args.output):
         exit("The -o/--output parameter must be a directory.\n")
 
+    dump(args)
+
+
+
+def files_already_exist(directory_path, filenames):
+    result = True
+    for fname in filenames:
+        if not os.path.isfile( os.path.join(directory_path, fname) ):
+            result = False
+    return result
+
+
+
+def dump(args):
+    directory_path = args.output
     tree_dict_str = read_network_config(args.input)
 
-    (datastructure, node_list) = receive_data(tree_dict_str)
+    node_list = []
+    tree_dict_to_list(node_list, tree_dict_str)
+    node_list_filenames = [get_filename(item) for item in node_list]
 
-    write_data(datastructure, node_list, args.output)
+
+    if not args.nocache and files_already_exist(directory_path, node_list_filenames):
+        print("Skip another scan because a suitable cache was found.")
+        print("You can force rebuilding the cache from scratch using --nocache.")
+        print("")
+    else:
+
+        (datastructure, node_list) = receive_data(tree_dict_str)
+        for node_file in node_list:
+            node_list_filenames.append(node_file)
+        write_data(directory_path, datastructure, node_list)
+
+    return node_list_filenames
 
 
 
@@ -153,13 +185,17 @@ def read_network_config(file_name):
 
 
 
-def write_data(datastructure, node_list, file_path):
+def get_filename(node_str):
+    return "%s.yml" % node_str.replace(".", "-")
+
+
+
+def write_data(file_path, datastructure, node_list):
     for node_str in node_list:
-        file_name = "%s.yml" % node_str.replace(".", "-")
+        file_name = get_filename(node_str)
         file_path_name = os.path.join(file_path, file_name)
         print("Saving data to %s" % file_path_name)
 
-        # import pdb; pdb.set_trace()
 
         with codecs.open(file_path_name, "w", encoding="utf-8") as fi:
             yaml.dump({node_str:datastructure[node_str]}, fi, default_flow_style=False)
@@ -171,4 +207,4 @@ def write_data(datastructure, node_list, file_path):
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[0])

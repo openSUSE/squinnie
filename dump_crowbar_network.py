@@ -47,11 +47,17 @@ def dump_crowbar_to_file(args):
         json.dump(network_tree, fi, indent=4, sort_keys=True)
         print("Wrote to network configuration to %s\n" % file_name)
 
+    all_nodes = []
+    all_nodes.append(entry_node)
+    all_nodes.append(network_tree[entry_node])
+
+    return all_nodes
 
 
-def main():
+
+def main(sys_args):
     description = "Connect to a crowbar node and extract its network configuration as JSON."
-    parser = argparse.ArgumentParser(prog=sys.argv[0], description=description)
+    parser = argparse.ArgumentParser(prog=sys_args, description=description)
 
     description = "The host on which crowbar is running."
     parser.add_argument("-e", "--entry", required=True, type=str, help=description)
@@ -64,4 +70,4 @@ def main():
     dump_crowbar_to_file(args)
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[0])
