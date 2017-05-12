@@ -19,7 +19,7 @@ def main(sys_args):
     parser.add_argument("-i", "--input", type=str, help=description)
 
     description = "The output file for capability configuration in JSON format."
-    parser.add_argument("-o", "--output", required=True, type=str, help=description)
+    parser.add_argument("-o", "--output", type=str, help=description)
 
     args = parser.parse_args()
 
@@ -50,11 +50,14 @@ def main(sys_args):
         cap_name = str(m.group(1))
         cap_data[cap_name] = cap_int
 
-    file_name = args.output
+    if args.output:
+        file_path_name = args.output
+    else:
+        file_path_name = os.path.join( os.path.dirname(__file__), "cap_data.json" )
 
-    with open(file_name, "w") as fi:
+    with open(file_path_name, "w") as fi:
         json.dump(cap_data, fi, indent=4, sort_keys=True)
-        print("Wrote capability data to %s\n" % file_name)
+        print("Wrote capability data to %s\n" % file_path_name)
 
 
 
