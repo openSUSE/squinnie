@@ -16,13 +16,13 @@ import termcolor
 import cap_bitstring_name
 import file_permissions
 
-error_msg = "The module %s could not be found. Please use your system's package manager or pip to install it."
+error_msg = "The module {} could not be found. Please use your system's package manager or pip to install it."
 
 # PyPy modules
 try:
     import terminaltables
 except ImportError:
-    print(error_msg % "terminaltables")
+    print(error_msg.format("terminaltables"))
     sys.exit(1)
 
 
