@@ -164,8 +164,9 @@ def get_str_rep(collected_data_dict, column, pid, args):
     elif column == "groups":
         groups_set = set(pid_data["Gid"]) | set(pid_data["Groups"])
         groups_set_str = set()
+
         for item in groups_set:
-            groups_set_str.add(gid_name[item] if not args.verbose else "{}({})".format(uid_name[item], item))
+            groups_set_str.add(gid_name[item] if not args.verbose else "{}({})".format(gid_name[item], item))
         result = "|".join(str(x) for x in groups_set_str)
         if not all_gids_equal:
             result.get_color_str(result)
