@@ -6,6 +6,7 @@ from __future__ import print_function
 from __future__ import with_statement
 import json
 import sys
+import os
 
 
 
@@ -28,8 +29,13 @@ class Cap_Translator():
         return result
 
     def get_cap_data(self):
-        with open(self.file_name, "r") as fi:
-            return json.load(fi)
+        if os.path.exists(self.file_name):
+            with open(self.file_name, "r") as fi:
+                return json.load(fi)
+        else:
+            exit("The file {} does not exist. Exiting.".format(self.file_name))
+
+
 
 def main():
     if len(sys.argv) < 2:

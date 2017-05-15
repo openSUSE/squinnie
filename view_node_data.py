@@ -80,8 +80,12 @@ def view_data(args):
 
     file_name = args.input
 
-    with open(file_name, "r") as fi:
-        datastructure = pickle.load(fi)
+    if os.path.exists(file_name):
+        with open(file_name, "r") as fi:
+            datastructure = pickle.load(fi)
+    else:
+        exit("The file {} does not exist. Exiting.".format(file_name))
+
     assert len(datastructure.keys()) == 1
 
     node_str = list(datastructure.keys())[0]

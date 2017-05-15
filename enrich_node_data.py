@@ -4,9 +4,10 @@
 # Standard library modules.
 from __future__ import print_function
 from __future__ import with_statement
-import sys
-import argparse
 import cPickle as pickle
+import argparse
+import sys
+import os
 
 
 
@@ -41,8 +42,11 @@ def enrich_if_necessary(file_name):
 
 def read_data(file_name):
 
-    with open(file_name, "r") as my_file:
-        datastructure = pickle.load(my_file)
+    if os.path.exists(file_name):
+        with open(file_name, "r") as my_file:
+            datastructure = pickle.load(my_file)
+    else:
+        exit("The file {} does not exist. Exiting.".format(file_name))
 
 
     assert len(datastructure.keys()) == 1

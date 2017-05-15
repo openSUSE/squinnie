@@ -4,20 +4,14 @@
 # Standard library modules.
 from __future__ import print_function
 from __future__ import with_statement
-import os
-import sys
-import argparse
-import json
 from collections import OrderedDict
 import cPickle as pickle
+import argparse
+import json
+import sys
+import os
 
-error_msg = "The module {} could not be found. Please use your system's package manager or pip to install it."
 
-try:
-    import execnet
-except ImportError:
-    print(error_msg.format("execnet"))
-    sys.exit(1)
 
 # local modules
 import slave
@@ -26,6 +20,13 @@ import enrich_node_data
 
 
 file_extension = "p" # apparently .p is commonly for pickled data
+error_msg = "The module {} could not be found. Please use your system's package manager or pip to install it."
+
+try:
+    import execnet
+except ImportError:
+    print(error_msg.format("execnet"))
+    sys.exit(1)
 
 
 
@@ -171,8 +172,11 @@ def receive_data(tree_dict_str):
 
 
 def read_network_config(file_name):
-    with open(file_name, "r") as fi:
-        tree_dict_str = json.load(fi, object_pairs_hook=OrderedDict)
+    if os.path.exists(file_name):
+        with open(file_name, "r") as fi:
+            tree_dict_str = json.load(fi, object_pairs_hook=OrderedDict)
+    else:
+        exit("The file {} does not exist. Exiting.".format(file_name))
 
     assert len(tree_dict_str.keys()) == 1
 
@@ -190,7 +194,6 @@ def write_data(file_path, datastructure, node_list):
         file_name = get_filename(node_str)
         file_path_name = os.path.join(file_path, file_name)
         print("Saving data to {}".format(file_path_name))
-
 
         with open(file_path_name, "w") as fi:
             pickle.dump({node_str:datastructure[node_str]}, fi)

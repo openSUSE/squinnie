@@ -5,11 +5,11 @@
 from __future__ import print_function
 from __future__ import with_statement
 from collections import OrderedDict
-import re
-import json
 import argparse
+import json
 import sys
 import os
+import re
 
 
 
@@ -60,7 +60,6 @@ def main(sys_args):
     with open(file_path_name, "w") as fi:
         json.dump(cap_data, fi, indent=4, sort_keys=True)
         print("Wrote capability data to {}\n".format(file_path_name))
-
 
 
 if __name__ == "__main__":
