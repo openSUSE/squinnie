@@ -105,7 +105,7 @@ def view_data(args):
         "user",
         "groups",
         "open file descriptors",
-        "Seccomp",
+        "features",
         "CapInh",
         "CapPrm",
         "CapEff",
@@ -226,10 +226,17 @@ def get_str_rep(collected_data_dict, column, pid, args):
         if not all_gids_equal:
             result.get_color_str(result)
 
-    elif column == "Seccomp":
-        result = "" if not args.verbose else pid_data[column]
-        if pid_data[column]:
-            result = get_color_str(result)
+    elif column == "features":
+        result_list = []
+        if pid_data["Seccomp"]:
+            result_list.append("seccomp")
+        if pid_data["root"] != "/":
+            result_list.append("rooted")
+
+        if result_list:
+            result = get_color_str("|".join(result_list))
+        else:
+            result = ""
 
     elif column[0:3] == "Cap":
         boring_cap_values = [0, 274877906943]

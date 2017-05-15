@@ -64,7 +64,6 @@ def collect_data():
     def get_corresponding_regex(field_to_search_for):
         return "^{}:\s(.*)$".format(field_to_search_for)
 
-
     # Send one big dictionary at the end
     result = {}
 
@@ -114,6 +113,9 @@ def collect_data():
 
                 status[p]["executable"] = executable
                 status[p]["parameters"] = parameters
+
+
+            status[p]["root"] = os.path.realpath("/proc/{}/root".format(p))
 
 
             status[p]["real_files"] = {}
