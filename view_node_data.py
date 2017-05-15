@@ -44,6 +44,9 @@ def main(sys_args):
     description = "Hide table borders completely. Useful for tools like less and grep."
     parser.add_argument("--hideborders", action="store_true", help=description)
 
+    description = "Show parameters from the executable cmdline variable."
+    parser.add_argument("--params", action="store_true", help=description)
+
     description = "Include kernel threads. Kernel threads are excluded by default."
     parser.add_argument("-k", "--kthreads", action="store_true", help=description)
 
@@ -95,7 +98,7 @@ def view_data(args):
     column_headers = [
         "pid",
         "executable",
-        # "parameters",
+        "parameters",
         "user",
         "groups",
         "open file descriptors",
@@ -197,15 +200,10 @@ def get_str_rep(collected_data_dict, column, pid, args):
 
 
     elif column == "parameters":
-        max_len = 20
+        max_len = 40
         cmdline = pid_data[column]
-        if not cmdline:
-            cmdline = "<empty>"
         cmdline_chunks = [cmdline[i:i+max_len] for i in range(0, len(cmdline), max_len)]
-        if not args.verbose:
-            result = cmdline_chunks[0]
-        else:
-            result = "\n".join(cmdline_chunks)
+        result = "\n".join(cmdline_chunks)
 
     elif column == "open file descriptors":
         if not args.fd:
@@ -323,6 +321,9 @@ def print_process_tree(collected_data_dict, column_headers, args):
     # These values are generally uninteresting
     to_remove.add("CapAmb")
     to_remove.add("CapBnd")
+
+    if not args.params:
+        to_remove.add("parameters")
 
 
     # Remove empty columns since they only take up unnecessary space

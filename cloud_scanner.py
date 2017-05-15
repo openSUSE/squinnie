@@ -50,6 +50,9 @@ def main(sys_args):
     description = "Hide table borders completely. Useful for tools like less and grep."
     view_group.add_argument("--hideborders", action="store_true", help=description)
 
+    description = "Show parameters from the executable cmdline variable."
+    parser.add_argument("--params", action="store_true", help=description)
+
     description = "Include kernel threads. Kernel threads are excluded by default."
     view_group.add_argument("-k", "--kthreads", action="store_true", help=description)
 
@@ -96,6 +99,7 @@ def main(sys_args):
     view_args = argparse.Namespace()
     view_args.verbose     = args.verbose
     view_args.hideborders = args.hideborders
+    view_args.params      = args.params
     view_args.kthreads    = args.kthreads
     view_args.pid         = args.pid
     view_args.children    = args.children
