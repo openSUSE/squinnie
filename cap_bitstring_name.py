@@ -42,7 +42,7 @@ def main():
     print("\nThe given bitstring maps to the following capabilities:\n")
     cap_integer = int(sys.argv[1], 16)
     for cap in cap_trans.get_cap_strings(cap_integer):
-        print("- %s" % cap)
+        print("- {}".format(cap))
     print("")
 
 if __name__ == "__main__":

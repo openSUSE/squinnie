@@ -62,7 +62,7 @@ def collect_data():
     }
 
     def get_corresponding_regex(field_to_search_for):
-        return "^%s:\s(.*)$" % (field_to_search_for)
+        return "^{}:\s(.*)$".format(field_to_search_for)
 
 
     # Send one big dictionary at the end
@@ -90,7 +90,7 @@ def collect_data():
     for p in copy.copy(pids):
         try:
             status[p] = {}
-            with open("/proc/%d/status" % p, "r") as fi:
+            with open("/proc/{}/status".format(p), "r") as fi:
                 text = fi.read()
                 status_field = get_corresponding_regex("PPid")
                 ppid_str = re.search(status_field, text, re.MULTILINE).group(1)
@@ -106,7 +106,7 @@ def collect_data():
                 all_uids.add(status[p]["Uid"])
                 all_gids.add(status[p]["Gid"])
 
-            with open("/proc/%d/cmdline" % p, "r") as fi:
+            with open("/proc/{}/cmdline".format(p), "r") as fi:
                 cmdline_str = fi.read().replace("\n", "")
                 cmdline_items = [str(item) for item in cmdline_str.split("\x00")]
                 executable = cmdline_items[0]
@@ -118,7 +118,7 @@ def collect_data():
 
             status[p]["real_files"] = {}
             status[p]["pseudo_files"] = {}
-            fd_dir = "/proc/%d/fd/" % p
+            fd_dir = "/proc/{}/fd/".format(p)
             for fd_str in os.listdir(fd_dir):
 
                 file_path_name = fd_dir + fd_str

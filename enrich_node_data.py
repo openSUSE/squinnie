@@ -8,8 +8,6 @@ import sys
 import argparse
 import cPickle as pickle
 
-error_msg = "The module %s could not be found. Please use your system's package manager or pip to install it."
-
 
 
 def main(sys_args):

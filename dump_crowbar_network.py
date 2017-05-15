@@ -20,10 +20,10 @@ except ImportError:
 
 def get_crowbar_config(entry_node):
     group = execnet.Group()
-    master = group.makegateway("id=master//python=python%d//ssh=root@%s" % (sys.version_info.major, entry_node))
+    master = group.makegateway("id=master//python=python{}//ssh=root@{}".format(sys.version_info.major, entry_node))
 
     cmd = "crowbar machines list"
-    exec_cmd = "import os; channel.send(os.popen('%s').read())" % (cmd)
+    exec_cmd = "import os; channel.send(os.popen('{}').read())".format(cmd)
     str_crowbar = master.remote_exec(exec_cmd).receive()
 
     all_nodes_strs = str_crowbar.split("\n")
@@ -45,7 +45,7 @@ def dump_crowbar_to_file(args):
     file_name = args.output
     with open(file_name, "w") as fi:
         json.dump(network_tree, fi, indent=4, sort_keys=True)
-        print("Wrote to network configuration to %s\n" % file_name)
+        print("Wrote to network configuration to {}\n".format(file_name))
 
     all_nodes_strs = []
     all_nodes_strs.append(entry_node)

@@ -11,6 +11,8 @@ import argparse
 import sys
 import os
 
+
+
 def main(sys_args):
     description = "Update the capability data cache generated from capability.h"
     parser = argparse.ArgumentParser(prog=sys_args, description=description)
@@ -36,9 +38,9 @@ def main(sys_args):
             with open(file_name, "r") as fi:
                 file_data = fi.read()
         except EnvironmentError:
-            exit("The file %s exists, but cannot be opened." % file_name)
+            exit("The file {} exists, but cannot be opened.".format(file_name))
     else:
-        exit("The file %s does not exist." % file_name)
+        exit("The file {} does not exist.".format(file_name))
 
     assert file_data
 
@@ -57,7 +59,7 @@ def main(sys_args):
 
     with open(file_path_name, "w") as fi:
         json.dump(cap_data, fi, indent=4, sort_keys=True)
-        print("Wrote capability data to %s\n" % file_path_name)
+        print("Wrote capability data to {}\n".format(file_path_name))
 
 
 

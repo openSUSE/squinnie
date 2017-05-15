@@ -85,7 +85,7 @@ def view_data(args):
 
     collected_data_dict = datastructure[node_str]
 
-    print("There are %d processes running on this host." % len(collected_data_dict["proc_data"].keys()))
+    print("There are {} processes running on this host.".format(len(collected_data_dict["proc_data"].keys())))
     print("")
 
     column_headers = [
@@ -121,11 +121,11 @@ def get_pseudo_file_str_rep(raw_pseudo_file_str):
         the_value = match.group(2)
 
         if the_type == "pipe":
-            result = "%s : %s" % (the_type, the_value)
+            result = "{} : {}".format(the_type, the_value)
         elif the_type == "socket":
-            result = "%s : %s" % (the_type, the_value)
+            result = "{} : {}".format(the_type, the_value)
         elif the_type == "anon_inode":
-            result = "%s : %s" % (the_type, the_value)
+            result = "{} : {}".format(the_type, the_value)
         else:
             assert False
         return result
@@ -150,7 +150,7 @@ def get_str_rep(collected_data_dict, column, pid, args):
     if column == "user":
         user_set = set()
         for item in set(pid_data["Uid"]):
-            user_set.add(uid_name[item] if not args.verbose else "%s(%s)" % (uid_name[item], item))
+            user_set.add(uid_name[item] if not args.verbose else "{}({})".format(uid_name[item], item))
         result = "|".join(str(x) for x in user_set)
         if not all_uids_equal:
             result.get_color_str(result)
@@ -159,7 +159,7 @@ def get_str_rep(collected_data_dict, column, pid, args):
         groups_set = set(pid_data["Gid"]) | set(pid_data["Groups"])
         groups_set_str = set()
         for item in groups_set:
-            groups_set_str.add(gid_name[item] if not args.verbose else "%s(%s)" % (uid_name[item], item))
+            groups_set_str.add(gid_name[item] if not args.verbose else "{}({})".format(uid_name[item], item))
         result = "|".join(str(x) for x in groups_set_str)
         if not all_gids_equal:
             result.get_color_str(result)
@@ -180,7 +180,7 @@ def get_str_rep(collected_data_dict, column, pid, args):
             result = ""
         else:
             if not args.cap:
-                result = "%016x" % pid_data[column]
+                result = "{:016X}".format(pid_data[column])
                 if no_uids_are_root:
                     result = get_color_str(result)
             else:
@@ -348,7 +348,7 @@ def print_process_tree(collected_data_dict, column_headers, args):
             single_pid = parents[single_pid]
 
         if not single_pid in collected_data_dict["proc_data"]:
-            exit("There is no process that has pid %d on this node.\n" % single_pid)
+            exit("There is no process that has pid {} on this node.\n".format(single_pid))
 
         recursive = args.children
         proc_tree += recursive_proc_tree(children, single_pid, indention_count, level, recursive)

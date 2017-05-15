@@ -111,7 +111,7 @@ def main(sys_args):
         view_node_data.view_data(view_args)
     else:
         for node_file in node_filenames:
-            print("\n\nPreparing report for %s ..." % node_file)
+            print("\n\nPreparing report for {} ...".format(node_file))
             view_args.input = os.path.join(args.directory, node_file)
             view_node_data.view_data(view_args)
 
@@ -123,7 +123,7 @@ def main(sys_args):
     #     for file_name in files_produced:
     #         file_name_path = os.path.join(args.directory, file_name)
     #         os.remove(file_name_path)
-    #         print("Deleting %s" % file_name_path)
+    #         print("Deleting {}".format(file_name_path))
     #     print("")
 
 

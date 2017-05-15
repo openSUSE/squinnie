@@ -11,12 +11,12 @@ import json
 from collections import OrderedDict
 import cPickle as pickle
 
-error_msg = "The module %s could not be found. Please use your system's package manager or pip to install it."
+error_msg = "The module {} could not be found. Please use your system's package manager or pip to install it."
 
 try:
     import execnet
 except ImportError:
-    print(error_msg % "execnet")
+    print(error_msg.format("execnet"))
     sys.exit(1)
 
 # local modules
@@ -139,15 +139,15 @@ def tree_dict_to_list(working_set, tree_dict_str):
 
 def get_gateway_option_string(execnet_via, execnet_id):
     data = {
-        "ssh"   :"root@%s"  % execnet_id,
-        "id"    : "%s"      % execnet_id,
-        "python":"python%d" % sys.version_info.major,
+        "ssh"   :"root@{}".format(execnet_id),
+        "id"    : "{}".format(execnet_id),
+        "python":"python{}".format(sys.version_info.major),
     }
 
     if execnet_via:
         data["via"] = execnet_via
 
-    data_str = ["%s=%s" % (key, value) for key, value in data.items()]
+    data_str = ["{}={}".format(key, value) for key, value in data.items()]
 
     return "//".join(data_str)
 
@@ -162,7 +162,7 @@ def receive_data(tree_dict_str):
 
     datastructure = {}
     for node_str in node_list:
-        print("Receiving data from %s" % node_str)
+        print("Receiving data from {}".format(node_str))
         datastructure[node_str] = group[node_str].remote_exec(slave).receive()
     print("")
 
@@ -181,7 +181,7 @@ def read_network_config(file_name):
 
 
 def get_filename(node_str):
-    return "%s.%s" % (node_str.replace(".", "-"), file_extension)
+    return "{}.{}".format(node_str.replace(".", "-"), file_extension)
 
 
 
@@ -189,7 +189,7 @@ def write_data(file_path, datastructure, node_list):
     for node_str in node_list:
         file_name = get_filename(node_str)
         file_path_name = os.path.join(file_path, file_name)
-        print("Saving data to %s" % file_path_name)
+        print("Saving data to {}".format(file_path_name))
 
 
         with open(file_path_name, "w") as fi:
