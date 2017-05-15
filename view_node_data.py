@@ -63,11 +63,8 @@ def main(sys_args):
 
 
 
-    description = "Show detailed information on all open ordinary files."
-    parser.add_argument("--realfiles", action="store_true", help=description)
-
-    description = "Show detailed information on all open pseudo files, such as pipes, sockets and or inodes."
-    parser.add_argument("--pseudofiles", action="store_true", help=description)
+    description = "Show all open file descriptors for every process."
+    parser.add_argument("--fd", action="store_true", help=description)
 
 
     args = parser.parse_args()
@@ -101,8 +98,7 @@ def view_data(args):
         # "parameters",
         "user",
         "groups",
-        "open real files",
-        "open pseudo files",
+        "open file descriptors",
         "Seccomp",
         "CapInh",
         "CapPrm",
@@ -211,10 +207,11 @@ def get_str_rep(collected_data_dict, column, pid, args):
         else:
             result = "\n".join(cmdline_chunks)
 
-    elif column == "open real files":
-        if not args.realfiles:
-            result = len(pid_data["real_files"].keys())
+    elif column == "open file descriptors":
+        if not args.fd:
+            result = len(pid_data["real_files"].keys()) + len(pid_data["pseudo_files"].keys())
         else:
+            result = ""
             tmp_list = []
             for rf_str in sorted(pid_data["real_files"].keys()):
                 fd_perm = pid_data["real_files"][rf_str]
@@ -237,19 +234,15 @@ def get_str_rep(collected_data_dict, column, pid, args):
                     tmp_rf_str = get_color_str(tmp_rf_str)
                 tmp_list.append(tmp_rf_str)
 
-            result = "\n".join(tmp_list)
+            result += "\n".join(tmp_list)
 
-    elif column == "open pseudo files":
-        if not args.pseudofiles:
-            result = len(pid_data["pseudo_files"].keys())
-        else:
             pseudo_files_str = []
             for pf_str in pid_data["pseudo_files"].keys():
                 if not args.verbose:
                     pseudo_files_str.append(get_pseudo_file_str_rep(pf_str))
                 else:
                     pseudo_files_str.append(pf_str)
-            result = "\n".join(sorted(pseudo_files_str))
+            result += "\n".join(sorted(pseudo_files_str))
 
     elif column in pid_data:
         result = pid_data[column]
@@ -321,9 +314,7 @@ def print_process_tree(collected_data_dict, column_headers, args):
 
             str_table_data[column] = {}
             for pid in all_pids:
-                tmp_str = get_str_rep(collected_data_dict, column, pid, args)
-                # tmp_str = color_if_necessary(collected_data_dict, column, pid, args, tmp_str)
-                str_table_data[column][pid] = tmp_str
+                str_table_data[column][pid] = get_str_rep(collected_data_dict, column, pid, args)
 
             column_values = list(str_table_data[column].values())
             if len(set(column_values)) == 1 and column_values[0] == "":

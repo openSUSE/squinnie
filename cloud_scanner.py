@@ -65,11 +65,8 @@ def main(sys_args):
     description = "Show capabilities as string names rather than bitstrings."
     view_group.add_argument("--cap", action="store_true", help=description)
 
-    description = "Show detailed information on all open ordinary files."
-    view_group.add_argument("--realfiles", action="store_true", help=description)
-
-    description = "Show detailed information on all open pseudo files, such as pipes, sockets and or inodes."
-    view_group.add_argument("--pseudofiles", action="store_true", help=description)
+    description = "Show all open file descriptors for every process."
+    parser.add_argument("--fd", action="store_true", help=description)
 
 
     files_produced = []
@@ -104,8 +101,7 @@ def main(sys_args):
     view_args.children    = args.children
     view_args.parent      = args.parent
     view_args.cap         = args.cap
-    view_args.realfiles   = args.realfiles
-    view_args.pseudofiles = args.pseudofiles
+    view_args.fd          = args.fd
 
     if not args.all:
         view_args.input = os.path.join(args.directory, dump_node_data.get_filename(args.entry))
