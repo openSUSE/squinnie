@@ -44,21 +44,27 @@ def get_crowbar_config(entry_node):
 
 
 def dump_crowbar_to_file(args):
-    entry_node = args.entry
+    if not args.nocache and os.path.isfile(args.output):
+        print("Skip another scan because a suitable cache was found.")
+        print("You can force rebuilding the cache from scratch using --nocache.")
+        print("")
+    else:
 
-    network_tree = OrderedDict()
-    network_tree[entry_node] = get_crowbar_config(entry_node)
+        entry_node = args.entry
 
-    file_name = args.output
-    with open(file_name, "w") as fi:
-        json.dump(network_tree, fi, indent=4, sort_keys=True)
-        print("Wrote to network configuration to {}\n".format(file_name))
+        network_tree = OrderedDict()
+        network_tree[entry_node] = get_crowbar_config(entry_node)
 
-    all_nodes_strs = []
-    all_nodes_strs.append(entry_node)
-    all_nodes_strs += network_tree[entry_node]
+        file_name = args.output
+        with open(file_name, "w") as fi:
+            json.dump(network_tree, fi, indent=4, sort_keys=True)
+            print("Wrote to network configuration to {}\n".format(file_name))
 
-    return [dump_node_data.get_filename(node_str) for node_str in all_nodes_strs]
+        all_nodes_strs = []
+        all_nodes_strs.append(entry_node)
+        all_nodes_strs += network_tree[entry_node]
+
+        # return [dump_node_data.get_filename(node_str) for node_str in all_nodes_strs]
 
 
 
@@ -71,6 +77,9 @@ def main(sys_args):
 
     description = "The output file you want your data to be dumped to."
     parser.add_argument("-o", "--output", required=True, type=str, help=description)
+
+    description = "Force overwriting the network file, even if it already exists."
+    parser.add_argument("--nocache", action="store_true", help=description)
 
     args = parser.parse_args()
 

@@ -90,6 +90,7 @@ def main(sys_args):
     # dump_crowbar_network arguments
     crowbar_args = argparse.Namespace()
     crowbar_args.entry = args.entry
+    crowbar_args.nocache = args.nocache
     crowbar_args.output = nwconfig_file_name_path
 
     dump_crowbar_network.dump_crowbar_to_file(crowbar_args)
