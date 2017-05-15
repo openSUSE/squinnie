@@ -71,6 +71,9 @@ def main(sys_args):
     description = "Show all open file descriptors for every process."
     parser.add_argument("--fd", action="store_true", help=description)
 
+    description = "Show only the open file descriptors in a dedicated view and nothing else."
+    parser.add_argument("--onlyfd", action="store_true", help=description)
+
     args = parser.parse_args()
 
     finally_remove_dir = False
@@ -116,6 +119,7 @@ def main(sys_args):
     view_args.parent      = args.parent
     view_args.cap         = args.cap
     view_args.fd          = args.fd
+    view_args.onlyfd      = args.onlyfd
 
     if not args.all:
         view_args.input = os.path.join(args.directory, dump_node_data.get_filename(args.entry))

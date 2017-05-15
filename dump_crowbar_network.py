@@ -45,7 +45,7 @@ def get_crowbar_config(entry_node):
 
 def dump_crowbar_to_file(args):
     if not args.nocache and os.path.isfile(args.output):
-        print("Skip another scan because a suitable cache was found.")
+        print("Skip regenerating a network.json config because a suitable cache was found.")
         print("You can force rebuilding the cache from scratch using --nocache.")
         print("")
     else:

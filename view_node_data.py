@@ -69,6 +69,9 @@ def main(sys_args):
     description = "Show all open file descriptors for every process."
     parser.add_argument("--fd", action="store_true", help=description)
 
+    description = "Show only the open file descriptors in a dedicated view and nothing else."
+    parser.add_argument("--onlyfd", action="store_true", help=description)
+
 
     args = parser.parse_args()
 
@@ -110,16 +113,31 @@ def view_data(args):
         "CapAmb",
     ]
 
-    print_process_tree(collected_data_dict, column_headers, args)
+    if not args.onlyfd:
+        print_process_tree(collected_data_dict, column_headers, args)
+    else:
+        print_only_file_descriptors(collected_data_dict, args)
 
     print("")
+
+
+
+def print_only_file_descriptors(collected_data_dict, args):
+    all_pids = collected_data_dict["proc_data"].keys()
+
+    for pid in sorted(all_pids):
+        print("{}".format(pid))
+        print("----")
+        list_str = get_list_of_open_file_descriptors(collected_data_dict, pid, args)
+        print(list_str)
+        print("")
 
 
 
 def get_pseudo_file_str_rep(raw_pseudo_file_str):
 
     # Convert fds to more easy-to-read strings
-    regex = re.compile("\/proc\/\d+\/fd\/(socket|pipe|anon\_inode)+:\[(\w+)\]")
+    regex = re.compile("\/proc\/\d+\/fd\/(socket|pipe|anon\_inode)+:\[?(\w+)\]?")
     match = re.match(regex, raw_pseudo_file_str)
 
     if match:
@@ -127,9 +145,9 @@ def get_pseudo_file_str_rep(raw_pseudo_file_str):
         the_value = match.group(2)
 
         if the_type == "pipe":
-            result = "{} : {}".format(the_type, the_value)
+            result = "{} : {:>10}".format(the_type, the_value)
         elif the_type == "socket":
-            result = "{} : {}".format(the_type, the_value)
+            result = "{} : {:>10}".format(the_type, the_value)
         elif the_type == "anon_inode":
             result = "{} : {}".format(the_type, the_value)
         else:
@@ -137,6 +155,43 @@ def get_pseudo_file_str_rep(raw_pseudo_file_str):
         return result
     else:
         assert False
+
+
+
+def get_list_of_open_file_descriptors(collected_data_dict, pid, args):
+
+    pid_data = collected_data_dict["proc_data"][pid]
+    tmp_list = []
+    for rf_str in sorted(pid_data["real_files"].keys()):
+        fd_perm = pid_data["real_files"][rf_str]
+        file_identity = fd_perm["file_identity"]
+        file_perm     = fd_perm["file_perm"]
+
+        color_it = False
+        for uid_type in pid_data["Uid"]:
+
+            user_identity = {
+                "Uid":uid_type,
+                "Gid_set":pid_data["Gid"],
+            }
+
+            if not file_permissions.can_access_file(user_identity, file_identity, file_perm):
+                color_it = True
+
+        tmp_rf_str = rf_str
+        if color_it:
+            tmp_rf_str = get_color_str(tmp_rf_str)
+        tmp_list.append(tmp_rf_str)
+
+    pseudo_files_str = []
+    for pf_str in pid_data["pseudo_files"].keys():
+
+        if not args.verbose:
+            pseudo_files_str.append(get_pseudo_file_str_rep(pf_str))
+        else:
+            pseudo_files_str.append(pf_str)
+
+    return "\n".join(tmp_list + sorted(pseudo_files_str))
 
 
 
@@ -200,6 +255,7 @@ def get_str_rep(collected_data_dict, column, pid, args):
                 result = "\n".join(new_cap_list)
 
 
+
     elif column == "parameters":
         max_len = 40
         cmdline = pid_data[column]
@@ -210,38 +266,7 @@ def get_str_rep(collected_data_dict, column, pid, args):
         if not args.fd:
             result = len(pid_data["real_files"].keys()) + len(pid_data["pseudo_files"].keys())
         else:
-            result = ""
-            tmp_list = []
-            for rf_str in sorted(pid_data["real_files"].keys()):
-                fd_perm = pid_data["real_files"][rf_str]
-                file_identity = fd_perm["file_identity"]
-                file_perm     = fd_perm["file_perm"]
-
-                color_it = False
-                for uid_type in pid_data["Uid"]:
-
-                    user_identity = {
-                        "Uid":uid_type,
-                        "Gid_set":pid_data["Gid"],
-                    }
-
-                    if not file_permissions.can_access_file(user_identity, file_identity, file_perm):
-                        color_it = True
-
-                tmp_rf_str = rf_str
-                if color_it:
-                    tmp_rf_str = get_color_str(tmp_rf_str)
-                tmp_list.append(tmp_rf_str)
-
-            result += "\n".join(tmp_list)
-
-            pseudo_files_str = []
-            for pf_str in pid_data["pseudo_files"].keys():
-                if not args.verbose:
-                    pseudo_files_str.append(get_pseudo_file_str_rep(pf_str))
-                else:
-                    pseudo_files_str.append(pf_str)
-            result += "\n".join(sorted(pseudo_files_str))
+            result = get_list_of_open_file_descriptors(collected_data_dict, pid, args)
 
     elif column in pid_data:
         result = pid_data[column]

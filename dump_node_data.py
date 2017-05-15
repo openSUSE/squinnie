@@ -78,7 +78,7 @@ def dump(args):
 
 
     if not args.nocache and files_already_exist(directory_path, node_list_filenames):
-        print("Skip another scan because a suitable cache was found.")
+        print("Skip scanning the nodes again because a suitable cache was found.")
         print("You can force rebuilding the cache from scratch using --nocache.")
         print("")
     else:

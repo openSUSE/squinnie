@@ -141,7 +141,7 @@ def collect_data():
                     }
                 }
 
-                if ":[" in resolved_symlink_name:
+                if ":" in resolved_symlink_name:
                     file_type = "pseudo_files"
                 else:
                     file_type = "real_files"
