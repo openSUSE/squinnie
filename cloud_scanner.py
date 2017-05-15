@@ -47,6 +47,9 @@ def main(sys_args):
     # View
     view_group = parser.add_argument_group('view arguments')
 
+    description = "Hide table borders completely. Useful for tools like less and grep."
+    view_group.add_argument("--hideborders", action="store_true", help=description)
+
     description = "Include kernel threads. Kernel threads are excluded by default."
     view_group.add_argument("-k", "--kthreads", action="store_true", help=description)
 
@@ -75,16 +78,15 @@ def main(sys_args):
     nwconfig_file_name = "network.json"
     nwconfig_file_name_path = os.path.join(args.directory, nwconfig_file_name)
 
-
+    # dump_crowbar_network arguments
     crowbar_args = argparse.Namespace()
     crowbar_args.entry = args.entry
     crowbar_args.output = nwconfig_file_name_path
-    # import pdb; pdb.set_trace()
 
     dump_crowbar_network.dump_crowbar_to_file(crowbar_args)
     files_produced.append(nwconfig_file_name)
 
-
+    # dump_node_data arguments
     dump_args = argparse.Namespace()
     dump_args.input = nwconfig_file_name_path
     dump_args.output = args.directory
@@ -93,11 +95,10 @@ def main(sys_args):
     node_filenames = dump_node_data.dump(dump_args)
     files_produced += node_filenames
 
-
-
-
+    # view_node_data arguments
     view_args = argparse.Namespace()
     view_args.verbose     = args.verbose
+    view_args.hideborders = args.hideborders
     view_args.kthreads    = args.kthreads
     view_args.pid         = args.pid
     view_args.children    = args.children

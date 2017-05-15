@@ -41,6 +41,9 @@ def main(sys_args):
 
 
 
+    description = "Hide table borders completely. Useful for tools like less and grep."
+    parser.add_argument("--hideborders", action="store_true", help=description)
+
     description = "Include kernel threads. Kernel threads are excluded by default."
     parser.add_argument("-k", "--kthreads", action="store_true", help=description)
 
@@ -358,16 +361,16 @@ def print_process_tree(collected_data_dict, column_headers, args):
     str_table = generate_table(column_headers, proc_tree, str_table_data)
 
 
-    # color_table(str_table, color_matrix)
-
     # DoubleTable uses box-drawing characters which causes problems with less and grep
     if not sys.stdout.isatty():
         table = terminaltables.AsciiTable(str_table)
     else:
         table = terminaltables.DoubleTable(str_table)
 
-    # table.inner_column_border = False
-    # table.outer_border = False
+    if args.hideborders:
+        table.outer_border             = False
+        table.inner_column_border      = False
+        table.inner_heading_row_border = False
 
     print(table.table)
 
