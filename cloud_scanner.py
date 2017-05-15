@@ -26,8 +26,8 @@ def main(sys_args):
     # General
     general_group = parser.add_argument_group('general arguments')
 
-    description = "The directory all files are cached in."
-    general_group.add_argument("-d", "--directory", required=True, type=str, help=description)
+    description = "The directory all files are cached in. If no value is given here, /tmp/cloud_scanner/ will be used to save files during the execution of the script and then deleted at the end."
+    general_group.add_argument("-d", "--directory", type=str, help=description)
 
     description = "Print more detailed information."
     general_group.add_argument("-v", "--verbose", action="store_true", help=description)
@@ -71,10 +71,19 @@ def main(sys_args):
     description = "Show all open file descriptors for every process."
     parser.add_argument("--fd", action="store_true", help=description)
 
+    args = parser.parse_args()
+
+    finally_remove_dir = False
+    if not args.directory:
+        args.directory = "/tmp/cloud_scanner/"
+        if not os.path.isdir(args.directory):
+            os.mkdir(args.directory)
+        finally_remove_dir = True
+
+    if not os.path.isdir(args.directory):
+        exit("The directory {} does not exist. Please create it using mkdir.".format(args.directory))
 
     files_produced = []
-
-    args = parser.parse_args()
     nwconfig_file_name = "network.json"
     nwconfig_file_name_path = os.path.join(args.directory, nwconfig_file_name)
 
@@ -116,16 +125,17 @@ def main(sys_args):
             view_args.input = os.path.join(args.directory, node_file)
             view_node_data.view_data(view_args)
 
-    # This looked like a useful feature at first, but it was not
 
-    # if args.nocache:
-    #     print("")
-    #     print("Deleting cached files after protocol run:")
-    #     for file_name in files_produced:
-    #         file_name_path = os.path.join(args.directory, file_name)
-    #         os.remove(file_name_path)
-    #         print("Deleting {}".format(file_name_path))
-    #     print("")
+    if finally_remove_dir:
+        print("")
+        print("Deleting cached files after protocol run:")
+        for file_name in files_produced:
+            file_name_path = os.path.join(args.directory, file_name)
+            os.remove(file_name_path)
+            print("Deleting {}".format(file_name_path))
+        os.rmdir(args.directory)
+        print("Deleting {}".format(args.directory))
+        print("")
 
 
 if __name__ == "__main__":
