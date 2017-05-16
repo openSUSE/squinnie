@@ -134,7 +134,27 @@ def print_only_file_descriptors(collected_data_dict, args):
 
 
 
-def get_pseudo_file_str_rep(raw_pseudo_file_str):
+def inode_to_src_port(collected_data_dict, inode):
+    result = ""
+    # import pdb; pdb.set_trace()
+
+    result = []
+    for transport_protocol in ["tcp", "tcp6", "udp", "udp6"]:
+        if transport_protocol in collected_data_dict:
+            if inode in collected_data_dict[transport_protocol]:
+                the_port = int(collected_data_dict[transport_protocol][inode][0][1], 16) # port of the local ip
+                result.append("{}:{}".format(transport_protocol, the_port))
+
+    result = "|".join(result)
+
+    if result != "":
+        return result
+    else:
+        return "<port not found>"
+
+
+
+def get_pseudo_file_str_rep(collected_data_dict, raw_pseudo_file_str):
 
     # Convert fds to more easy-to-read strings
     regex = re.compile("\/proc\/\d+\/fd\/(socket|pipe|anon\_inode)+:\[?(\w+)\]?")
@@ -147,7 +167,7 @@ def get_pseudo_file_str_rep(raw_pseudo_file_str):
         if the_type == "pipe":
             result = "{} : {:>10}".format(the_type, the_value)
         elif the_type == "socket":
-            result = "{} : {:>10}".format(the_type, the_value)
+            result = "{} : {:>10}".format(the_type, inode_to_src_port(collected_data_dict, the_value))
         elif the_type == "anon_inode":
             result = "{} : {}".format(the_type, the_value)
         else:
@@ -196,7 +216,7 @@ def get_list_of_open_file_descriptors(collected_data_dict, pid, args):
         for pf_str in pid_data["pseudo_files"].keys():
 
             if not args.verbose:
-                pseudo_files_strs.append(get_pseudo_file_str_rep(pf_str))
+                pseudo_files_strs.append(get_pseudo_file_str_rep(collected_data_dict, pf_str))
             else:
                 pseudo_files_strs.append(pf_str)
 

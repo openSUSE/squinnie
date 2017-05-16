@@ -42,6 +42,34 @@ def get_gid_name():
 
 
 
+
+
+# def _hex2dec(s):
+#     return str(int(s,16))
+
+# def _ip(s):
+#     ip = [(_hex2dec(s[6:8])),(_hex2dec(s[4:6])),(_hex2dec(s[2:4])),(_hex2dec(s[0:2]))]
+#     return '.'.join(ip)
+
+# def _convert_ip_port(array):
+#     host,port = array.split(':')
+#     return _ip(host),_hex2dec(port)
+
+def load_network(transport_protocol):
+    with open("/proc/net/{}".format(transport_protocol),"r") as f:
+        content = f.readlines()
+    content.pop(0)
+    result = {}
+    for line in content:
+        line_array = [x for x in line.split(' ') if x !='']
+        l_host,l_port = line_array[1].split(':')
+        r_host,r_port = line_array[2].split(':')
+        inode = line_array[9]
+        result[inode] = [[l_host,l_port], [r_host,r_port]]
+    return result
+
+
+
 def collect_data():
 
     cap_lambda     = lambda a: int(a, base = 16)
@@ -159,6 +187,11 @@ def collect_data():
 
 
 
+
+
+
+
+
         except EnvironmentError:
             # The process does not exist anymore
             # Remove it from the global list of all processes
@@ -169,6 +202,10 @@ def collect_data():
     result["parents"  ] = parents
     result["uid_name" ] = get_uid_name()
     result["gid_name" ] = get_gid_name()
+    result["tcp"      ] = load_network("tcp")
+    result["tcp6"     ] = load_network("tcp6")
+    result["udp"      ] = load_network("udp")
+    result["udp6"     ] = load_network("udp6")
 
     return result
 
