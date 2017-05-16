@@ -161,37 +161,49 @@ def get_pseudo_file_str_rep(raw_pseudo_file_str):
 def get_list_of_open_file_descriptors(collected_data_dict, pid, args):
 
     pid_data = collected_data_dict["proc_data"][pid]
-    tmp_list = []
-    for rf_str in sorted(pid_data["real_files"].keys()):
-        fd_perm = pid_data["real_files"][rf_str]
-        file_identity = fd_perm["file_identity"]
-        file_perm     = fd_perm["file_perm"]
+    real_files_strs = []
+    if "real_files" in pid_data:
+        for rf_str in pid_data["real_files"].keys():
+            fd_perm = pid_data["real_files"][rf_str]
+            file_identity = fd_perm["file_identity"]
+            file_perm     = fd_perm["file_perm"]
 
-        color_it = False
-        for uid_type in pid_data["Uid"]:
+            color_it = False
+            for uid_type in pid_data["Uid"]:
 
-            user_identity = {
-                "Uid":uid_type,
-                "Gid_set":pid_data["Gid"],
-            }
+                user_identity = {
+                    "Uid":uid_type,
+                    "Gid_set":pid_data["Gid"],
+                }
 
-            if not file_permissions.can_access_file(user_identity, file_identity, file_perm):
-                color_it = True
+                if not file_permissions.can_access_file(user_identity, file_identity, file_perm):
+                    color_it = True
 
-        tmp_rf_str = rf_str
-        if color_it:
-            tmp_rf_str = get_color_str(tmp_rf_str)
-        tmp_list.append(tmp_rf_str)
+            tmp_rf_str = rf_str
+            if color_it:
+                tmp_rf_str = get_color_str(tmp_rf_str)
 
-    pseudo_files_str = []
-    for pf_str in pid_data["pseudo_files"].keys():
+            if args.verbose:
+                flags_str = "|".join(file_permissions.get_fd_metadata_str(fd_perm["file_flags"]))
+                if flags_str:
+                    tmp_rf_str = "{} ({})".format(tmp_rf_str, flags_str)
 
-        if not args.verbose:
-            pseudo_files_str.append(get_pseudo_file_str_rep(pf_str))
-        else:
-            pseudo_files_str.append(pf_str)
+            real_files_strs.append(tmp_rf_str)
 
-    return "\n".join(tmp_list + sorted(pseudo_files_str))
+
+    pseudo_files_strs = []
+    if "pseudo_files" in pid_data:
+        for pf_str in pid_data["pseudo_files"].keys():
+
+            if not args.verbose:
+                pseudo_files_strs.append(get_pseudo_file_str_rep(pf_str))
+            else:
+                pseudo_files_strs.append(pf_str)
+
+
+    all_strs = sorted(real_files_strs) + sorted(pseudo_files_strs)
+
+    return "\n".join(all_strs)
 
 
 
@@ -230,7 +242,7 @@ def get_str_rep(collected_data_dict, column, pid, args):
         result_list = []
         if pid_data["Seccomp"]:
             result_list.append("seccomp")
-        if pid_data["root"] != "/":
+        if "root" in pid_data and pid_data["root"] != "/":
             result_list.append("rooted")
 
         if result_list:

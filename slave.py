@@ -122,13 +122,17 @@ def collect_data():
             status[p]["pseudo_files"] = {}
             fd_dir = "/proc/{}/fd/".format(p)
             for fd_str in os.listdir(fd_dir):
-
-                file_path_name = fd_dir + fd_str
+                file_path_name = os.path.join(fd_dir, fd_str)
                 resolved_symlink_name = os.path.realpath(file_path_name)
 
                 fd_identity_uid = os.stat(file_path_name).st_uid
                 fd_identity_gid = os.stat(file_path_name).st_gid
                 fd_perm_all     = os.stat(file_path_name).st_mode & 0b111111111
+
+                file_path_name = "/proc/{}/fdinfo/{}".format(p, fd_str)
+                with open(file_path_name, "r") as fi:
+                    tmp_str = fi.read()
+                tmpdata = dict(item.split(":\t") for item in tmp_str.strip().split("\n")[:3])
 
                 fd_data = {
                     "file_identity": {
@@ -136,11 +140,13 @@ def collect_data():
                         "Gid": fd_identity_gid,
                     },
 
-                    "file_perm"    : {
+                    "file_perm": {
                         "Uid"  : (fd_perm_all & 0b111000000) >> 6,
                         "Gid"  : (fd_perm_all & 0b000111000) >> 3,
                         "other":  fd_perm_all & 0b000000111,
-                    }
+                    },
+
+                    "file_flags": int(tmpdata["flags"], 8),
                 }
 
                 if ":" in resolved_symlink_name:
@@ -149,6 +155,9 @@ def collect_data():
                     file_type = "real_files"
 
                 status[p][file_type][resolved_symlink_name] = fd_data
+
+
+
 
         except EnvironmentError:
             # The process does not exist anymore
