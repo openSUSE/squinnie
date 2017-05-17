@@ -32,14 +32,14 @@ def main():
     description = "Print more detailed information."
     general_group.add_argument("-v", "--verbose", action="store_true", help=description)
 
-    description = "Print information from all nodes. By default, only the crowbar node is printed."
-    general_group.add_argument("-a", "--all", action="store_true", help=description)
+    # description = "Print information from all nodes. By default, only the crowbar node is printed."
+    # general_group.add_argument("-a", "--all", action="store_true", help=description)
 
     # Dump
     dump_group = parser.add_argument_group('scan / dump arguments')
 
     description = "The host on which crowbar is running."
-    dump_group.add_argument("-e", "--entry", required=True, type=str, help=description)
+    dump_group.add_argument("-e", "--entry", type=str, help=description)
 
     description = "Remove cached files after every run, forcing a re-scan on next execution."
     dump_group.add_argument("--nocache", action="store_true", help=description)
@@ -126,14 +126,14 @@ def main():
     view_args.fd          = args.fd
     view_args.onlyfd      = args.onlyfd
 
-    if not args.all:
-        view_args.input = os.path.join(args.directory, dump_node_data.get_filename(args.entry))
+    # if not args.all:
+    #     view_args.input = os.path.join(args.directory, dump_node_data.get_filename(args.entry))
+    #     view_node_data.view_data(view_args)
+    # else:
+    for node_file in node_filenames:
+        print("\n\nPreparing report for {} ...".format(node_file))
+        view_args.input = os.path.join(args.directory, node_file)
         view_node_data.view_data(view_args)
-    else:
-        for node_file in node_filenames:
-            print("\n\nPreparing report for {} ...".format(node_file))
-            view_args.input = os.path.join(args.directory, node_file)
-            view_node_data.view_data(view_args)
 
 
     if args.verbose and finally_remove_dir:

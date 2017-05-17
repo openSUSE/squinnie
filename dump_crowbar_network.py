@@ -46,6 +46,9 @@ def main():
 
 
 def get_crowbar_config(entry_node):
+    if not entry_node:
+        exit("When no cache exists, you have to provide an entry node using -e/--entry.")
+
     group = execnet.Group()
     master = group.makegateway("id=master//python=python{}//ssh=root@{}".format(sys.version_info.major, entry_node))
 
