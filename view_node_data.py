@@ -126,7 +126,7 @@ def print_only_file_descriptors(collected_data_dict, args):
     all_pids = collected_data_dict["proc_data"].keys()
 
     for pid in sorted(all_pids):
-        print("{}".format(pid))
+        print("{} (pid: {})".format(collected_data_dict["proc_data"][pid]["executable"], pid))
         print("----")
         list_str = get_list_of_open_file_descriptors(collected_data_dict, pid, args)
         print(list_str)
