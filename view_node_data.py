@@ -174,17 +174,18 @@ def get_pseudo_file_str_rep(collected_data_dict, raw_pseudo_file_str):
             assert False
         return result
     else:
+        import pdb; pdb.set_trace()
         assert False
-
 
 
 def get_list_of_open_file_descriptors(collected_data_dict, pid, args):
 
     pid_data = collected_data_dict["proc_data"][pid]
     real_files_strs = []
-    if "real_files" in pid_data:
-        for rf_str in pid_data["real_files"].keys():
-            fd_perm = pid_data["real_files"][rf_str]
+    pseudo_files_strs = []
+    for file_str in pid_data["open_files"].keys():
+        if not ":" in file_str:
+            fd_perm = pid_data["open_files"][file_str]
             file_identity = fd_perm["file_identity"]
             file_perm     = fd_perm["file_perm"]
 
@@ -199,7 +200,7 @@ def get_list_of_open_file_descriptors(collected_data_dict, pid, args):
                 if not file_permissions.can_access_file(user_identity, file_identity, file_perm):
                     color_it = True
 
-            tmp_rf_str = rf_str
+            tmp_rf_str = file_str
             if color_it:
                 tmp_rf_str = get_color_str(tmp_rf_str)
 
@@ -209,16 +210,11 @@ def get_list_of_open_file_descriptors(collected_data_dict, pid, args):
                     tmp_rf_str = "{} ({})".format(tmp_rf_str, flags_str)
 
             real_files_strs.append(tmp_rf_str)
-
-
-    pseudo_files_strs = []
-    if "pseudo_files" in pid_data:
-        for pf_str in pid_data["pseudo_files"].keys():
-
+        else:
             if not args.verbose:
-                pseudo_files_strs.append(get_pseudo_file_str_rep(collected_data_dict, pf_str))
+                pseudo_files_strs.append(get_pseudo_file_str_rep(collected_data_dict, file_str))
             else:
-                pseudo_files_strs.append(pf_str)
+                pseudo_files_strs.append(file_str)
 
 
     all_strs = sorted(real_files_strs) + sorted(pseudo_files_strs)
@@ -303,7 +299,7 @@ def get_str_rep(collected_data_dict, column, pid, args):
 
     elif column == "open file descriptors":
         if not args.fd:
-            result = len(pid_data["real_files"].keys()) + len(pid_data["pseudo_files"].keys())
+            result = len(pid_data["open_files"].keys())
         else:
             result = get_list_of_open_file_descriptors(collected_data_dict, pid, args)
 

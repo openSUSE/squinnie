@@ -146,8 +146,7 @@ def collect_data():
             status[p]["root"] = os.path.realpath("/proc/{}/root".format(p))
 
 
-            status[p]["real_files"] = {}
-            status[p]["pseudo_files"] = {}
+            status[p]["open_files"] = {}
             fd_dir = "/proc/{}/fd/".format(p)
             for fd_str in os.listdir(fd_dir):
                 file_path_name = os.path.join(fd_dir, fd_str)
@@ -177,12 +176,7 @@ def collect_data():
                     "file_flags": int(tmpdata["flags"], 8),
                 }
 
-                if ":" in resolved_symlink_name:
-                    file_type = "pseudo_files"
-                else:
-                    file_type = "real_files"
-
-                status[p][file_type][resolved_symlink_name] = fd_data
+                status[p]["open_files"][resolved_symlink_name] = fd_data
 
 
 
