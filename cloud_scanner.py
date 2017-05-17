@@ -131,7 +131,7 @@ def main(sys_args):
             view_node_data.view_data(view_args)
 
 
-    if finally_remove_dir:
+    if args.verbose and finally_remove_dir:
         print("")
         print("Deleting cached files after protocol run:")
         for file_name in files_produced:
