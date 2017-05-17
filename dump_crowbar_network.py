@@ -71,6 +71,11 @@ def dump_crowbar_to_file(args):
         print("Skip regenerating a network.json config because a suitable cache was found.")
         print("You can force rebuilding the cache from scratch using --nocache.")
         print("")
+
+        tree_dict_str = dump_node_data.read_network_config(args.output)
+        entry_node = tree_dict_str.keys()[0]
+
+        return entry_node
     else:
 
         entry_node = args.entry
@@ -87,7 +92,7 @@ def dump_crowbar_to_file(args):
         all_nodes_strs.append(entry_node)
         all_nodes_strs += network_tree[entry_node]
 
-        # return [dump_node_data.get_filename(node_str) for node_str in all_nodes_strs]
+        return None
 
 
 

@@ -32,8 +32,11 @@ def main():
     description = "Print more detailed information."
     general_group.add_argument("-v", "--verbose", action="store_true", help=description)
 
-    # description = "Print information from all nodes. By default, only the crowbar node is printed."
-    # general_group.add_argument("-a", "--all", action="store_true", help=description)
+    # description = "List all nodes in the network."
+    # general_group.add_argument("-l", "--list", action="store_true", help=description)
+
+    description = "Print information from all nodes. By default, only the crowbar node is printed."
+    general_group.add_argument("-a", "--all", action="store_true", help=description)
 
     # Dump
     dump_group = parser.add_argument_group('scan / dump arguments')
@@ -51,7 +54,7 @@ def main():
     view_group.add_argument("--hideborders", action="store_true", help=description)
 
     description = "Show parameters from the executable cmdline variable."
-    parser.add_argument("--params", action="store_true", help=description)
+    view_group.add_argument("--params", action="store_true", help=description)
 
     description = "Include kernel threads. Kernel threads are excluded by default."
     view_group.add_argument("-k", "--kthreads", action="store_true", help=description)
@@ -69,10 +72,10 @@ def main():
     view_group.add_argument("--cap", action="store_true", help=description)
 
     description = "Show all open file descriptors for every process."
-    parser.add_argument("--fd", action="store_true", help=description)
+    view_group.add_argument("--fd", action="store_true", help=description)
 
     description = "Show only the open file descriptors in a dedicated view and nothing else."
-    parser.add_argument("--onlyfd", action="store_true", help=description)
+    view_group.add_argument("--onlyfd", action="store_true", help=description)
 
     # Allow setting args using an environment variable
     try:
@@ -101,8 +104,15 @@ def main():
     crowbar_args.nocache = args.nocache
     crowbar_args.output = nwconfig_file_name_path
 
-    dump_crowbar_network.dump_crowbar_to_file(crowbar_args)
+    entry_node = dump_crowbar_network.dump_crowbar_to_file(crowbar_args)
     files_produced.append(nwconfig_file_name)
+
+    # if args.list:
+    #     print("The following nodes are in the network:")
+    #     for node_file in node_filenames:
+    #         print("- {}".format(node_file))
+    #     print("")
+    #     exit()
 
     # dump_node_data arguments
     dump_args = argparse.Namespace()
@@ -126,14 +136,17 @@ def main():
     view_args.fd          = args.fd
     view_args.onlyfd      = args.onlyfd
 
-    # if not args.all:
-    #     view_args.input = os.path.join(args.directory, dump_node_data.get_filename(args.entry))
-    #     view_node_data.view_data(view_args)
-    # else:
-    for node_file in node_filenames:
-        print("\n\nPreparing report for {} ...".format(node_file))
-        view_args.input = os.path.join(args.directory, node_file)
+
+
+    if not args.all:
+        print("\n\nPreparing report for {} ...".format(entry_node))
+        view_args.input = os.path.join(args.directory, dump_node_data.get_filename(entry_node))
         view_node_data.view_data(view_args)
+    else:
+        for node_file in node_filenames:
+            print("\n\nPreparing report for {} ...".format(node_file))
+            view_args.input = os.path.join(args.directory, node_file)
+            view_node_data.view_data(view_args)
 
 
     if args.verbose and finally_remove_dir:

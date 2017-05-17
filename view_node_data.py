@@ -150,7 +150,7 @@ def inode_to_src_port(collected_data_dict, inode):
     if result != "":
         return result
     else:
-        return "<port not found>"
+        return "<port not found, inode: {}>".format(inode)
 
 
 
