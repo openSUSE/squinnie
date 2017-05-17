@@ -184,8 +184,11 @@ def get_list_of_open_file_descriptors(collected_data_dict, pid, args):
     real_files_strs = []
     pseudo_files_strs = []
     for file_str in pid_data["open_files"].keys():
+        fd_perm = pid_data["open_files"][file_str]
+
+        flags = file_permissions.get_fd_metadata_str(fd_perm["file_flags"])
+
         if not ":" in file_str:
-            fd_perm = pid_data["open_files"][file_str]
             file_identity = fd_perm["file_identity"]
             file_perm     = fd_perm["file_perm"]
 
@@ -200,22 +203,20 @@ def get_list_of_open_file_descriptors(collected_data_dict, pid, args):
                 if not file_permissions.can_access_file(user_identity, file_identity, file_perm):
                     color_it = True
 
-            tmp_rf_str = file_str
+            tmp_file_str = file_str
             if color_it:
-                tmp_rf_str = get_color_str(tmp_rf_str)
+                tmp_file_str = get_color_str(tmp_file_str)
 
-            if args.verbose:
-                flags_str = "|".join(file_permissions.get_fd_metadata_str(fd_perm["file_flags"]))
-                if flags_str:
-                    tmp_rf_str = "{} ({})".format(tmp_rf_str, flags_str)
-
-            real_files_strs.append(tmp_rf_str)
+            if args.verbose and flags:
+                tmp_file_str = "{} ({})".format(tmp_file_str, "|".join(flags))
+            real_files_strs.append(tmp_file_str)
         else:
-            if not args.verbose:
-                pseudo_files_strs.append(get_pseudo_file_str_rep(collected_data_dict, file_str))
-            else:
-                pseudo_files_strs.append(file_str)
+            tmp_file_str = get_pseudo_file_str_rep(collected_data_dict, file_str)
 
+            if args.verbose and flags:
+                tmp_file_str = "{} ({})".format(tmp_file_str, "|".join(flags))
+
+            pseudo_files_strs.append(tmp_file_str)
 
     all_strs = sorted(real_files_strs) + sorted(pseudo_files_strs)
 
