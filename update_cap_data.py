@@ -13,9 +13,9 @@ import re
 
 
 
-def main(sys_args):
+def main():
     description = "Update the capability data cache generated from capability.h"
-    parser = argparse.ArgumentParser(prog=sys_args, description=description)
+    parser = argparse.ArgumentParser(prog=sys.argv[0], description=description)
 
     description = "The capability.h file. If not provided, /usr/include/linux/capability.h will be used."
     parser.add_argument("-i", "--input", type=str, help=description)
@@ -63,4 +63,4 @@ def main(sys_args):
 
 
 if __name__ == "__main__":
-    main(sys.argv[0])
+    main()

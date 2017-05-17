@@ -27,9 +27,9 @@ except ImportError:
 
 
 
-def main(sys_args):
+def main():
     description = "View a data dump of any single node."
-    parser = argparse.ArgumentParser(prog=sys_args, description=description)
+    parser = argparse.ArgumentParser(prog=sys.argv[0], description=description)
 
 
 
@@ -435,4 +435,4 @@ def print_process_tree(collected_data_dict, column_headers, args):
 
 
 if __name__ == "__main__":
-    main(sys.argv[0])
+    main()

@@ -19,9 +19,9 @@ import view_node_data
 
 
 
-def main(sys_args):
+def main():
     description = "The main cloud scanner, initially built for scanning a SUSE OpenStack Cloud 7 instance. A single wrapper around the functionality of all individual tools."
-    parser = argparse.ArgumentParser(prog=sys_args, description=description)
+    parser = argparse.ArgumentParser(description=description)
 
     # General
     general_group = parser.add_argument_group('general arguments')
@@ -74,7 +74,12 @@ def main(sys_args):
     description = "Show only the open file descriptors in a dedicated view and nothing else."
     parser.add_argument("--onlyfd", action="store_true", help=description)
 
-    args = parser.parse_args()
+    # Allow setting args using an environment variable
+    try:
+        extra_args = os.environ["CLOUD_SCANNER"]
+    except KeyError:
+        extra_args = ""
+    args = parser.parse_args(sys.argv[1:] + extra_args.split())
 
     finally_remove_dir = False
     if not args.directory:
@@ -144,4 +149,4 @@ def main(sys_args):
 
 
 if __name__ == "__main__":
-    main(sys.argv[0])
+    main()

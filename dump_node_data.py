@@ -30,9 +30,9 @@ except ImportError:
 
 
 
-def main(sys_args):
+def main():
     description = "Dump one file per node configured as network."
-    parser = argparse.ArgumentParser(prog=sys_args, description=description)
+    parser = argparse.ArgumentParser(prog=sys.argv[0], description=description)
 
     description = "The input file your network is described with."
     parser.add_argument("-i", "--input", required=True, type=str, help=description)
@@ -205,4 +205,4 @@ def write_data(file_path, datastructure, node_list):
 
 
 if __name__ == "__main__":
-    main(sys.argv[0])
+    main()

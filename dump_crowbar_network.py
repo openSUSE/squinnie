@@ -25,6 +25,26 @@ except ImportError:
     sys.exit(1)
 
 
+
+def main():
+    description = "Connect to a crowbar node and extract its network configuration as JSON."
+    parser = argparse.ArgumentParser(prog=sys.argv[0], description=description)
+
+    description = "The host on which crowbar is running."
+    parser.add_argument("-e", "--entry", required=True, type=str, help=description)
+
+    description = "The output file you want your data to be dumped to."
+    parser.add_argument("-o", "--output", required=True, type=str, help=description)
+
+    description = "Force overwriting the network file, even if it already exists."
+    parser.add_argument("--nocache", action="store_true", help=description)
+
+    args = parser.parse_args()
+
+    dump_crowbar_to_file(args)
+
+
+
 def get_crowbar_config(entry_node):
     group = execnet.Group()
     master = group.makegateway("id=master//python=python{}//ssh=root@{}".format(sys.version_info.major, entry_node))
@@ -68,22 +88,5 @@ def dump_crowbar_to_file(args):
 
 
 
-def main(sys_args):
-    description = "Connect to a crowbar node and extract its network configuration as JSON."
-    parser = argparse.ArgumentParser(prog=sys_args, description=description)
-
-    description = "The host on which crowbar is running."
-    parser.add_argument("-e", "--entry", required=True, type=str, help=description)
-
-    description = "The output file you want your data to be dumped to."
-    parser.add_argument("-o", "--output", required=True, type=str, help=description)
-
-    description = "Force overwriting the network file, even if it already exists."
-    parser.add_argument("--nocache", action="store_true", help=description)
-
-    args = parser.parse_args()
-
-    dump_crowbar_to_file(args)
-
 if __name__ == "__main__":
-    main(sys.argv[0])
+    main()
