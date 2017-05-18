@@ -92,7 +92,7 @@ def dump_crowbar_to_file(args):
         all_nodes_strs.append(entry_node)
         all_nodes_strs += network_tree[entry_node]
 
-        return None
+        return entry_node
 
 
 
