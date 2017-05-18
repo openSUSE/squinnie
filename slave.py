@@ -42,19 +42,6 @@ def get_gid_name():
 
 
 
-
-
-# def _hex2dec(s):
-#     return str(int(s,16))
-
-# def _ip(s):
-#     ip = [(_hex2dec(s[6:8])),(_hex2dec(s[4:6])),(_hex2dec(s[2:4])),(_hex2dec(s[0:2]))]
-#     return '.'.join(ip)
-
-# def _convert_ip_port(array):
-#     host,port = array.split(':')
-#     return _ip(host),_hex2dec(port)
-
 def load_network(transport_protocol):
     with open("/proc/net/{}".format(transport_protocol),"r") as f:
         content = f.readlines()
@@ -176,13 +163,11 @@ def collect_data():
                     },
 
                     "file_flags": int(tmpdata["flags"], 8),
+
+                    "symlink": resolved_symlink_name,
                 }
 
-                status[p]["open_files"][resolved_symlink_name] = fd_data
-
-                if "open_files" not in status[p]:
-                    exit("ERROR hdsfksjhdk")
-                    assert False
+                status[p]["open_files"][fd_str] = fd_data
 
         except (OSError, IOError, EnvironmentError) as e:
             # The process does not exist anymore

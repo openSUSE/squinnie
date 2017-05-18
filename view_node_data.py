@@ -136,7 +136,6 @@ def print_only_file_descriptors(collected_data_dict, args):
 
 def inode_to_src_port(collected_data_dict, inode):
     result = ""
-    # import pdb; pdb.set_trace()
 
     result = []
     for transport_protocol in ["tcp", "tcp6", "udp", "udp6"]:
@@ -174,7 +173,6 @@ def get_pseudo_file_str_rep(collected_data_dict, raw_pseudo_file_str):
             assert False
         return result
     else:
-        import pdb; pdb.set_trace()
         assert False
 
 
@@ -183,12 +181,14 @@ def get_list_of_open_file_descriptors(collected_data_dict, pid, args):
     pid_data = collected_data_dict["proc_data"][pid]
     real_files_strs = []
     pseudo_files_strs = []
-    for file_str in pid_data["open_files"].keys():
-        fd_perm = pid_data["open_files"][file_str]
+    for fd_num_str in pid_data["open_files"].keys():
+        fd_perm = pid_data["open_files"][fd_num_str]
+
+        fd_symlink = fd_perm["symlink"]
 
         flags = file_permissions.get_fd_metadata_str(fd_perm["file_flags"])
 
-        if not ":" in file_str:
+        if not ":" in fd_symlink:
             file_identity = fd_perm["file_identity"]
             file_perm     = fd_perm["file_perm"]
 
@@ -203,20 +203,26 @@ def get_list_of_open_file_descriptors(collected_data_dict, pid, args):
                 if not file_permissions.can_access_file(user_identity, file_identity, file_perm):
                     color_it = True
 
-            tmp_file_str = file_str
+            tmp_file_str = fd_symlink
             if color_it:
                 tmp_file_str = get_color_str(tmp_file_str)
 
-            if args.verbose and flags:
+            if args.verbose:
+                tmp_file_str = "{:>5}: ".format(fd_num_str) + tmp_file_str
+            if flags:
                 tmp_file_str = "{} ({})".format(tmp_file_str, "|".join(flags))
             real_files_strs.append(tmp_file_str)
         else:
-            tmp_file_str = get_pseudo_file_str_rep(collected_data_dict, file_str)
+            tmp_file_str = get_pseudo_file_str_rep(collected_data_dict, fd_symlink)
 
-            if args.verbose and flags:
+            if args.verbose:
+                tmp_file_str = "{:>5}: ".format(fd_num_str) + tmp_file_str
+            if flags:
                 tmp_file_str = "{} ({})".format(tmp_file_str, "|".join(flags))
 
+
             pseudo_files_strs.append(tmp_file_str)
+
 
     all_strs = sorted(real_files_strs) + sorted(pseudo_files_strs)
 
