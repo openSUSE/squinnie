@@ -86,10 +86,12 @@ def main():
 
     finally_remove_dir = False
     if not args.directory:
-        args.directory = "/tmp/cloud_scanner/"
+        args.directory = "/tmp/cloud_scanner_{}/".format(os.getpid())
         if not os.path.isdir(args.directory):
             os.mkdir(args.directory)
         finally_remove_dir = True
+        print("No directory supplied. Cached data will be automatically deleted at the end of this run.")
+        print("")
 
     if not os.path.isdir(args.directory):
         exit("The directory {} does not exist. Please create it using mkdir.".format(args.directory))
