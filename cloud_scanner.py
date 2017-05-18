@@ -149,16 +149,19 @@ def main():
             view_node_data.view_data(view_args)
 
 
-    if args.verbose and finally_remove_dir:
-        print("")
-        print("Deleting cached files after protocol run:")
+    if finally_remove_dir:
+        if args.verbose:
+            print("")
+            print("Deleting cached files after protocol run:")
         for file_name in files_produced:
             file_name_path = os.path.join(args.directory, file_name)
             os.remove(file_name_path)
-            print("Deleting {}".format(file_name_path))
+            if args.verbose:
+                print("Deleting {}".format(file_name_path))
         os.rmdir(args.directory)
-        print("Deleting {}".format(args.directory))
-        print("")
+        if args.verbose:
+            print("Deleting {}".format(args.directory))
+            print("")
 
 
 if __name__ == "__main__":

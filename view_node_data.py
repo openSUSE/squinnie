@@ -150,7 +150,7 @@ def inode_to_src_port(collected_data_dict, inode):
     if result != "":
         return result
     else:
-        return "<port not found, inode: {}>".format(inode)
+        return "<port not found, inode: {:>15}>".format(inode)
 
 
 
@@ -299,7 +299,9 @@ def get_str_rep(collected_data_dict, column, pid, args):
         result = "\n".join(cmdline_chunks)
 
     elif column == "open file descriptors":
-        if not args.fd:
+        if "open_files" not in pid_data:
+            result = "RACE_CONDITION"
+        elif not args.fd:
             result = len(pid_data["open_files"].keys())
         else:
             result = get_list_of_open_file_descriptors(collected_data_dict, pid, args)

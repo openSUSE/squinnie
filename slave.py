@@ -114,7 +114,9 @@ def collect_data():
     all_uids = set()
     all_gids = set()
 
-    for p in copy.copy(pids):
+    pids_to_remove = set()
+
+    for p in pids:
         try:
             status[p] = {}
             with open("/proc/{}/status".format(p), "r") as fi:
@@ -178,19 +180,17 @@ def collect_data():
 
                 status[p]["open_files"][resolved_symlink_name] = fd_data
 
+                if "open_files" not in status[p]:
+                    exit("ERROR hdsfksjhdk")
+                    assert False
 
-
-
-
-
-
-
-
-        except EnvironmentError:
+        except (OSError, IOError, EnvironmentError) as e:
             # The process does not exist anymore
             # Remove it from the global list of all processes
-            pids.remove(p)
+            pids_to_remove.add(p)
 
+    for broken_pid in pids_to_remove:
+        del status[broken_pid]
 
     result["proc_data"] = status
     result["parents"  ] = parents
