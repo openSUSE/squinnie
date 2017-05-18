@@ -1,4 +1,6 @@
 *.pyc
 *.pyo
+*.swp
+__pycache__
 legacy/
 data/
