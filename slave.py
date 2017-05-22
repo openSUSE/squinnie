@@ -7,7 +7,7 @@ It can however also be called as a standalone script for testing purposes.
 
 Unfortunately, to send a module via execnet, it has to be self-contained. This
 results in this file being very long, as it is not possible to use external
-imports, unless execnet_importhook gets ported to python2 or SUSE Enterprise
+imports, unless execnet_importhook gets ported to Python 2 or SUSE Enterprise
 Linux gets shipped with Python 3 by default.
 """
 
@@ -20,6 +20,7 @@ import re
 import copy
 import pwd
 import grp
+import stat
 
 
 
@@ -143,7 +144,7 @@ def collect_data():
 
                 fd_identity_uid = os.stat(file_path_name).st_uid
                 fd_identity_gid = os.stat(file_path_name).st_gid
-                fd_perm_all     = os.stat(file_path_name).st_mode & 0b111111111
+                fd_perm_all     = os.stat(file_path_name).st_mode
 
                 file_path_name = "/proc/{}/fdinfo/{}".format(p, fd_str)
                 with open(file_path_name, "r") as fi:
@@ -157,9 +158,9 @@ def collect_data():
                     },
 
                     "file_perm": {
-                        "Uid"  : (fd_perm_all & 0b111000000) >> 6,
-                        "Gid"  : (fd_perm_all & 0b000111000) >> 3,
-                        "other":  fd_perm_all & 0b000000111,
+                        "Uid"  : (fd_perm_all & stat.S_IRWXU) >> 6,
+                        "Gid"  : (fd_perm_all & stat.S_IRWXG) >> 3,
+                        "other": (fd_perm_all & stat.S_IRWXO) >> 0,
                     },
 
                     "file_flags": int(tmpdata["flags"], 8),
