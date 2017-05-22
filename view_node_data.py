@@ -126,11 +126,16 @@ def print_only_file_descriptors(collected_data_dict, args):
     all_pids = collected_data_dict["proc_data"].keys()
 
     for pid in sorted(all_pids):
-        print("{} (pid: {})".format(collected_data_dict["proc_data"][pid]["executable"], pid))
-        print("----")
-        list_str = get_list_of_open_file_descriptors(collected_data_dict, pid, args)
-        print(list_str)
-        print("")
+        open_file_count = len(collected_data_dict["proc_data"][pid]["open_files"].keys())
+
+        # Hide the process if it has no open files
+        # But always show all processes on -v
+        if open_file_count > 0 or args.verbose:
+            print("{} (pid: {})".format(collected_data_dict["proc_data"][pid]["executable"], pid))
+            print("----")
+            list_str = get_list_of_open_file_descriptors(collected_data_dict, pid, args)
+            print(list_str)
+            print("")
 
 
 
@@ -298,7 +303,7 @@ def get_str_rep(collected_data_dict, column, pid, args):
 
 
 
-    elif column == "parameters":
+    elif column == "executable" or column == "parameters":
         max_len = 40
         cmdline = pid_data[column]
         cmdline_chunks = [cmdline[i:i+max_len] for i in range(0, len(cmdline), max_len)]
