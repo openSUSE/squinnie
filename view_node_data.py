@@ -139,15 +139,21 @@ def print_only_file_descriptors(collected_data_dict, args):
 
 
 
-def inode_to_src_port(collected_data_dict, inode):
+def inode_to_identifier(collected_data_dict, inode):
     result = ""
 
     result = []
-    for transport_protocol in ["tcp", "tcp6", "udp", "udp6"]:
+    for transport_protocol in ["tcp", "tcp6", "udp", "udp6", "unix"]:
         if transport_protocol in collected_data_dict:
             if inode in collected_data_dict[transport_protocol]:
-                the_port = int(collected_data_dict[transport_protocol][inode][0][1], 16) # port of the local ip
-                result.append("{}:{}".format(transport_protocol, the_port))
+                if transport_protocol == "unix":
+                    the_identifier = collected_data_dict[transport_protocol][inode]
+                    if the_identifier == "":
+                        the_identifier = "<unnamed>"
+                else:
+                    the_identifier = int(collected_data_dict[transport_protocol][inode][0][1], 16) # port of the local ip
+                result.append("{}:{}".format(transport_protocol, the_identifier))
+
 
     result = "|".join(result)
 
@@ -171,7 +177,7 @@ def get_pseudo_file_str_rep(collected_data_dict, raw_pseudo_file_str):
         if the_type == "pipe":
             result = "{} : {:>10}".format(the_type, the_value)
         elif the_type == "socket":
-            result = "{} : {:>10}".format(the_type, inode_to_src_port(collected_data_dict, the_value))
+            result = "{} : {:>10}".format(the_type, inode_to_identifier(collected_data_dict, the_value))
         elif the_type == "anon_inode":
             result = "{} : {}".format(the_type, the_value)
         else:

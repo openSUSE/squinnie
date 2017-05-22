@@ -49,11 +49,18 @@ def load_network(transport_protocol):
     content.pop(0)
     result = {}
     for line in content:
-        line_array = [x for x in line.split(' ') if x !='']
-        l_host,l_port = line_array[1].split(':')
-        r_host,r_port = line_array[2].split(':')
-        inode = line_array[9]
-        result[inode] = [[l_host,l_port], [r_host,r_port]]
+        if transport_protocol != "unix":
+            line_array = [x for x in line.split(' ') if x !='']
+            l_host,l_port = line_array[1].split(':')
+            r_host,r_port = line_array[2].split(':')
+            inode = line_array[9]
+            result[inode] = [[l_host,l_port], [r_host,r_port]]
+        else:
+            line_array = [x for x in line.split()]
+            if len(line_array) == 7:
+                line_array.append("")
+            inode = line_array[6]
+            result[inode] = line_array[7]
     return result
 
 
@@ -186,6 +193,7 @@ def collect_data():
     result["tcp6"     ] = load_network("tcp6")
     result["udp"      ] = load_network("udp")
     result["udp6"     ] = load_network("udp6")
+    result["unix"     ] = load_network("unix")
 
     return result
 
