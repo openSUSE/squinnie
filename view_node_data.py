@@ -192,10 +192,12 @@ def get_list_of_open_file_descriptors(collected_data_dict, pid, args):
         fd_symlink = fd_perm["symlink"]
 
         flags = file_permissions.get_fd_metadata_str(fd_perm["file_flags"])
+        file_perm     = fd_perm["file_perm"]
+        file_perm_str = str(file_perm["Uid"]) + str(file_perm["Gid"]) + str(file_perm["other"])
 
         if not ":" in fd_symlink:
             file_identity = fd_perm["file_identity"]
-            file_perm     = fd_perm["file_perm"]
+
 
             color_it = False
             for uid_type in pid_data["Uid"]:
@@ -214,16 +216,21 @@ def get_list_of_open_file_descriptors(collected_data_dict, pid, args):
 
             if args.verbose:
                 tmp_file_str = "{:>5}: ".format(fd_num_str) + tmp_file_str
+            # if flags:
+            tmp_file_str = "{} (permissions: {})".format(tmp_file_str, file_perm_str)
             if flags:
-                tmp_file_str = "{} ({})".format(tmp_file_str, "|".join(flags))
+                tmp_file_str = "{} (flags: {})".format(tmp_file_str, "|".join(flags))
+            # tmp_file_str = "{} ~ {} ~ {}".format(tmp_file_str, "|".join(flags), file_perm_str)
+            # tmp_file_str = "{} ({})".format(tmp_file_str, ", ".join([, ]) )
             real_files_strs.append(tmp_file_str)
         else:
             tmp_file_str = get_pseudo_file_str_rep(collected_data_dict, fd_symlink)
 
             if args.verbose:
                 tmp_file_str = "{:>5}: ".format(fd_num_str) + tmp_file_str
+            tmp_file_str = "{} (permissions: {})".format(tmp_file_str, file_perm_str)
             if flags:
-                tmp_file_str = "{} ({})".format(tmp_file_str, "|".join(flags))
+                tmp_file_str = "{} (flags: {})".format(tmp_file_str, "|".join(flags))
 
 
             pseudo_files_strs.append(tmp_file_str)
