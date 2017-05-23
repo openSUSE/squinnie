@@ -77,6 +77,9 @@ def main():
     description = "Show only the open file descriptors in a dedicated view and nothing else."
     view_group.add_argument("--onlyfd", action="store_true", help=description)
 
+    description = "View alle files on the file system, including their permissions."
+    parser.add_argument("--filesystem", action="store_true", help=description)
+
     # Allow setting args using an environment variable
     try:
         extra_args = os.environ["CLOUD_SCANNER"]
@@ -137,6 +140,7 @@ def main():
     view_args.cap         = args.cap
     view_args.fd          = args.fd
     view_args.onlyfd      = args.onlyfd
+    view_args.filesystem  = args.filesystem
 
 
 

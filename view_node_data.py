@@ -72,6 +72,9 @@ def main():
     description = "Show only the open file descriptors in a dedicated view and nothing else."
     parser.add_argument("--onlyfd", action="store_true", help=description)
 
+    description = "View alle files on the file system, including their permissions."
+    parser.add_argument("--filesystem", action="store_true", help=description)
+
 
     args = parser.parse_args()
 
@@ -92,33 +95,45 @@ def view_data(args):
     assert len(datastructure.keys()) == 1
 
     node_str = list(datastructure.keys())[0]
-
     collected_data_dict = datastructure[node_str]
 
-    print("There are {} processes running on this host.".format(len(collected_data_dict["proc_data"].keys())))
-    print("")
-
-    column_headers = [
-        "pid",
-        "executable",
-        "parameters",
-        "user",
-        "groups",
-        "open file descriptors",
-        "features",
-        "CapInh",
-        "CapPrm",
-        "CapEff",
-        "CapBnd",
-        "CapAmb",
-    ]
-
-    if not args.onlyfd:
-        print_process_tree(collected_data_dict, column_headers, args)
-    else:
+    # import pdb; pdb.set_trace()
+    if args.onlyfd: # file descriptor view
         print_only_file_descriptors(collected_data_dict, args)
+    elif args.filesystem:
+        print_file_system(collected_data_dict["filesystem"], "/", args)
+    else: # process tree view
+        print("There are {} processes running on this host.".format(len(collected_data_dict["proc_data"].keys())))
+        print("")
+        column_headers = [
+            "pid",
+            "executable",
+            "parameters",
+            "user",
+            "groups",
+            "open file descriptors",
+            "features",
+            "CapInh",
+            "CapPrm",
+            "CapEff",
+            "CapBnd",
+            "CapAmb",
+        ]
+        print_process_tree(collected_data_dict, column_headers, args)
 
     print("")
+
+
+
+def print_file_system(filesystem, base_path, args):
+    for item_name, item_properties in sorted(filesystem.items()):
+        base_path_file = os.path.join(base_path, item_name)
+        if item_properties:
+            print("_DIR: {}".format(base_path_file))
+            print_file_system(item_properties["subitems"], base_path_file, args)
+        else:
+            print("FILE: {}".format(base_path_file))
+            base_path_file = base_path
 
 
 
