@@ -209,8 +209,10 @@ if __name__ == '__channelexec__' or __name__ == "__main__":
 
 
     def get_filesystem():
-        file_system = {}
-        for path, dirs, files in os.walk("/"):
+        filesystem = {}
+        exclude = ["/", ".snapshots"]
+        for path, dirs, files in os.walk("/", topdown=True):
+            dirs[:] = [d for d in dirs if d not in exclude]
             if path == "/":
                 continue
             folders = path[1:].split(os.sep)
@@ -218,12 +220,23 @@ if __name__ == '__channelexec__' or __name__ == "__main__":
             lst = folders[:-1]
             the_directories = ["subitems"] * (len(lst) * 2)
             the_directories[0::2] = lst
-            parent = reduce(dict.get, the_directories, file_system)
+            parent = reduce(dict.get, the_directories, filesystem)
             parent[folders[-1]] = {}
             parent[folders[-1]]["subitems"    ] = subdir
-            parent[folders[-1]]["permissions" ] = "foobar"     # TODO
-            parent[folders[-1]]["capabilities"] = "helloworld" # TODO
-        return file_system
+            d_properties = {"st_mode":-1} # TODO
+            parent[folders[-1]]["properties"] = d_properties
+
+            for a_file in files:
+                parent[folders[-1]]["subitems"][a_file] = {}
+                file_path_name = os.path.join(path, a_file)
+                f_properties = {}
+                try:
+                    f_properties["st_mode"] = os.stat(file_path_name).st_mode
+                except OSError:
+                    f_properties["st_mode"] = 0
+                parent[folders[-1]]["subitems"][a_file]["properties"] = f_properties
+
+        return filesystem
 
 
 

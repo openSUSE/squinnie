@@ -7,6 +7,7 @@ from __future__ import with_statement
 import cPickle as pickle
 import sys
 import argparse
+import stat
 import copy
 import re
 import os
@@ -15,6 +16,7 @@ import termcolor
 # Local modules.
 import cap_bitstring_name
 import file_permissions
+import file_mode # TODO: Only overwrite the official function if Python version < 3.3
 
 error_msg = "The module {} could not be found. Please use your system's package manager or pip to install it."
 
@@ -128,11 +130,11 @@ def view_data(args):
 def print_file_system(filesystem, base_path, args):
     for item_name, item_properties in sorted(filesystem.items()):
         base_path_file = os.path.join(base_path, item_name)
-        if item_properties:
-            print("_DIR: {}".format(base_path_file))
+        if "subitems" in item_properties:
+            print("_DIR: {} : {}".format(file_mode.filemode(item_properties["properties"]["st_mode"]), base_path_file))
             print_file_system(item_properties["subitems"], base_path_file, args)
         else:
-            print("FILE: {}".format(base_path_file))
+            print("FILE: {} : {}".format(file_mode.filemode(item_properties["properties"]["st_mode"]), base_path_file))
             base_path_file = base_path
 
 
