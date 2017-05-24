@@ -223,7 +223,11 @@ if __name__ == '__channelexec__' or __name__ == "__main__":
             parent = reduce(dict.get, the_directories, filesystem)
             parent[folders[-1]] = {}
             parent[folders[-1]]["subitems"    ] = subdir
-            d_properties = {"st_mode":-1} # TODO
+            d_properties = {}
+            try:
+                d_properties["st_mode"] = os.stat(path).st_mode
+            except OSError:
+                d_properties["st_mode"] = 0
             parent[folders[-1]]["properties"] = d_properties
 
             for a_file in files:
