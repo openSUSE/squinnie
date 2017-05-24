@@ -207,14 +207,28 @@ if __name__ == '__channelexec__' or __name__ == "__main__":
         return result
 
 
+    def get_properties(path):
+        """Gets the properties either from a file or a directory"""
+        properties = {}
+        try:
+            os_stat = os.stat(path)
+            properties["st_mode"] = os_stat.st_mode
+            properties["st_uid" ] = os_stat.st_uid
+            properties["st_gid" ] = os_stat.st_gid
+        except OSError:
+            properties["st_mode"] = None
+            properties["st_uid" ] = None
+            properties["st_gid" ] = None
+        return properties
 
     def get_filesystem():
         filesystem = {}
-        exclude = ["/", ".snapshots"]
+        exclude = ["/.snapshots", "/proc"]
         for path, dirs, files in os.walk("/", topdown=True):
-            dirs[:] = [d for d in dirs if d not in exclude]
+            dirs[:] = [d for d in dirs if os.path.join(path, d) not in exclude]
             if path == "/":
                 continue
+            print(path)
             folders = path[1:].split(os.sep)
             subdir = dict.fromkeys(files)
             lst = folders[:-1]
@@ -223,22 +237,12 @@ if __name__ == '__channelexec__' or __name__ == "__main__":
             parent = reduce(dict.get, the_directories, filesystem)
             parent[folders[-1]] = {}
             parent[folders[-1]]["subitems"    ] = subdir
-            d_properties = {}
-            try:
-                d_properties["st_mode"] = os.stat(path).st_mode
-            except OSError:
-                d_properties["st_mode"] = 0
-            parent[folders[-1]]["properties"] = d_properties
+            parent[folders[-1]]["properties"] = get_properties(path)
 
             for a_file in files:
                 parent[folders[-1]]["subitems"][a_file] = {}
                 file_path_name = os.path.join(path, a_file)
-                f_properties = {}
-                try:
-                    f_properties["st_mode"] = os.stat(file_path_name).st_mode
-                except OSError:
-                    f_properties["st_mode"] = 0
-                parent[folders[-1]]["subitems"][a_file]["properties"] = f_properties
+                parent[folders[-1]]["subitems"][a_file]["properties"] = get_properties(file_path_name)
 
         return filesystem
 

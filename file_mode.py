@@ -1,3 +1,5 @@
+import stat
+
 # Copied from Python 3.3
 # https://hg.python.org/cpython/file/3.3/Lib/stat.py
 
@@ -63,6 +65,9 @@ _filemode_table = (
 
 def filemode(mode):
     """Convert a file's mode to a string of the form '-rwxrwxrwx'."""
+    if mode == None:
+        return "!PERMERROR"
+
     perm = []
     for table in _filemode_table:
         for bit, char in table:
@@ -72,3 +77,38 @@ def filemode(mode):
         else:
             perm.append("-")
     return "".join(perm)
+
+def get_file_type(mode):
+    if mode == None:
+        return "!PERMERROR"
+
+    filetypes = []
+    # directory
+    if stat.S_ISDIR(mode):
+        filetypes.append("directory")
+
+    # regular file
+    if stat.S_ISREG(mode):
+        filetypes.append("regular file")
+
+    # symbolic link
+    if stat.S_ISLNK(mode):
+        filetypes.append("symbolic link")
+
+    # FIFO (named pipe)
+    if stat.S_ISFIFO(mode):
+        filetypes.append("FIFO (named pipe)")
+
+    # socket
+    if stat.S_ISSOCK(mode):
+        filetypes.append("socket")
+
+    # character special device file
+    if stat.S_ISCHR(mode):
+        filetypes.append("character special device file")
+
+    # block special device file
+    if stat.S_ISBLK(mode):
+        filetypes.append("block special device file")
+
+    return "".join(filetypes)
