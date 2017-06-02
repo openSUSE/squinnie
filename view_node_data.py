@@ -121,6 +121,9 @@ def view_data(args):
 
 
 def print_file_system(filesystem, uid_name, gid_name, base_path, args):
+    """
+    Note: This is a recursive function
+    """
 
     for item_name, item_val in sorted(filesystem.items()):
         base_path_file = os.path.join(base_path, item_name)
@@ -171,6 +174,10 @@ def print_only_file_descriptors(collected_data_dict, args):
 
 
 def inode_to_identifier(collected_data_dict, inode):
+    """
+    Return the string representation of an inode number, according to the
+    network lookup tables
+    """
     result = ""
 
     result = []
@@ -196,6 +203,9 @@ def inode_to_identifier(collected_data_dict, inode):
 
 
 def get_pseudo_file_str_rep(collected_data_dict, raw_pseudo_file_str):
+    """
+    Return the supplied file path in addition its file type
+    """
 
     # Convert fds to more easy-to-read strings
     regex = re.compile("\/proc\/\d+\/fd\/(socket|pipe|anon\_inode)+:\[?(\w+)\]?")
@@ -219,6 +229,9 @@ def get_pseudo_file_str_rep(collected_data_dict, raw_pseudo_file_str):
 
 
 def get_list_of_open_file_descriptors(collected_data_dict, pid, args):
+    """
+    Get all open file descriptors as a list of strings.
+    """
 
     pid_data = collected_data_dict["proc_data"][pid]
     real_files_strs = []
@@ -280,6 +293,9 @@ def get_list_of_open_file_descriptors(collected_data_dict, pid, args):
 
 
 def get_str_rep(collected_data_dict, column, pid, args):
+    """
+    Get the string representation of a table element
+    """
 
     pid_data = collected_data_dict["proc_data"][pid]
     uid_name = collected_data_dict["uid_name" ]
@@ -367,6 +383,11 @@ def get_str_rep(collected_data_dict, column, pid, args):
 
 
 def get_color_str(a_string):
+    """
+    Simple wrapper to the coloring function, unless the output is piped into
+    another tool, like less or grep.
+    """
+
     result = a_string
     if sys.stdout.isatty():
         result = termcolor.colored(a_string, "red")
@@ -392,23 +413,18 @@ def recursive_proc_tree(children, pid, indention_count, level, recursive):
 
 
 def generate_table(column_headers, proc_tree, str_table_data):
-
     result_table = []
     result_table.append(column_headers)
     for proc_tuple in proc_tree:
         (pid, level) = proc_tuple
-
         line = []
         for column in column_headers:
-
             if column == "pid":
                 tmp = ( level * (4 * " ") ) + "+---" + str(pid)
             else:
                 tmp = str_table_data[column][pid]
             line.append(tmp)
-
         result_table.append(line)
-
     return result_table
 
 
@@ -477,6 +493,7 @@ def print_process_tree(collected_data_dict, column_headers, args):
     else:
         table = terminaltables.DoubleTable(str_table)
 
+    # TODO: Always hide borders by default
     if args.hideborders:
         table.outer_border             = False
         table.inner_column_border      = False
