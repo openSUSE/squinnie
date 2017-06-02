@@ -21,10 +21,12 @@ import copy
 import pwd
 import grp
 import stat
+import ctypes
 
 
 
 if __name__ == '__channelexec__' or __name__ == "__main__":
+
     def get_uid_gid_name():
         uid_name = {}
         for user in pwd.getpwall():
@@ -207,9 +209,30 @@ if __name__ == '__channelexec__' or __name__ == "__main__":
         return result
 
 
+
+    def get_cap_string(file_name):
+        # TODO: Move the loading of this library outside of
+        #       this function to improve performance
+        m_libcap = ctypes.cdll.LoadLibrary("libcap.so.2")
+        m_libcap.cap_to_text.restype = ctypes.c_char_p
+        result = m_libcap.cap_get_file(file_name)
+        # caps = m_libcap.cap_to_text(caps, None)
+        # if caps:
+        #     result = caps[2:]
+        # else:
+        #     result = ""
+        #
+        # assert isinstance(result, str)
+
+        return result
+
+
+
     def get_properties(path):
         """Gets the properties either from a file or a directory"""
         properties = {}
+        # TODO: Investigate whether this try/catch is necessary
+        properties["caps"] = get_cap_string(path)
         try:
             os_stat = os.stat(path)
             properties["st_mode"] = os_stat.st_mode
@@ -221,14 +244,17 @@ if __name__ == '__channelexec__' or __name__ == "__main__":
             properties["st_gid" ] = None
         return properties
 
+        # TODO: Fix capabilities
+
     def get_filesystem():
+
         filesystem = {}
         exclude = ["/.snapshots", "/proc"]
         for path, dirs, files in os.walk("/", topdown=True):
             dirs[:] = [d for d in dirs if os.path.join(path, d) not in exclude]
             if path == "/":
                 continue
-            print(path)
+            # print(path)
             folders = path[1:].split(os.sep)
             subdir = dict.fromkeys(files)
             lst = folders[:-1]

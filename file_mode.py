@@ -2,6 +2,8 @@ import stat
 
 # Copied from Python 3.3
 # https://hg.python.org/cpython/file/3.3/Lib/stat.py
+# TODO: Seems like this is actually available in Python 2.7,
+#       so most of this code here is redundant and unnecessary
 
 # Constants used as S_IFMT() for various file types
 # (not all are implemented on all systems)

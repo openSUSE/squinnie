@@ -128,15 +128,24 @@ def view_data(args):
 
 
 def print_file_system(filesystem, base_path, args):
-    for item_name, item_properties in sorted(filesystem.items()):
+    for item_name, item_val in sorted(filesystem.items()):
         base_path_file = os.path.join(base_path, item_name)
-        perm_str      = file_mode.filemode(item_properties["properties"]["st_mode"])
-        file_type_str = file_mode.get_file_type(item_properties["properties"]["st_mode"])
-        if "subitems" in item_properties:
-            print("_DIR: {} : {} ({})".format(perm_str, base_path_file, file_type_str))
-            print_file_system(item_properties["subitems"], base_path_file, args)
+        item_properties = item_val["properties"]
+        perm_str      = file_mode.filemode     (item_properties["st_mode"])
+        file_type_str = file_mode.get_file_type(item_properties["st_mode"])
+
+        uid = item_properties["st_uid"]
+        gid = item_properties["st_gid"]
+        caps = item_properties["caps"]
+
+        # TODO: Convert uid, gid, capability to readable form
+        # TODO: Print this as table without borders
+        file_str = "{} {} {} {} {}".format(perm_str, base_path_file, file_type_str, uid, gid, caps)
+        print(file_str)
+
+        if "subitems" in item_val:
+            print_file_system(item_val["subitems"], base_path_file, args)
         else:
-            print("FILE: {} : {} ({})".format(perm_str, base_path_file, file_type_str))
             base_path_file = base_path
 
 
