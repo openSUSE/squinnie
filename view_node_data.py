@@ -61,13 +61,6 @@ def main():
     description = "Print the parent of the process provided by -p/--pid."
     parser.add_argument("--parent", action="store_true", help=description)
 
-
-
-    description = "Show capabilities as string names rather than bitstrings."
-    parser.add_argument("--cap", action="store_true", help=description)
-
-
-
     description = "Show all open file descriptors for every process."
     parser.add_argument("--fd", action="store_true", help=description)
 
@@ -339,19 +332,13 @@ def get_str_rep(collected_data_dict, column, pid, args):
         elif not args.verbose and pid_data[column] in boring_cap_values:
             result = ""
         else:
-            # TODO: Always print the long format
-            if not args.cap:
-                result = "{:016X}".format(pid_data[column])
+            cap_trans = cap_bitstring_name.Cap_Translator("cap_data.json")
+            tmp_cap_list = cap_trans.get_cap_strings(pid_data[column])
+            new_cap_list = []
+            for tmp_cap in tmp_cap_list:
                 if no_uids_are_root:
-                    result = get_color_str(result)
-            else:
-                cap_trans = cap_bitstring_name.Cap_Translator("cap_data.json")
-                tmp_cap_list = cap_trans.get_cap_strings(pid_data[column])
-                new_cap_list = []
-                for tmp_cap in tmp_cap_list:
-                    if no_uids_are_root:
-                        new_cap_list.append(get_color_str(tmp_cap))
-                result = "\n".join(new_cap_list)
+                    new_cap_list.append(get_color_str(tmp_cap))
+            result = "\n".join(new_cap_list)
 
 
 

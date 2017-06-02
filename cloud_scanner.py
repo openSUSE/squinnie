@@ -68,9 +68,6 @@ def main():
     description = "Print the parent of the process provided by -p/--pid."
     view_group.add_argument("--parent", action="store_true", help=description)
 
-    description = "Show capabilities as string names rather than bitstrings."
-    view_group.add_argument("--cap", action="store_true", help=description)
-
     description = "Show all open file descriptors for every process."
     view_group.add_argument("--fd", action="store_true", help=description)
 
@@ -137,7 +134,6 @@ def main():
     view_args.pid         = args.pid
     view_args.children    = args.children
     view_args.parent      = args.parent
-    view_args.cap         = args.cap
     view_args.fd          = args.fd
     view_args.onlyfd      = args.onlyfd
     view_args.filesystem  = args.filesystem
