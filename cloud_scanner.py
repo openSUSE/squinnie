@@ -78,7 +78,7 @@ def main():
     view_group.add_argument("--onlyfd", action="store_true", help=description)
 
     description = "View alle files on the file system, including their permissions."
-    parser.add_argument("--filesystem", action="store_true", help=description)
+    view_group.add_argument("--filesystem", action="store_true", help=description)
 
     # Allow setting args using an environment variable
     try:
