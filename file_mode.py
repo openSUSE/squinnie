@@ -82,7 +82,7 @@ def filemode(mode):
 
 def get_file_type(mode):
     if mode == None:
-        return "!PERMERROR"
+        return "!PERMERROR!"
 
     filetypes = []
     # directory

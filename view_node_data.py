@@ -103,7 +103,7 @@ def view_data(args):
     if args.onlyfd: # file descriptor view
         print_only_file_descriptors(collected_data_dict, args)
     elif args.filesystem:
-        print_file_system(collected_data_dict["filesystem"], "/", args)
+        print_file_system(collected_data_dict["filesystem"], collected_data_dict["uid_name" ], collected_data_dict["gid_name" ], "/", args)
     else: # process tree view
         print("There are {} processes running on this host.".format(len(collected_data_dict["proc_data"].keys())))
         print("")
@@ -127,24 +127,34 @@ def view_data(args):
 
 
 
-def print_file_system(filesystem, base_path, args):
+def print_file_system(filesystem, uid_name, gid_name, base_path, args):
+
     for item_name, item_val in sorted(filesystem.items()):
         base_path_file = os.path.join(base_path, item_name)
         item_properties = item_val["properties"]
         perm_str      = file_mode.filemode     (item_properties["st_mode"])
         file_type_str = file_mode.get_file_type(item_properties["st_mode"])
 
-        uid = item_properties["st_uid"]
-        gid = item_properties["st_gid"]
-        caps = item_properties["caps"]
+        if item_properties["st_uid"] == None or item_properties["st_uid"] not in uid_name:
+            user  = "!USERERROR!"
+        else:
+            user  = uid_name[item_properties["st_uid"]]
 
-        # TODO: Convert uid, gid, capability to readable form
+        if item_properties["st_gid"] == None or item_properties["st_gid"] not in gid_name:
+            group = "!GROUPERROR!"
+        else:
+            group = gid_name[item_properties["st_gid"]]
+
+
+        cap_trans = cap_bitstring_name.Cap_Translator("cap_data.json")
+        cap_str = "|".join(cap_trans.get_cap_strings(item_properties["caps"]))
+
         # TODO: Print this as table without borders
-        file_str = "{} {} {} {} {}".format(perm_str, base_path_file, file_type_str, uid, gid, caps)
+        file_str = "{} {} {} {} {} {}".format(perm_str, base_path_file, file_type_str, user, group, cap_str)
         print(file_str)
 
         if "subitems" in item_val:
-            print_file_system(item_val["subitems"], base_path_file, args)
+            print_file_system(item_val["subitems"], uid_name, gid_name, base_path_file, args)
         else:
             base_path_file = base_path
 
@@ -329,6 +339,7 @@ def get_str_rep(collected_data_dict, column, pid, args):
         elif not args.verbose and pid_data[column] in boring_cap_values:
             result = ""
         else:
+            # TODO: Always print the long format
             if not args.cap:
                 result = "{:016X}".format(pid_data[column])
                 if no_uids_are_root:
