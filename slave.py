@@ -210,31 +210,13 @@ if __name__ == '__channelexec__' or __name__ == "__main__":
 
 
 
-    def get_cap_string(file_name):
-        # TODO: Move the loading of this library outside of
-        #       this function to improve performance
-        m_libcap = ctypes.cdll.LoadLibrary("libcap.so.2")
-        m_libcap.cap_to_text.restype = ctypes.c_char_p
-        result = m_libcap.cap_get_file(file_name)
-        # caps = m_libcap.cap_to_text(caps, None)
-        # if caps:
-        #     result = caps[2:]
-        # else:
-        #     result = ""
-        #
-        # assert isinstance(result, str)
-
-        return result
-
-
-
-    def get_properties(path):
+    def get_properties(m_libcap, filename):
         """Gets the properties either from a file or a directory"""
         properties = {}
-        # TODO: Investigate whether this try/catch is necessary
-        properties["caps"] = get_cap_string(path)
-        try:
-            os_stat = os.stat(path)
+        # returns an integer, like 36683988, which should be parsed as a binary bitmask
+        properties["caps"] = m_libcap.cap_get_file(filename)
+        try: # Broken symlinks throw this exception
+            os_stat = os.stat(filename)
             properties["st_mode"] = os_stat.st_mode
             properties["st_uid" ] = os_stat.st_uid
             properties["st_gid" ] = os_stat.st_gid
@@ -244,9 +226,11 @@ if __name__ == '__channelexec__' or __name__ == "__main__":
             properties["st_gid" ] = None
         return properties
 
-        # TODO: Fix capabilities
+
 
     def get_filesystem():
+        m_libcap = ctypes.cdll.LoadLibrary("libcap.so.2")
+        m_libcap.cap_to_text.restype = ctypes.c_char_p
 
         filesystem = {}
         exclude = ["/.snapshots", "/proc"]
@@ -263,12 +247,12 @@ if __name__ == '__channelexec__' or __name__ == "__main__":
             parent = reduce(dict.get, the_directories, filesystem)
             parent[folders[-1]] = {}
             parent[folders[-1]]["subitems"    ] = subdir
-            parent[folders[-1]]["properties"] = get_properties(path)
+            parent[folders[-1]]["properties"] = get_properties(m_libcap, path)
 
             for a_file in files:
                 parent[folders[-1]]["subitems"][a_file] = {}
                 file_path_name = os.path.join(path, a_file)
-                parent[folders[-1]]["subitems"][a_file]["properties"] = get_properties(file_path_name)
+                parent[folders[-1]]["subitems"][a_file]["properties"] = get_properties(m_libcap, file_path_name)
 
         return filesystem
 

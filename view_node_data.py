@@ -15,8 +15,7 @@ import termcolor
 
 # Local modules.
 import cap_bitstring_name
-import file_permissions
-import file_mode # TODO: Only overwrite the official function if Python version < 3.3
+import file_mode
 
 error_msg = "The module {} could not be found. Please use your system's package manager or pip to install it."
 
@@ -142,7 +141,6 @@ def print_file_system(filesystem, uid_name, gid_name, base_path, args):
         cap_trans = cap_bitstring_name.Cap_Translator("cap_data.json")
         cap_str = "|".join(cap_trans.get_cap_strings(item_properties["caps"]))
 
-        # TODO: Print this as table without borders
         file_str = "{} {} {} {} {} {}".format(perm_str, base_path_file, file_type_str, user, group, cap_str)
         print(file_str)
 
@@ -238,7 +236,7 @@ def get_list_of_open_file_descriptors(collected_data_dict, pid, args):
 
         fd_symlink = fd_perm["symlink"]
 
-        flags = file_permissions.get_fd_metadata_str(fd_perm["file_flags"])
+        flags = file_mode.get_fd_metadata_str(fd_perm["file_flags"])
         file_perm     = fd_perm["file_perm"]
         file_perm_str = str(file_perm["Uid"]) + str(file_perm["Gid"]) + str(file_perm["other"])
 
@@ -254,7 +252,7 @@ def get_list_of_open_file_descriptors(collected_data_dict, pid, args):
                     "Gid_set":pid_data["Gid"],
                 }
 
-                if not file_permissions.can_access_file(user_identity, file_identity, file_perm):
+                if not file_mode.can_access_file(user_identity, file_identity, file_perm):
                     color_it = True
 
             tmp_file_str = fd_symlink
