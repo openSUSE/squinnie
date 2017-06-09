@@ -1,43 +1,7 @@
-import stat
+from stat import *
 
 # Copied from Python 3.3
-# https://hg.python.org/cpython/file/3.3/Lib/stat.py
-# TODO: Seems like this is actually available in Python 2.7,
-#       so most of this code here is redundant and unnecessary
-
-# Constants used as S_IFMT() for various file types
-# (not all are implemented on all systems)
-
-S_IFDIR  = 0o040000  # directory
-S_IFCHR  = 0o020000  # character device
-S_IFBLK  = 0o060000  # block device
-S_IFREG  = 0o100000  # regular file
-S_IFIFO  = 0o010000  # fifo (named pipe)
-S_IFLNK  = 0o120000  # symbolic link
-S_IFSOCK = 0o140000  # socket file
-
-# Names for permission bits
-
-S_ISUID = 0o4000  # set UID bit
-S_ISGID = 0o2000  # set GID bit
-S_ENFMT = S_ISGID # file locking enforcement
-S_ISVTX = 0o1000  # sticky bit
-S_IREAD = 0o0400  # Unix V7 synonym for S_IRUSR
-S_IWRITE = 0o0200 # Unix V7 synonym for S_IWUSR
-S_IEXEC = 0o0100  # Unix V7 synonym for S_IXUSR
-S_IRWXU = 0o0700  # mask for owner permissions
-S_IRUSR = 0o0400  # read by owner
-S_IWUSR = 0o0200  # write by owner
-S_IXUSR = 0o0100  # execute by owner
-S_IRWXG = 0o0070  # mask for group permissions
-S_IRGRP = 0o0040  # read by group
-S_IWGRP = 0o0020  # write by group
-S_IXGRP = 0o0010  # execute by group
-S_IRWXO = 0o0007  # mask for others (not in group) permissions
-S_IROTH = 0o0004  # read by others
-S_IWOTH = 0o0002  # write by others
-S_IXOTH = 0o0001  # execute by others
-
+# Python 2.7 really does not have this included
 _filemode_table = (
     ((S_IFLNK,         "l"),
      (S_IFREG,         "-"),
@@ -65,9 +29,10 @@ _filemode_table = (
      (S_IXOTH,         "x"))
 )
 
+# Copied from Python 3.3
 def filemode(mode):
     """Convert a file's mode to a string of the form '-rwxrwxrwx'."""
-    if mode == None:
+    if mode == None: # Broken symlinks have no permissions
         return "!PERMERROR"
 
     perm = []
@@ -80,37 +45,38 @@ def filemode(mode):
             perm.append("-")
     return "".join(perm)
 
+
 def get_file_type(mode):
     if mode == None:
-        return "!PERMERROR!"
+        return "!MODEERROR!"
 
     filetypes = []
     # directory
-    if stat.S_ISDIR(mode):
+    if S_ISDIR(mode):
         filetypes.append("directory")
 
     # regular file
-    if stat.S_ISREG(mode):
+    if S_ISREG(mode):
         filetypes.append("regular file")
 
     # symbolic link
-    if stat.S_ISLNK(mode):
+    if S_ISLNK(mode):
         filetypes.append("symbolic link")
 
     # FIFO (named pipe)
-    if stat.S_ISFIFO(mode):
+    if S_ISFIFO(mode):
         filetypes.append("FIFO (named pipe)")
 
     # socket
-    if stat.S_ISSOCK(mode):
+    if S_ISSOCK(mode):
         filetypes.append("socket")
 
     # character special device file
-    if stat.S_ISCHR(mode):
+    if S_ISCHR(mode):
         filetypes.append("character special device file")
 
     # block special device file
-    if stat.S_ISBLK(mode):
+    if S_ISBLK(mode):
         filetypes.append("block special device file")
 
     return "".join(filetypes)
