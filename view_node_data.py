@@ -43,9 +43,6 @@ def main():
 
 
 
-    description = "Hide table borders completely. Useful for tools like less and grep."
-    parser.add_argument("--hideborders", action="store_true", help=description)
-
     description = "Show parameters from the executable cmdline variable."
     parser.add_argument("--params", action="store_true", help=description)
 
@@ -487,17 +484,12 @@ def print_process_tree(collected_data_dict, column_headers, args):
     str_table = generate_table(column_headers, proc_tree, str_table_data)
 
 
-    # DoubleTable uses box-drawing characters which causes problems with less and grep
-    if not sys.stdout.isatty():
-        table = terminaltables.AsciiTable(str_table)
-    else:
-        table = terminaltables.DoubleTable(str_table)
+    table = terminaltables.AsciiTable(str_table)
 
-    # TODO: Always hide borders by default
-    if args.hideborders:
-        table.outer_border             = False
-        table.inner_column_border      = False
-        table.inner_heading_row_border = False
+    # Do not use any borders at all
+    table.outer_border             = False
+    table.inner_column_border      = False
+    table.inner_heading_row_border = False
 
     print(table.table)
 

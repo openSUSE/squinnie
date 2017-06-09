@@ -50,9 +50,6 @@ def main():
     # View
     view_group = parser.add_argument_group('view arguments')
 
-    description = "Hide table borders completely. Useful for tools like less and grep."
-    view_group.add_argument("--hideborders", action="store_true", help=description)
-
     description = "Show parameters from the executable cmdline variable."
     view_group.add_argument("--params", action="store_true", help=description)
 
@@ -128,7 +125,6 @@ def main():
     # view_node_data arguments
     view_args = argparse.Namespace()
     view_args.verbose     = args.verbose
-    view_args.hideborders = args.hideborders
     view_args.params      = args.params
     view_args.kthreads    = args.kthreads
     view_args.pid         = args.pid
