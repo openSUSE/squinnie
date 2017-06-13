@@ -142,6 +142,16 @@ def print_file_system(filesystem, uid_name, gid_name, base_path, args):
         cap_str = "|".join(cap_trans.get_cap_strings(item_properties["caps"]))
 
         file_str = "{} {} {} {} {} {}".format(perm_str, base_path_file, file_type_str, user, group, cap_str)
+        # if  perm_str[1] not in ["-","r"] or \
+        #     perm_str[2] not in ["-","w"] or \
+        #     perm_str[3] not in ["-","x"] or \
+        #     perm_str[4] not in ["-","r"] or \
+        #     perm_str[5] not in ["-","w"] or \
+        #     perm_str[6] not in ["-","x"] or \
+        #     perm_str[7] not in ["-","r"] or \
+        #     perm_str[8] not in ["-","w"] or \
+        #     perm_str[9] not in ["-","x"]:
+
         print(file_str)
 
         if "subitems" in item_val:

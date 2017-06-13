@@ -137,29 +137,35 @@ def main():
 
 
     if not args.all:
-        print("\n\nPreparing report for {} ...".format(entry_node))
+        eprint("\n\nPreparing report for {} ...".format(entry_node))
         view_args.input = os.path.join(args.directory, dump_node_data.get_filename(entry_node))
         view_node_data.view_data(view_args)
     else:
         for node_file in node_filenames:
-            print("\n\nPreparing report for {} ...".format(node_file))
+            eprint("\n\nPreparing report for {} ...".format(node_file))
             view_args.input = os.path.join(args.directory, node_file)
             view_node_data.view_data(view_args)
 
 
     if finally_remove_dir:
         if args.verbose:
-            print("")
-            print("Deleting cached files after protocol run:")
+            eprint("")
+            eprint("Deleting cached files after protocol run:")
         for file_name in files_produced:
             file_name_path = os.path.join(args.directory, file_name)
             os.remove(file_name_path)
             if args.verbose:
-                print("Deleting {}".format(file_name_path))
+                eprint("Deleting {}".format(file_name_path))
         os.rmdir(args.directory)
         if args.verbose:
-            print("Deleting {}".format(args.directory))
-            print("")
+            eprint("Deleting {}".format(args.directory))
+            eprint("")
+
+
+
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
+
 
 
 if __name__ == "__main__":

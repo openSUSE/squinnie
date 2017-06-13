@@ -213,8 +213,10 @@ if __name__ == '__channelexec__' or __name__ == "__main__":
     def get_properties(m_libcap, filename):
         """Gets the properties either from a file or a directory"""
         properties = {}
+
         # returns an integer, like 36683988, which should be parsed as a binary bitmask
         properties["caps"] = m_libcap.cap_get_file(filename)
+        
         try: # Broken symlinks throw this exception
             os_stat = os.stat(filename)
             properties["st_mode"] = os_stat.st_mode

@@ -19,7 +19,7 @@ import enrich_node_data
 
 
 
-file_extension = "p" # apparently .p is commonly for pickled data
+file_extension = "p" # apparently .p is commonly used for pickled data
 error_msg = "The module {} could not be found. Please use your system's package manager or pip to install it."
 
 try:
@@ -59,6 +59,11 @@ def main():
 
 
 
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
+
+
+
 def files_already_exist(directory_path, filenames):
     result = True
     for fname in filenames:
@@ -78,9 +83,9 @@ def dump(args):
 
 
     if not args.nocache and files_already_exist(directory_path, node_list_filenames):
-        print("Skip scanning the nodes again because a suitable cache was found.")
-        print("You can force rebuilding the cache from scratch using --nocache.")
-        print("")
+        eprint("Skip scanning the nodes again because a suitable cache was found.")
+        eprint("You can force rebuilding the cache from scratch using --nocache.")
+        eprint("")
     else:
 
         (datastructure, node_list) = receive_data(tree_dict_str)
@@ -103,22 +108,6 @@ def execnet_recursive_setup(group, parent, tree_dict_str):
     elif type(tree_dict_str) is list:
         for self_node in tree_dict_str:
             group.makegateway(get_gateway_option_string(parent, self_node))
-
-
-
-def print_recursively(tree_dict_str, level):
-
-    # In case the current node has children
-    if type(tree_dict_str) is OrderedDict:
-        for self_node, children in tree_dict_str.items():
-            print("+---"*level + self_node)
-
-            print_recursively(children, level+1)
-
-    # In case the current node is a leaf in the tree
-    elif type(tree_dict_str) is list:
-        for self_node in tree_dict_str:
-            print("+---"*level + self_node)
 
 
 

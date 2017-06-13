@@ -45,6 +45,11 @@ def main():
 
 
 
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
+
+
+
 def get_crowbar_config(entry_node):
     if not entry_node:
         exit("When no cache exists or --nocache is given, you have to provide an entry node using -e/--entry.")
@@ -68,9 +73,9 @@ def get_crowbar_config(entry_node):
 
 def dump_crowbar_to_file(args):
     if not args.nocache and os.path.isfile(args.output):
-        print("Skip regenerating a network.json config because a suitable cache was found.")
-        print("You can force rebuilding the cache from scratch using --nocache.")
-        print("")
+        eprint("Skip regenerating a network.json config because a suitable cache was found.")
+        eprint("You can force rebuilding the cache from scratch using --nocache.")
+        eprint("")
 
         tree_dict_str = dump_node_data.read_network_config(args.output)
         entry_node = tree_dict_str.keys()[0]
