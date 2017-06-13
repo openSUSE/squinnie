@@ -91,7 +91,12 @@ def view_data(args):
     if args.onlyfd: # file descriptor view
         print_only_file_descriptors(collected_data_dict, args)
     elif args.filesystem:
-        print_file_system(collected_data_dict["filesystem"], collected_data_dict["uid_name" ], collected_data_dict["gid_name" ], "/", args)
+        str_table = []
+        get_filesystem_table(str_table, collected_data_dict["filesystem"], collected_data_dict["uid_name" ], collected_data_dict["gid_name" ], "/", args)
+
+        for item in str_table:
+            print(" ".join(item))
+
     else: # process tree view
         print("There are {} processes running on this host.".format(len(collected_data_dict["proc_data"].keys())))
         print("")
@@ -131,7 +136,7 @@ def get_file_properties(filesystem, filename):
 
 
 
-def print_file_system(filesystem, uid_name, gid_name, base_path, args):
+def get_filesystem_table(datastructure, filesystem, uid_name, gid_name, base_path, args):
     """
     Note: This is a recursive function
     """
@@ -156,7 +161,8 @@ def print_file_system(filesystem, uid_name, gid_name, base_path, args):
         cap_trans = cap_bitstring_name.Cap_Translator("cap_data.json")
         cap_str = "|".join(cap_trans.get_cap_strings(item_properties["caps"]))
 
-        file_str = "{} {} {} {} {} {}".format(perm_str, base_path_file, file_type_str, user, group, cap_str)
+        datastructure.append([perm_str, base_path_file, file_type_str, user, group, cap_str])
+
         # if  perm_str[0] not in ["-","d","c","p","b"] or \
         #     perm_str[1] not in ["-","r"] or \
         #     perm_str[2] not in ["-","w"] or \
@@ -168,10 +174,10 @@ def print_file_system(filesystem, uid_name, gid_name, base_path, args):
         #     perm_str[8] not in ["-","w"] or \
         #     perm_str[9] not in ["-","x"]:
 
-        print(file_str)
+        # print(file_str)
 
         if "subitems" in item_val:
-            print_file_system(item_val["subitems"], uid_name, gid_name, base_path_file, args)
+            get_filesystem_table(datastructure, item_val["subitems"], uid_name, gid_name, base_path_file, args)
         else:
             base_path_file = base_path
 
