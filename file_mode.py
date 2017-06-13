@@ -34,7 +34,7 @@ _filemode_table = (
 # Copied from Python 3.3
 def filemode(mode):
     """Convert a file's mode to a string of the form '-rwxrwxrwx'."""
-    if mode == None: # Broken symlinks have no permissions
+    if not isinstance(mode, int): # Broken symlinks have no permissions
         return "!PERMERROR"
 
     perm = []

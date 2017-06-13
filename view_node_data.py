@@ -88,7 +88,6 @@ def view_data(args):
     node_str = list(datastructure.keys())[0]
     collected_data_dict = datastructure[node_str]
 
-    # import pdb; pdb.set_trace()
     if args.onlyfd: # file descriptor view
         print_only_file_descriptors(collected_data_dict, args)
     elif args.filesystem:
@@ -113,6 +112,22 @@ def view_data(args):
         print_process_tree(collected_data_dict, column_headers, args)
 
     print("")
+
+
+
+def get_file_properties(filesystem, filename):
+    tokens = filename[1:].split("/")
+    last = tokens.pop()
+    current_fs = filesystem
+    try:
+        while tokens:
+            t = tokens.pop(0)
+            current_fs = current_fs[t]["subitems"]
+        result = current_fs[last]["properties"]["st_mode"]
+    except KeyError:
+        result = "_PERMERROR"
+
+    return result
 
 
 
@@ -142,7 +157,8 @@ def print_file_system(filesystem, uid_name, gid_name, base_path, args):
         cap_str = "|".join(cap_trans.get_cap_strings(item_properties["caps"]))
 
         file_str = "{} {} {} {} {} {}".format(perm_str, base_path_file, file_type_str, user, group, cap_str)
-        # if  perm_str[1] not in ["-","r"] or \
+        # if  perm_str[0] not in ["-","d","c","p","b"] or \
+        #     perm_str[1] not in ["-","r"] or \
         #     perm_str[2] not in ["-","w"] or \
         #     perm_str[3] not in ["-","x"] or \
         #     perm_str[4] not in ["-","r"] or \
@@ -189,11 +205,18 @@ def inode_to_identifier(collected_data_dict, inode):
     for transport_protocol in ["tcp", "tcp6", "udp", "udp6", "unix"]:
         if transport_protocol in collected_data_dict:
             if inode in collected_data_dict[transport_protocol]:
-                if transport_protocol == "unix":
+                if transport_protocol == "unix": # unix domain socket
                     the_identifier = collected_data_dict[transport_protocol][inode]
-                    if the_identifier == "":
+                    if the_identifier == "": # unnamed unix domain socket
                         the_identifier = "<unnamed>"
-                else:
+                    else: # else: named or abstract unix domain socket
+                        st_mode = get_file_properties(collected_data_dict["filesystem"], the_identifier)
+                        if st_mode:
+                            permissions = file_mode.filemode(st_mode)
+                        else:
+                            permissions = st_mode
+                        the_identifier = "{} (named socket file permissions: {})".format(the_identifier, permissions)
+                else: # TCP or UDP socket
                     the_identifier = int(collected_data_dict[transport_protocol][inode][0][1], 16) # port of the local ip
                 result.append("{}:{}".format(transport_protocol, the_identifier))
 
@@ -250,9 +273,10 @@ def get_list_of_open_file_descriptors(collected_data_dict, pid, args):
         file_perm     = fd_perm["file_perm"]
         file_perm_str = str(file_perm["Uid"]) + str(file_perm["Gid"]) + str(file_perm["other"])
 
-        if not ":" in fd_symlink:
-            file_identity = fd_perm["file_identity"]
+        if ":" not in fd_symlink:
+            # real files on disk
 
+            file_identity = fd_perm["file_identity"]
 
             color_it = False
             for uid_type in pid_data["Uid"]:
@@ -271,19 +295,19 @@ def get_list_of_open_file_descriptors(collected_data_dict, pid, args):
 
             if args.verbose:
                 tmp_file_str = "{:>5}: ".format(fd_num_str) + tmp_file_str
-            # if flags:
             tmp_file_str = "{} (permissions: {})".format(tmp_file_str, file_perm_str)
             if flags:
                 tmp_file_str = "{} (flags: {})".format(tmp_file_str, "|".join(flags))
-            # tmp_file_str = "{} ~ {} ~ {}".format(tmp_file_str, "|".join(flags), file_perm_str)
-            # tmp_file_str = "{} ({})".format(tmp_file_str, ", ".join([, ]) )
             real_files_strs.append(tmp_file_str)
+
         else:
+            # pseudo files: sockets, pipes, ...
             tmp_file_str = get_pseudo_file_str_rep(collected_data_dict, fd_symlink)
 
             if args.verbose:
                 tmp_file_str = "{:>5}: ".format(fd_num_str) + tmp_file_str
-            tmp_file_str = "{} (permissions: {})".format(tmp_file_str, file_perm_str)
+            if "socket" not in fd_symlink:
+                tmp_file_str = "{} (permissions: {})".format(tmp_file_str, file_perm_str)
             if flags:
                 tmp_file_str = "{} (flags: {})".format(tmp_file_str, "|".join(flags))
 
