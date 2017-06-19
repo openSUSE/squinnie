@@ -73,6 +73,11 @@ def main():
 
 
 
+def get_term_width():
+    return int(os.popen('stty size', 'r').read().split()[1])
+
+
+
 def view_data(args):
 
     file_name = args.input
@@ -94,8 +99,9 @@ def view_data(args):
         str_table = []
         get_filesystem_table(str_table, collected_data_dict["filesystem"], collected_data_dict["uid_name" ], collected_data_dict["gid_name" ], "/", args)
 
-        for item in str_table:
-            print(" ".join(item))
+        term_width = get_term_width()
+
+        print_table(str_table, term_width)
 
     else: # process tree view
         print("There are {} processes running on this host.".format(len(collected_data_dict["proc_data"].keys())))
@@ -117,6 +123,48 @@ def view_data(args):
         print_process_tree(collected_data_dict, column_headers, args)
 
     print("")
+
+
+
+def print_table(str_table, max_width):
+
+    width_column_dict = build_width_column_dict(str_table)
+    #
+    # print(width_column_dict)
+
+    # if sys.stdout.isatty():
+    #     remaining_width = max_width
+    #     for key, value in width_column_dict.items():
+    #         if value > remaining_width:
+    #             width_column_dict[key] = remaining_width
+    #         remaining_width -= value
+    #         if remaining_width < 0:
+    #             remaining_width = 0
+
+    # print(width_column_dict)
+
+    # import pdb; pdb.set_trace()
+
+    print_table_width_column_dict(str_table, width_column_dict, max_width)
+
+
+
+def build_width_column_dict(str_table):
+    width_column_dict = {}
+    for i in range(len(str_table[0])):
+        width_column_dict[i] = max(len(row[i]) for row in str_table)
+
+    return width_column_dict
+
+
+
+def print_table_width_column_dict(str_table, width_column_dict, max_width):
+    for row in str_table:
+        to_print = " ".join(row[i].ljust(width_column_dict[i]) for i in range(len(str_table[0])))
+        if sys.stdout.isatty():
+            print(to_print[:max_width])
+        else:
+            print(to_print)
 
 
 
