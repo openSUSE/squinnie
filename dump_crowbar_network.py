@@ -91,7 +91,7 @@ def dump_crowbar_to_file(args):
         file_name = args.output
         with open(file_name, "w") as fi:
             json.dump(network_tree, fi, indent=4, sort_keys=True)
-            print("Wrote to network configuration to {}\n".format(file_name))
+            print("Wrote network configuration to {}\n".format(file_name))
 
         all_nodes_strs = []
         all_nodes_strs.append(entry_node)

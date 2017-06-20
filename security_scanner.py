@@ -16,10 +16,12 @@ import os
 import dump_crowbar_network
 import dump_node_data
 import view_node_data
+import slave
 
 
 
 def main():
+
     description = "The main cloud scanner, initially built for scanning a SUSE OpenStack Cloud 7 instance. A single wrapper around the functionality of all individual tools."
     parser = argparse.ArgumentParser(description=description)
 
@@ -35,13 +37,16 @@ def main():
     # description = "List all nodes in the network."
     # general_group.add_argument("-l", "--list", action="store_true", help=description)
 
-    description = "Print information from all nodes. By default, only the crowbar node is printed."
+    description = "When using a mode that scans multiple hosts, print information from all nodes. By default, only the entry node is printed. This has no effect if the local mode is used."
     general_group.add_argument("-a", "--all", action="store_true", help=description)
 
     # Dump
     dump_group = parser.add_argument_group('scan / dump arguments')
 
-    description = "The host on which crowbar is running."
+    description = "The mode the scanner should be operating under. Currenly supported are local and susecloud."
+    dump_group.add_argument("-m", "--mode", type=str, help=description)
+
+    description = "The host on which crowbar is running. Only valid if using the susecloud mode."
     dump_group.add_argument("-e", "--entry", type=str, help=description)
 
     description = "Remove cached files after every run, forcing a re-scan on next execution."
@@ -74,12 +79,16 @@ def main():
     description = "View alle files on the file system, including their permissions."
     view_group.add_argument("--filesystem", action="store_true", help=description)
 
-    # Allow setting args using an environment variable
-    try:
-        extra_args = os.environ["CLOUD_SCANNER"]
-    except KeyError:
-        extra_args = ""
-    args = parser.parse_args(sys.argv[1:] + extra_args.split())
+    args = parser.parse_args(sys.argv[1:])
+
+    if not args.mode:
+        args.mode = "local"
+        eprint("No mode was given, so localhost is scanned by default.")
+
+    if args.mode == "local" and os.geteuid() != 0:
+        eprint("When scanning the local machine, root privileges are required to run this script.")
+        eprint("Please try again, this time using 'sudo'. Exiting.")
+        sys.exit(1)
 
     finally_remove_dir = False
     if not args.directory:
@@ -97,30 +106,37 @@ def main():
     nwconfig_file_name = "network.json"
     nwconfig_file_name_path = os.path.join(args.directory, nwconfig_file_name)
 
-    # dump_crowbar_network arguments
-    crowbar_args = argparse.Namespace()
-    crowbar_args.entry = args.entry
-    crowbar_args.nocache = args.nocache
-    crowbar_args.output = nwconfig_file_name_path
+    if args.mode == "local":
+        pass # Local, don't use crowbar...
+    elif args.mode == "susecloud":
+        # dump_crowbar_network arguments
+        crowbar_args = argparse.Namespace()
+        crowbar_args.entry = args.entry
+        crowbar_args.nocache = args.nocache
+        crowbar_args.output = nwconfig_file_name_path
 
-    entry_node = dump_crowbar_network.dump_crowbar_to_file(crowbar_args)
-    files_produced.append(nwconfig_file_name)
+        entry_node = dump_crowbar_network.dump_crowbar_to_file(crowbar_args)
+        files_produced.append(nwconfig_file_name)
 
-    # if args.list:
-    #     print("The following nodes are in the network:")
-    #     for node_file in node_filenames:
-    #         print("- {}".format(node_file))
-    #     print("")
-    #     exit()
+    if args.mode == "local":
+        # dump_node_data arguments
+        dump_args = argparse.Namespace()
+        dump_args.input = "local"
+        dump_args.output = args.directory
+        dump_args.nocache = args.nocache
 
-    # dump_node_data arguments
-    dump_args = argparse.Namespace()
-    dump_args.input = nwconfig_file_name_path
-    dump_args.output = args.directory
-    dump_args.nocache = args.nocache
+        node_filenames = dump_node_data.dump_local(dump_args)
+        files_produced += node_filenames
 
-    node_filenames = dump_node_data.dump(dump_args)
-    files_produced += node_filenames
+    elif args.mode == "susecloud":
+        # dump_node_data arguments
+        dump_args = argparse.Namespace()
+        dump_args.input = nwconfig_file_name_path
+        dump_args.output = args.directory
+        dump_args.nocache = args.nocache
+
+        node_filenames = dump_node_data.dump(dump_args)
+        files_produced += node_filenames
 
     # view_node_data arguments
     view_args = argparse.Namespace()
@@ -134,7 +150,8 @@ def main():
     view_args.onlyfd      = args.onlyfd
     view_args.filesystem  = args.filesystem
 
-
+    if args.mode == "local":
+        args.all = True
 
     if not args.all:
         eprint("\n\nPreparing report for {} ...".format(entry_node))

@@ -307,7 +307,7 @@ def get_pseudo_file_str_rep(collected_data_dict, raw_pseudo_file_str):
             assert False
         return result
     else:
-        assert False
+        return "{} : {}".format("!FORMATERROR!", raw_pseudo_file_str)
 
 
 def get_list_of_open_file_descriptors(collected_data_dict, pid, args):
@@ -414,7 +414,7 @@ def get_str_rep(collected_data_dict, column, pid, args):
         if pid_data["Seccomp"]:
             result_list.append("seccomp")
         if "root" in pid_data and pid_data["root"] != "/":
-            result_list.append("rooted")
+            result_list.append("chroot")
 
         if result_list:
             result = get_color_str("|".join(result_list))

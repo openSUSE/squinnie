@@ -95,6 +95,22 @@ def dump(args):
 
 
 
+def dump_local(args):
+    directory_path = args.output
+    node_list = ["local"]
+    node_list_filenames = [get_filename(item) for item in node_list]
+    if not args.nocache and files_already_exist(directory_path, node_list_filenames):
+        eprint("Skip scanning the nodes again because a suitable cache was found.")
+        eprint("You can force rebuilding the cache from scratch using --nocache.")
+        eprint("")
+    else:
+        directory_path = args.output
+        datastructure = slave.collect()
+        write_data(directory_path, {"local":datastructure}, node_list)
+    return node_list_filenames
+
+
+
 def execnet_recursive_setup(group, parent, tree_dict_str):
 
     # In case the current node has children
