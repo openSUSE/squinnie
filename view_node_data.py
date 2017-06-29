@@ -1,6 +1,25 @@
 #!/usr/bin/env python2
 # vim: ts=4 et sw=4 sts=4 :
 
+# security scanner - scan a system's security related information
+# Copyright (C) 2017 SUSE LINUX GmbH
+#
+# Author:     Benjamin Deuter
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# version 2 as published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+# MA 02110-1301 USA.
+
 # Standard library modules.
 from __future__ import print_function
 from __future__ import with_statement
@@ -99,9 +118,9 @@ def view_data(args):
         str_table = []
         get_filesystem_table(str_table, collected_data_dict["filesystem"], collected_data_dict["uid_name" ], collected_data_dict["gid_name" ], "/", args)
 
+        width_column_dict = build_width_column_dict(str_table)
         term_width = get_term_width()
-
-        print_table(str_table, term_width)
+        print_table_width_column_dict(str_table, width_column_dict, term_width)
 
     else: # process tree view
         print("There are {} processes running on this host.".format(len(collected_data_dict["proc_data"].keys())))
@@ -124,28 +143,6 @@ def view_data(args):
 
     print("")
 
-
-
-def print_table(str_table, max_width):
-
-    width_column_dict = build_width_column_dict(str_table)
-    #
-    # print(width_column_dict)
-
-    # if sys.stdout.isatty():
-    #     remaining_width = max_width
-    #     for key, value in width_column_dict.items():
-    #         if value > remaining_width:
-    #             width_column_dict[key] = remaining_width
-    #         remaining_width -= value
-    #         if remaining_width < 0:
-    #             remaining_width = 0
-
-    # print(width_column_dict)
-
-    # import pdb; pdb.set_trace()
-
-    print_table_width_column_dict(str_table, width_column_dict, max_width)
 
 
 
@@ -210,19 +207,6 @@ def get_filesystem_table(datastructure, filesystem, uid_name, gid_name, base_pat
         cap_str = "|".join(cap_trans.get_cap_strings(item_properties["caps"]))
 
         datastructure.append([perm_str, base_path_file, file_type_str, user, group, cap_str])
-
-        # if  perm_str[0] not in ["-","d","c","p","b"] or \
-        #     perm_str[1] not in ["-","r"] or \
-        #     perm_str[2] not in ["-","w"] or \
-        #     perm_str[3] not in ["-","x"] or \
-        #     perm_str[4] not in ["-","r"] or \
-        #     perm_str[5] not in ["-","w"] or \
-        #     perm_str[6] not in ["-","x"] or \
-        #     perm_str[7] not in ["-","r"] or \
-        #     perm_str[8] not in ["-","w"] or \
-        #     perm_str[9] not in ["-","x"]:
-
-        # print(file_str)
 
         if "subitems" in item_val:
             get_filesystem_table(datastructure, item_val["subitems"], uid_name, gid_name, base_path_file, args)
