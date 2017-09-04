@@ -228,7 +228,7 @@ def get_all_pids():
 
 
 
-def get_properties(m_libcap, filename):
+def get_properties(m_libcap, filename, os_stat = None):
     """Gets the properties either from a file or a directory"""
     properties = {}
 
@@ -236,7 +236,8 @@ def get_properties(m_libcap, filename):
     properties["caps"] = m_libcap.cap_get_file(filename)
 
     try: # Broken symlinks throw this exception
-        os_stat = os.stat(filename)
+        if not os_stat:
+            os_stat = os.stat(filename)
         properties["st_mode"] = os_stat.st_mode
         properties["st_uid" ] = os_stat.st_uid
         properties["st_gid" ] = os_stat.st_gid
@@ -253,7 +254,9 @@ def get_filesystem():
     m_libcap.cap_to_text.restype = ctypes.c_char_p
 
     filesystem = {}
-    exclude = ["/.snapshots", "/proc"]
+    # TODO: determine file system types and mount table, also include root
+    # node
+    exclude = ["/.snapshots", "/proc", "/mounts", "/suse"]
     for path, dirs, files in os.walk("/", topdown=True):
         dirs[:] = [d for d in dirs if os.path.join(path, d) not in exclude]
         if path == "/":
@@ -301,3 +304,8 @@ if __name__ == '__channelexec__' or __name__ == "__main__":
 
     if __name__ == '__channelexec__':
         channel.send( result )
+    else:
+        # for running locally via sudo, simply output the raw data structure
+        # on stdout
+        import pickle
+        print(pickle.dumps(result))
