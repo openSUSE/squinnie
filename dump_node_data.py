@@ -116,7 +116,7 @@ def dump(args):
 
 def dump_local(args):
     directory_path = args.output
-    node_list = ["local"]
+    node_list = [args.input]
     node_list_filenames = [get_filename(item) for item in node_list]
     if not args.nocache and files_already_exist(directory_path, node_list_filenames):
         eprint("Skip scanning the nodes again because a suitable cache was found.")
@@ -124,8 +124,30 @@ def dump_local(args):
         eprint("")
     else:
         directory_path = args.output
-        datastructure = slave.collect()
-        write_data(directory_path, {"local":datastructure}, node_list)
+        if os.geteuid() != 0:
+            if False:
+                # might be a future command line option
+                eprint("You're scanning as non-root, only partial data will be collected")
+                eprint("Run as root to get a full result. This mode is not fully supported.")
+            else:
+                import pickle
+                import subprocess
+                pickle_data = subprocess.check_output(
+                    [
+                        "sudo",
+                        os.path.join(
+                            os.path.dirname(__file__),
+                            "slave.py"
+                        )
+                    ]
+                )
+
+                # TODO: inefficient, we're going to dump this in write_data()
+                # anyways
+                datastructure = pickle.loads(pickle_data)
+        else:
+            datastructure = slave.collect()
+        write_data(directory_path, {args.input:datastructure}, node_list)
     return node_list_filenames
 
 

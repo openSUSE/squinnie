@@ -104,11 +104,6 @@ def main():
         args.mode = "local"
         eprint("No mode was given, so localhost is scanned by default.")
 
-    if args.mode == "local" and os.geteuid() != 0:
-        eprint("When scanning the local machine, root privileges are required to run this script.")
-        eprint("Please try again, this time using 'sudo'. Exiting.")
-        sys.exit(1)
-
     finally_remove_dir = False
     if not args.directory:
         args.directory = "/tmp/cloud_scanner_{}/".format(os.getpid())
@@ -125,9 +120,7 @@ def main():
     nwconfig_file_name = "network.json"
     nwconfig_file_name_path = os.path.join(args.directory, nwconfig_file_name)
 
-    if args.mode == "local":
-        pass # Local, don't use crowbar...
-    elif args.mode == "susecloud":
+    if args.mode == "susecloud":
         # dump_crowbar_network arguments
         crowbar_args = argparse.Namespace()
         crowbar_args.entry = args.entry
@@ -137,22 +130,21 @@ def main():
         entry_node = dump_crowbar_network.dump_crowbar_to_file(crowbar_args)
         files_produced.append(nwconfig_file_name)
 
+    dump_args = argparse.Namespace()
+    dump_args.output = args.directory
+    dump_args.nocache = args.nocache
+
     if args.mode == "local":
+        import socket
         # dump_node_data arguments
-        dump_args = argparse.Namespace()
-        dump_args.input = "local"
-        dump_args.output = args.directory
-        dump_args.nocache = args.nocache
+        dump_args.input = socket.gethostname()
 
         node_filenames = dump_node_data.dump_local(dump_args)
         files_produced += node_filenames
 
     elif args.mode == "susecloud":
         # dump_node_data arguments
-        dump_args = argparse.Namespace()
         dump_args.input = nwconfig_file_name_path
-        dump_args.output = args.directory
-        dump_args.nocache = args.nocache
 
         node_filenames = dump_node_data.dump(dump_args)
         files_produced += node_filenames
