@@ -27,18 +27,19 @@ import json
 import sys
 import os
 
+class CapTranslator(object):
 
+    m_capfile = "cap_data.json"
 
-class Cap_Translator():
-
-    def __init__(self, file_name):
-        self.file_name = file_name
+    def __init__(self, file_name = None):
+        self.file_name = file_name if file_name else self.m_capfile
         self.cap_data  = self.get_cap_data()
 
     def nth_bit_set(self, val, n):
         return 0 != val & (1 << n)
 
     def get_cap_strings(self, cap_integer):
+
         result = []
 
         for cap_name, index in self.cap_data.items():
@@ -48,25 +49,44 @@ class Cap_Translator():
         return result
 
     def get_cap_data(self):
-        if os.path.exists(self.file_name):
-            with open(self.file_name, "r") as fi:
-                return json.load(fi)
-        else:
-            exit("The file {} does not exist. Exiting.".format(self.file_name))
 
+        thisdir = os.path.dirname(__file__)
+        datadir = os.path.join( thisdir, os.path.pardir, "etc" )
+        capfile = os.path.join( datadir, self.file_name )
 
+        if not os.path.exists(capfile):
+            raise Exception("Missing capability description file at {}".format(
+                capfile
+            ))
+
+        with open(capfile, "r") as fi:
+            return json.load(fi)
 
 def main():
-    if len(sys.argv) < 2:
-        exit("You have to provide a bitstring.\n")
+    import argparse
 
-    file_name = "cap_data.json"
-    cap_trans = Cap_Translator(file_name)
+    parser = argparse.ArgumentParser(
+        "cap_translator",
+        description = "translate a capability bit vector into human readable strings"
+    )
 
-    cap_data = cap_trans.get_cap_data()
-    print("\nThe given bitstring maps to the following capabilities:\n")
-    cap_integer = int(sys.argv[1], 16)
-    for cap in cap_trans.get_cap_strings(cap_integer):
+    def hexint(val):
+
+        return int(val, 16)
+
+    parser.add_argument(
+        "bitvector",
+        help = "the hexadecimal capability bit vector to translate",
+        type = hexint,
+    )
+
+    args = parser.parse_args()
+
+    translator = CapTranslator()
+
+    cap_data = translator.get_cap_data()
+    print("\nThe given bit vector maps to the following capabilities:\n")
+    for cap in translator.get_cap_strings(args.bitvector):
         print("- {}".format(cap))
     print("")
 

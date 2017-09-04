@@ -33,7 +33,7 @@ import os
 import termcolor
 
 # Local modules.
-import cap_bitstring_name
+import sscanner.cap_translator as cap_translator
 import file_mode
 
 error_msg = "The module {} could not be found. Please use your system's package manager or pip to install it."
@@ -203,7 +203,7 @@ def get_filesystem_table(datastructure, filesystem, uid_name, gid_name, base_pat
             group = gid_name[item_properties["st_gid"]]
 
 
-        cap_trans = cap_bitstring_name.Cap_Translator("cap_data.json")
+        cap_trans = cap_translator.CapTranslator("cap_data.json")
         cap_str = "|".join(cap_trans.get_cap_strings(item_properties["caps"]))
 
         datastructure.append([perm_str, base_path_file, file_type_str, user, group, cap_str])
@@ -415,7 +415,7 @@ def get_str_rep(collected_data_dict, column, pid, args):
         elif not args.verbose and pid_data[column] in boring_cap_values:
             result = ""
         else:
-            cap_trans = cap_bitstring_name.Cap_Translator("cap_data.json")
+            cap_trans = cap_translator.CapTranslator("cap_data.json")
             tmp_cap_list = cap_trans.get_cap_strings(pid_data[column])
             new_cap_list = []
             for tmp_cap in tmp_cap_list:
