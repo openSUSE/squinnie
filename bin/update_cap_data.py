@@ -30,36 +30,35 @@ import sys
 import os
 import re
 
-
-
 def main():
-    description = "Update the capability data cache generated from capability.h"
+    description = "Update the file capability bit information generated from capability.h"
     parser = argparse.ArgumentParser(prog=sys.argv[0], description=description)
 
-    description = "The capability.h file. If not provided, /usr/include/linux/capability.h will be used."
-    parser.add_argument("-i", "--input", type=str, help=description)
+    default_in = "/usr/include/linux/capability.h"
+    description = "The capability.h file. If not provided, {} will be used.".format(default_in)
+    parser.add_argument(
+        "-i", "--input", type=str, help=description,
+        default = default_in
+    )
 
-    description = "The output file for capability configuration in JSON format."
-    parser.add_argument("-o", "--output", type=str, help=description)
+    default_out = os.path.normpath( os.path.join(
+        os.path.dirname(__file__), os.path.pardir, "etc", "cap_data.json"
+    ))
+    description = "The output file for capability configuration in JSON format. If not provided, {} will be used.".format(default_out)
+    parser.add_argument(
+        "-o", "--output", type=str, help=description,
+        default = default_out
+    )
 
     args = parser.parse_args()
 
+    in_path = args.input
 
-
-    if args.input:
-        file_name = args.input
-    else:
-        file_name = "/usr/include/linux/capability.h"
-
-
-    if os.path.isfile(file_name):
-        try:
-            with open(file_name, "r") as fi:
-                file_data = fi.read()
-        except EnvironmentError:
-            exit("The file {} exists, but cannot be opened.".format(file_name))
-    else:
-        exit("The file {} does not exist.".format(file_name))
+    try:
+        with open(in_path, "r") as fi:
+            file_data = fi.read()
+    except EnvironmentError as e:
+        exit("Cannot open file {}: {}".format(in_path, str(e)))
 
     assert file_data
 
@@ -71,15 +70,15 @@ def main():
         cap_name = str(m.group(1))
         cap_data[cap_name] = cap_int
 
-    if args.output:
-        file_path_name = args.output
-    else:
-        file_path_name = os.path.join( os.path.dirname(__file__), "cap_data.json" )
+    if not cap_data:
+        exit("No capability information found in {}".format(in_path))
 
-    with open(file_path_name, "w") as fi:
-        json.dump(cap_data, fi, indent=4, sort_keys=True)
-        print("Wrote capability data to {}\n".format(file_path_name))
-
+    try:
+        with open(args.output, "w") as fi:
+            json.dump(cap_data, fi, indent=4, sort_keys=True)
+            print("Wrote capability data to {}\n".format(args.output))
+    except EnvironmentError as e:
+        exit("Cannot write file {}: {}".format(args.output, str(e)))
 
 if __name__ == "__main__":
     main()
