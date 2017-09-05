@@ -35,7 +35,7 @@ import termcolor
 import sscanner.cap_translator as cap_translator
 import sscanner.helper as helper
 pickle = helper.importPickle()
-import file_mode
+import sscanner.file_mode as file_mode
 
 error_msg = "The module {} could not be found. Please use your system's package manager or pip to install it."
 
@@ -193,8 +193,8 @@ def get_filesystem_table(datastructure, filesystem, uid_name, gid_name, base_pat
     for item_name, item_val in sorted(filesystem.items()):
         base_path_file = os.path.join(base_path, item_name)
         item_properties = item_val["properties"]
-        perm_str      = file_mode.filemode     (item_properties["st_mode"])
-        file_type_str = file_mode.get_file_type(item_properties["st_mode"])
+        perm_str      = file_mode.get_mode_string(item_properties["st_mode"])
+        file_type_str = file_mode.get_type_label(item_properties["st_mode"])
 
         if item_properties["st_uid"] == None or item_properties["st_uid"] not in uid_name:
             user  = "!USERERROR!"
@@ -254,7 +254,7 @@ def inode_to_identifier(collected_data_dict, inode):
                     else: # else: named or abstract unix domain socket
                         st_mode = get_file_properties(collected_data_dict["filesystem"], the_identifier)
                         if st_mode:
-                            permissions = file_mode.filemode(st_mode)
+                            permissions = file_mode.get_mode_string(st_mode)
                         else:
                             permissions = st_mode
                         the_identifier = "{} (named socket file permissions: {})".format(the_identifier, permissions)
@@ -311,7 +311,7 @@ def get_list_of_open_file_descriptors(collected_data_dict, pid, args):
 
         fd_symlink = fd_perm["symlink"]
 
-        flags = file_mode.get_fd_metadata_str(fd_perm["file_flags"])
+        flags = file_mode.get_fd_flag_labels(fd_perm["file_flags"])
         file_perm     = fd_perm["file_perm"]
         file_perm_str = str(file_perm["Uid"]) + str(file_perm["Gid"]) + str(file_perm["other"])
 
