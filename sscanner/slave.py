@@ -21,28 +21,29 @@
 # MA 02110-1301 USA.
 
 """
-This script is intended to run standalone for scanning an arbitrary node:
-
-- either remotely via ssh/execnet.
-- locally called as 'root'
+This script is intended to be run on the client remotely via execnet.
+It can however also be called as a standalone script for testing purposes.
 
 Unfortunately, to send a module via execnet, it has to be self-contained. This
-results in this file being somewhat longer that intended. Tt is not possible
-to use external imports, unless execnet_importhook is available, which is only
-available in python3 at the moment.
-
-Target nodes may ship only python2, however.
+results in this file being very long, as it is not possible to use external
+imports, unless execnet_importhook gets ported to Python 2 or SUSE Enterprise
+Linux gets shipped with Python 3 by default.
 """
 
 # Standard library modules.
 from __future__ import print_function
 from __future__ import with_statement
+from collections import OrderedDict
 import os, sys
 import re
+import copy
 import pwd
 import grp
 import stat
 import ctypes
+
+
+
 
 def get_uid_gid_name():
     uid_name = {}
@@ -56,6 +57,8 @@ def get_uid_gid_name():
     result["uid_name"] = uid_name
     result["gid_name"] = gid_name
     return result
+
+
 
 def load_network(transport_protocol):
     with open("/proc/net/{}".format(transport_protocol),"r") as f:

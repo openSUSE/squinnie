@@ -32,7 +32,7 @@ import os
 # local modules
 import sscanner.helper as helper
 pickle = helper.importPickle()
-import slave
+import sscanner.slave as slave
 import enrich_node_data
 
 
@@ -134,8 +134,12 @@ def dump_local(args):
                 slave_proc = subprocess.Popen(
                     [
                         "sudo",
+                        # use the same python interpreter as we're currently
+                        # running
+                        sys.executable,
                         os.path.join(
                             os.path.dirname(__file__),
+                            "sscanner",
                             "slave.py"
                         )
                     ],
