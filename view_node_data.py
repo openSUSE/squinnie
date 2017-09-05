@@ -23,7 +23,6 @@
 # Standard library modules.
 from __future__ import print_function
 from __future__ import with_statement
-import cPickle as pickle
 import sys
 import argparse
 import stat
@@ -34,6 +33,8 @@ import termcolor
 
 # Local modules.
 import sscanner.cap_translator as cap_translator
+import sscanner.helper as helper
+pickle = helper.importPickle()
 import file_mode
 
 error_msg = "The module {} could not be found. Please use your system's package manager or pip to install it."
@@ -101,12 +102,15 @@ def view_data(args):
 
     file_name = args.input
 
-    if os.path.exists(file_name):
-        with open(file_name, "r") as fi:
+    try:
+        with open(file_name, "rb") as fi:
             datastructure = pickle.load(fi)
-    else:
-        exit("The file {} does not exist. Exiting.".format(file_name))
-
+    except Exception as e:
+        if isinstance(e, EOFError):
+            # on python2 no sensible error string is contained in EOFError
+            e = "Premature end of file"
+        exit("Failed to load node data from {}: {}".format(file_name, str(e)))
+    sys.stdout.flush()
     assert len(datastructure.keys()) == 1
 
     node_str = list(datastructure.keys())[0]

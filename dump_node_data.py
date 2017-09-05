@@ -24,15 +24,14 @@
 from __future__ import print_function
 from __future__ import with_statement
 from collections import OrderedDict
-import cPickle as pickle
 import argparse
 import json
 import sys
 import os
 
-
-
 # local modules
+import sscanner.helper as helper
+pickle = helper.importPickle()
 import slave
 import enrich_node_data
 
@@ -132,19 +131,23 @@ def dump_local(args):
             else:
                 import pickle
                 import subprocess
-                pickle_data = subprocess.check_output(
+                slave_proc = subprocess.Popen(
                     [
                         "sudo",
                         os.path.join(
                             os.path.dirname(__file__),
                             "slave.py"
                         )
-                    ]
+                    ],
+                    stdout = subprocess.PIPE
                 )
 
                 # TODO: inefficient, we're going to dump this in write_data()
                 # anyways
-                datastructure = pickle.loads(pickle_data)
+                datastructure = pickle.load(slave_proc.stdout)
+
+                if slave_proc.wait() != 0:
+                    raise Exception("Failed to run slave.py")
         else:
             datastructure = slave.collect()
         write_data(directory_path, {args.input:datastructure}, node_list)
@@ -242,7 +245,7 @@ def write_data(file_path, datastructure, node_list):
         print("Saving data to {}".format(file_path_name))
 
         with open(file_path_name, "w") as fi:
-            pickle.dump({node_str:datastructure[node_str]}, fi)
+            pickle.dump({node_str:datastructure[node_str]}, fi, protocol = 2)
 
         enrich_node_data.enrich_if_necessary(file_path_name)
 

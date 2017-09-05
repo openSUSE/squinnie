@@ -23,11 +23,13 @@
 # Standard library modules.
 from __future__ import print_function
 from __future__ import with_statement
-import cPickle as pickle
 import argparse
 import sys
 import os
 
+# local modules
+import sscanner.helper as helper
+pickle = helper.importPickle()
 
 
 def main():
@@ -54,8 +56,8 @@ def enrich_if_necessary(file_name):
     parents = collected_data_dict["parents"]
     collected_data_dict["children"] = parents_to_children(pids, parents)
 
-    with open(file_name, "w") as fi:
-        pickle.dump({node_str:collected_data_dict}, fi)
+    with open(file_name, "wb") as fi:
+        pickle.dump({node_str:collected_data_dict}, fi, protocol = 2)
 
 
 

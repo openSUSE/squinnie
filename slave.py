@@ -34,7 +34,7 @@ Linux gets shipped with Python 3 by default.
 from __future__ import print_function
 from __future__ import with_statement
 from collections import OrderedDict
-import os
+import os, sys
 import re
 import copy
 import pwd
@@ -307,5 +307,5 @@ if __name__ == '__channelexec__' or __name__ == "__main__":
     else:
         # for running locally via sudo, simply output the raw data structure
         # on stdout
-        import pickle
-        print(pickle.dumps(result))
+        import cPickle as pickle
+        pickle.dump(result, sys.stdout, protocol = 2)
