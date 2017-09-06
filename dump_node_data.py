@@ -34,7 +34,7 @@ import sscanner.helper as helper
 from sscanner.helper import eprint
 pickle = helper.importPickle()
 import sscanner.slave as slave
-import enrich_node_data
+import sscanner.enrich
 
 file_extension = "p" # apparently .p is commonly used for pickled data
 
@@ -146,8 +146,6 @@ def dump_local(args):
                     close_fds = True
                 )
 
-                # TODO: inefficient, we're going to dump this in write_data()
-                # anyways
                 if use_pipe:
                     zifi = gzip.GzipFile(fileobj = slave_proc.stdout)
                     if slave_proc.wait() != 0:
@@ -254,11 +252,13 @@ def write_data(file_path, datastructure, node_list):
     for node_str in node_list:
         file_name = get_filename(node_str)
         file_path_name = os.path.join(file_path, file_name)
+
+        node_data = {node_str:datastructure[node_str]}
+        enricher = sscanner.enrich.Enricher(node_data)
+        print("Enriching node data")
+        enricher.enrich()
         print("Saving data to {}".format(file_path_name))
-
-        helper.writePickle({node_str:datastructure[node_str]}, file_path_name)
-
-        enrich_node_data.enrich_if_necessary(file_path_name)
+        enricher.save_data(file_path_name)
 
     print("")
 
