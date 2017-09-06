@@ -131,6 +131,16 @@ def dump_local(args):
             else:
                 import pickle
                 import subprocess
+                import gzip
+                import tempfile
+
+                # gzip has a bug in python2, it can't stream, because it tries
+                # to seek *sigh*
+                use_pipe = helper.isPython3()
+
+                if not use_pipe:
+                    tmpfile = tempfile.TemporaryFile(mode = 'wb+')
+
                 slave_proc = subprocess.Popen(
                     [
                         "sudo",
@@ -143,15 +153,24 @@ def dump_local(args):
                             "slave.py"
                         )
                     ],
-                    stdout = subprocess.PIPE
+                    stdout = subprocess.PIPE if use_pipe else tmpfile,
+                    close_fds = True
                 )
 
                 # TODO: inefficient, we're going to dump this in write_data()
                 # anyways
-                datastructure = pickle.load(slave_proc.stdout)
+                if use_pipe:
+                    zifi = gzip.GzipFile(fileobj = slave_proc.stdout)
+                    if slave_proc.wait() != 0:
+                        raise Exception("Failed to run slave.py")
+                    datastructure = helper.readPickle(fileobj = zifi)
 
-                if slave_proc.wait() != 0:
-                    raise Exception("Failed to run slave.py")
+                else:
+                    if slave_proc.wait() != 0:
+                        raise Exception("Failed to run slave.py")
+                    tmpfile.seek(0)
+                    datastructure = helper.readPickle(fileobj = tmpfile)
+
         else:
             datastructure = slave.collect()
         write_data(directory_path, {args.input:datastructure}, node_list)
@@ -248,14 +267,11 @@ def write_data(file_path, datastructure, node_list):
         file_path_name = os.path.join(file_path, file_name)
         print("Saving data to {}".format(file_path_name))
 
-        with open(file_path_name, "w") as fi:
-            pickle.dump({node_str:datastructure[node_str]}, fi, protocol = 2)
+        helper.writePickle({node_str:datastructure[node_str]}, file_path_name)
 
         enrich_node_data.enrich_if_necessary(file_path_name)
 
     print("")
-
-
 
 if __name__ == "__main__":
     main()

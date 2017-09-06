@@ -103,8 +103,7 @@ def view_data(args):
     file_name = args.input
 
     try:
-        with open(file_name, "rb") as fi:
-            datastructure = pickle.load(fi)
+        datastructure = helper.readPickle(path = file_name)
     except Exception as e:
         if isinstance(e, EOFError):
             # on python2 no sensible error string is contained in EOFError

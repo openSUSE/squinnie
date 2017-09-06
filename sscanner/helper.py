@@ -42,3 +42,63 @@ def importPickle():
         )
 
     return pickle
+
+def writePickle(item, path = None, fileobj = None):
+    """
+    Write the given python object ``item`` to the given path of file object.
+
+    Provide either ``path`` or ``fileobj``, not both.
+
+    :param str path: File system path where to write the pickle to. Will be
+    overwritten if it already exists.
+    :param file fileobj: A file like object that is already open where the
+    pickle data will be written to. Must be opened in 'wb' mode.
+    """
+    import gzip
+    pickle = importPickle()
+
+    if path and fileobj:
+        raise Exception("path and fileobj passed, don't know what to do")
+    elif path:
+        fileobj = open(path, 'wb')
+
+    if not fileobj:
+        raise Exception("no file/path passed")
+
+    try:
+        with gzip.GzipFile(fileobj = fileobj, mode = 'wb') as zifi:
+            pickle.dump(item, zifi, protocol = pickle.HIGHEST_PROTOCOL)
+    finally:
+        if path:
+            fileobj.close()
+
+def readPickle(path = None, fileobj = None):
+    """
+    Return data from a pickle file.
+
+    Provide either ``path`` or ``fileobj``, not both.
+
+    :param str path: File system path from where to read the pickle from.
+    :param file fileobj: A file like object that is already open where the
+    pickle data will be read from. Must be opened in 'rb' mode.
+    """
+    import gzip
+    pickle = importPickle()
+
+    if path and fileobj:
+        raise Exception("path and fileobj passed, don't know what to do")
+    elif path:
+        fileobj = open(path, 'rb')
+
+    if not fileobj:
+        raise Exception("no file/path passed")
+
+    try:
+        with gzip.GzipFile(fileobj = fileobj, mode = 'rb') as zifi:
+            ret = pickle.load(zifi)
+    finally:
+        if path:
+            fileobj.close()
+
+    return ret
+

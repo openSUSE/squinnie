@@ -56,19 +56,17 @@ def enrich_if_necessary(file_name):
     parents = collected_data_dict["parents"]
     collected_data_dict["children"] = parents_to_children(pids, parents)
 
-    with open(file_name, "wb") as fi:
-        pickle.dump({node_str:collected_data_dict}, fi, protocol = 2)
-
-
+    helper.writePickle({node_str:collected_data_dict}, path = file_name)
 
 def read_data(file_name):
 
-    if os.path.exists(file_name):
-        with open(file_name, "r") as my_file:
-            datastructure = pickle.load(my_file)
-    else:
-        exit("The file {} does not exist. Exiting.".format(file_name))
-
+    try:
+        datastructure = helper.readPickle(path = file_name)
+    except Exception as e:
+        if isinstance(e, EOFError):
+            # on python2 no sensible error string is contained in EOFError
+            e = "Premature end of file"
+        exit("Failed to load node data from {}: {}".format(file_name, str(e)))
 
     assert len(datastructure.keys()) == 1
 
