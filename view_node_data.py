@@ -189,9 +189,19 @@ def get_filesystem_table(datastructure, filesystem, uid_name, gid_name, base_pat
     Note: This is a recursive function
     """
 
+    if 'subitems' in filesystem:
+        return get_filesystem_table(
+            datastructure, filesystem['subitems'], uid_name, gid_name, base_path, args
+        )
+
     for item_name, item_val in sorted(filesystem.items()):
         base_path_file = os.path.join(base_path, item_name)
         item_properties = item_val["properties"]
+
+        if not item_properties:
+            # some file we couldn't get properties for
+            datastructure.append(["???", base_path_file, "???", "?", "?", "?"])
+            continue
         perm_str      = file_mode.get_mode_string(item_properties["st_mode"])
         file_type_str = file_mode.get_type_label(item_properties["st_mode"])
 

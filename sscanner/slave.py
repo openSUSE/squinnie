@@ -21,291 +21,412 @@
 # MA 02110-1301 USA.
 
 """
-This script is intended to be run on the client remotely via execnet.
-It can however also be called as a standalone script for testing purposes.
+This script is intended to run standalone for scanning an arbitrary node:
+
+- either remotely via ssh/execnet.
+- locally called as 'root'
 
 Unfortunately, to send a module via execnet, it has to be self-contained. This
-results in this file being very long, as it is not possible to use external
-imports, unless execnet_importhook gets ported to Python 2 or SUSE Enterprise
-Linux gets shipped with Python 3 by default.
+results in this file being somewhat longer that intended. Tt is not possible
+to use external imports, unless execnet_importhook is available, which is only
+available in python3 at the moment.
+
+Target nodes may ship only python2, however.
+
+You can find information about the structure of most /proc files in `man 5
+proc`.
 """
 
 # Standard library modules.
 from __future__ import print_function
 from __future__ import with_statement
-from collections import OrderedDict
 import os, sys
-import re
-import copy
-import pwd
-import grp
 import stat
-import ctypes
+import errno
 
+class SlaveScanner(object):
 
+    def __init__(self, collect_files = True):
 
+        self.m_collect_files = collect_files
+        self.m_protocols = {}
 
-def get_uid_gid_name():
-    uid_name = {}
-    for user in pwd.getpwall():
-        uid_name[user.pw_uid] = user.pw_name
-    gid_name = {}
-    for group in grp.getgrall():
-        gid_name[group.gr_gid] = group.gr_name
+        import ctypes
+        # for reading capabilities from the file system without relying on
+        # existing external programs we need to directly hook into the libcap
+        self.m_libcap = ctypes.cdll.LoadLibrary("libcap.so.2")
+        self.m_libcap.cap_to_text.restype = ctypes.c_char_p
+        self.m_have_root_priv = os.geteuid() == 0
+        self.m_our_pid = os.getpid()
 
-    result = {}
-    result["uid_name"] = uid_name
-    result["gid_name"] = gid_name
-    return result
+    def get_cmdline(self, p):
+        """Returns a tuple (cmdline, [parameters]) representing the command
+        line belonging to the given process with PID `p`."""
+        with open("/proc/{}/cmdline".format(p), "r") as fi:
+            cmdline_str = fi.read().strip()
+            cmdline_items = [str(item) for item in cmdline_str.split("\x00")]
+            executable = cmdline_items[0]
+            parameters = " ".join(cmdline_items[1:])
+        return (executable, parameters)
 
+    def get_all_pids(self):
+        """Returns a list of all process PIDs currently seen in /proc."""
+        result = []
 
+        for entry in os.listdir("/proc"):
+            path = os.path.join( "/proc", entry )
 
-def load_network(transport_protocol):
-    with open("/proc/net/{}".format(transport_protocol),"r") as f:
-        content = f.readlines()
-    content.pop(0)
-    result = {}
-    for line in content:
-        if transport_protocol != "unix":
-            line_array = [x for x in line.split(' ') if x !='']
-            l_host,l_port = line_array[1].split(':')
-            r_host,r_port = line_array[2].split(':')
-            inode = line_array[9]
-            result[inode] = [[l_host,l_port], [r_host,r_port]]
-        else:
-            line_array = [x for x in line.split()]
-            if len(line_array) == 7:
-                line_array.append("")
-            inode = line_array[6]
-            result[inode] = line_array[7]
-    return result
+            if not entry.isdigit():
+                # not a PID dir
+                continue
+            elif not os.path.isdir(path):
+                continue
 
+            pid = int(entry)
+            result.append(pid)
 
+        return result
 
-def get_all_files():
-    result = {}
-    for dirpath, dirnames, filenames in os.walk("/"):
-        for a_file in filenames:
-            file_path_name = os.path.join(dirpath, a_file)
-            file_properties = []
-            result[file_path_name] = file_properties
-    return result
+    def collect_user_group_mappings(self):
+        """Collects dictionaries in self.m_uid_map and self.m_gid_map
+        containing the name->id mappings of users and groups found in the
+        system."""
 
+        import pwd
+        import grp
 
+        self.m_uid_map = {}
 
-def get_directory_structure():
-    """
-    Creates a nested dictionary that represents the folder structure of rootdir
-    http://code.activestate.com/recipes/577879-create-a-nested-dictionary-from-oswalk/
-    """
-    result = {}
-    for path, dirs, files in os.walk("/"):
-        folders = path[1:].split(os.sep)
-        subdir = dict.fromkeys(files)
-        parent = reduce(dict.get, folders[:-1], result)
-        parent[folders[-1]] = subdir
-    return result
+        for user in pwd.getpwall():
+            self.m_uid_map[user.pw_uid] = user.pw_name
 
+        self.m_gid_map = {}
+        for group in grp.getgrall():
+            self.m_gid_map[group.gr_gid] = group.gr_name
 
+    def collect_protocol_info(self, protocol):
+        """Collects protocol state information for ``protocol`` in
+        self.m_protocols[``protocol``]."""
 
-def get_cmdline(p):
-    with open("/proc/{}/cmdline".format(p), "r") as fi:
-        cmdline_str = fi.read().replace("\n", "")
-        cmdline_items = [str(item) for item in cmdline_str.split("\x00")]
-        executable = cmdline_items[0]
-        parameters = " ".join(cmdline_items[1:])
-    return (executable, parameters)
+        with open("/proc/net/{}".format(protocol),"r") as f:
+            table = [ line.strip() for line in f.readlines() ]
+        # discard the column header
+        table.pop(0)
 
+        info = dict()
+        self.m_protocols[protocol] = info
 
+        for line in table:
+            # IP based protocols
+            if protocol != "unix":
+                parts = line.split()
+                l_host,l_port = parts[1].split(':')
+                r_host,r_port = parts[2].split(':')
+                inode = parts[9]
+                info[inode] = [[l_host,l_port], [r_host,r_port]]
+            else:
+                parts = line.split()
+                if len(parts) == 7:
+                    # this is for unnamed unix domain sockets that have no
+                    # path
+                    parts.append("")
+                inode = parts[6]
+                info[inode] = parts[7]
 
-def get_status_parents():
-    cap_lambda     = lambda a: int(a, base = 16)
-    gid_uid_lambda = lambda a: tuple(int(i) for i in a.split("\t"))
-    groups_lambda  = lambda a: [int(i) for i in a.split()]
-    seccomp_lambda = lambda a: a == 1
+    def collect_process_info(self):
+        """
+        Collect information about all running processes in the
+        self.m_proc_info dictionary.
+        """
+        cap_lambda     = lambda a: int(a, base = 16)
+        gid_uid_lambda = lambda a: tuple(int(i) for i in a.split("\t"))
+        groups_lambda  = lambda a: [int(i) for i in a.split()]
+        seccomp_lambda = lambda a: int(a) == 1
 
-    interesting_status_fields = {
-        "CapInh" : cap_lambda,
-        "CapPrm" : cap_lambda,
-        "CapEff" : cap_lambda,
-        "CapBnd" : cap_lambda,
-        "CapAmb" : cap_lambda,
-        "Gid"    : gid_uid_lambda,
-        "Groups" : groups_lambda,
-        "Seccomp": seccomp_lambda,
-        "Uid"    : gid_uid_lambda,
-    }
-
-    def get_val(field_to_search_for, text):
-        return re.search("^{}:\s(.*)$".format(field_to_search_for), text, re.MULTILINE).group(1)
-
-    status = {}
-    parents = {}
-
-    pids_to_remove = set()
-    for p in get_all_pids():
-        try:
-            with open("/proc/{}/status".format(p), "r") as fi:
-                text = fi.read()
-            status_pid = {}
-            for isf_key in interesting_status_fields.keys():
-                transform_fnct = interesting_status_fields[isf_key] # lambda function
-                status_pid[isf_key] = transform_fnct(get_val(isf_key, text))
-
-            cmdline = get_cmdline(p)
-            status_pid["executable"] = cmdline[0]
-            status_pid["parameters"] = cmdline[1]
-            status_pid["root"] = os.path.realpath("/proc/{}/root".format(p))
-            status_pid["open_files"] = get_fd_data(p)
-
-            status[p] = status_pid
-            parents[p] = int(get_val("PPid", text))
-
-        except (OSError, IOError, EnvironmentError) as e:
-            # The process does not exist anymore
-            # Remove it from the global list of all processes
-            pids_to_remove.add(p)
-
-    for broken_pid in pids_to_remove:
-        if broken_pid in status:
-            del status[broken_pid]
-
-    result = {}
-    result["status"] = status
-    result["parents"] = parents
-    return result
-
-
-
-def get_fd_data(p):
-    result = {}
-    fd_dir = "/proc/{}/fd/".format(p)
-    for fd_str in os.listdir(fd_dir):
-        file_path_name = os.path.join(fd_dir, fd_str)
-        resolved_symlink_name = os.path.realpath(file_path_name)
-
-        the_stats = os.stat(file_path_name)
-        fd_identity_uid = the_stats.st_uid
-        fd_identity_gid = the_stats.st_gid
-        fd_perm_all     = the_stats.st_mode
-
-        with open("/proc/{}/fdinfo/{}".format(p, fd_str), "r") as fi:
-            tmp_str = fi.read()
-        tmpdata = dict(item.split(":\t") for item in tmp_str.strip().split("\n")[:3])
-
-        fd_data = {
-            "file_identity": {
-                "Uid": fd_identity_uid,
-                "Gid": fd_identity_gid,
-            },
-            "file_perm": {
-                "Uid"  : (fd_perm_all & stat.S_IRWXU) >> 6,
-                "Gid"  : (fd_perm_all & stat.S_IRWXG) >> 3,
-                "other": (fd_perm_all & stat.S_IRWXO) >> 0,
-            },
-            "file_flags": int(tmpdata["flags"], 8),
-            "symlink": resolved_symlink_name,
+        field_transforms = {
+            "CapInh" : cap_lambda,
+            "CapPrm" : cap_lambda,
+            "CapEff" : cap_lambda,
+            "CapBnd" : cap_lambda,
+            "CapAmb" : cap_lambda,
+            "Gid"    : gid_uid_lambda,
+            "Groups" : groups_lambda,
+            "Seccomp": seccomp_lambda,
+            "Uid"    : gid_uid_lambda,
         }
 
-        result[fd_str] = fd_data
-    return result
+        # PID -> dict() mapping, containing per process data
+        status = {}
+        # PID -> parent mapping which defines the process hierarchy
+        parents = {}
 
+        pids_to_remove = set()
+        for p in self.get_all_pids():
+            if p == self.m_our_pid:
+                # exclude ourselves, we're not so interesting ;)
+                continue
 
+            try:
+                fields = {}
+                with open("/proc/{}/status".format(p), "r") as fi:
+                    for line in fi:
+                        key, value = line.split(':', 1)
+                        fields[key] = value.strip()
 
-def get_all_pids():
-    result = []
-    # traverse root directory, and list directories as dirs and files as files
-    for pid_str in os.listdir("/proc"):
-        fp = os.path.join( "/proc", pid_str )
-        if not os.path.isdir(fp):
-            continue
+                status_pid = {}
+
+                for key in field_transforms.keys():
+                    transform_fnct = field_transforms[key]
+                    status_pid[key] = transform_fnct(fields[key])
+
+                exe, pars = self.get_cmdline(p)
+                status_pid["executable"] = exe
+                status_pid["parameters"] = pars
+                status_pid["root"] = os.path.realpath("/proc/{}/root".format(p))
+                status_pid["open_files"] = self.get_fd_data(p)
+
+                status[p] = status_pid
+                parents[p] = int(fields["PPid"])
+
+            except EnvironmentError as e:
+                # The process does not exist anymore
+                # Remove it from the global list of all processes
+                pids_to_remove.add(p)
+
+        # clean disappeared processes from the data structure
+        for broken_pid in pids_to_remove:
+            if broken_pid in status:
+                del status[broken_pid]
+            if broken_pid in parents:
+                del parents[broken_pid]
+
+        self.m_proc_info = {}
+        self.m_proc_info["status"] = status
+        self.m_proc_info["parents"] = parents
+
+    def get_fd_data(self, pid):
+        """Returns a dictionary describing the currently opened files of
+        the process with PID ``pid``.
+
+        The dictionary will consists of <FD> -> dict() pairs, where the dict()
+        value contains the details of the file descriptor.
+        """
+
+        result = {}
+        fd_dir = "/proc/{}/fd/".format(pid)
+        fdinfo_dir = "/proc/{}/fdinfo".format(pid)
+
+        for fd_str in os.listdir(fd_dir):
+            file_path_name = os.path.join(fd_dir, fd_str)
+            target = os.readlink(file_path_name)
+
+            # we want the the target's properties here, not the symlink's, so
+            # don't use lstat. NOTE: even if this is a seemingly broken
+            # symlink for unnamed files like sockets the stat will return
+            # valid information.
+            #
+            # the lstat() seemingly returns file descriptor information like
+            # read/write mode and such, which we parse in greater detail from
+            # the fdinfo there later
+            try:
+                os_stat = os.stat(file_path_name)
+                fd_identity_uid = os_stat.st_uid
+                fd_identity_gid = os_stat.st_gid
+                fd_perm_all     = os_stat.st_mode
+            except EnvironmentError as e:
+                # probably the file was closed in the meantime
+                continue
+
+            # for open file description information we have to look here
+            try:
+                fields = dict()
+                fdinfo = "{}/{}".format(fdinfo_dir, fd_str)
+                with open(fdinfo, "r") as fi:
+                    for line in fi:
+                        key, value = [ p.strip() for p in line.split(':', 1) ]
+                        fields[key] = value
+
+                fd_data = {
+                    "file_identity": {
+                        "Uid": fd_identity_uid,
+                        "Gid": fd_identity_gid,
+                    },
+                    "file_perm": {
+                        # TODO: don't restructure these bits, transfer the
+                        # plain st_mode instead
+                        "Uid"  : (fd_perm_all & stat.S_IRWXU) >> 6,
+                        "Gid"  : (fd_perm_all & stat.S_IRWXG) >> 3,
+                        "other": (fd_perm_all & stat.S_IRWXO) >> 0,
+                    },
+                    # the flags are represented in octal
+                    "file_flags": int(fields["flags"], 8),
+                    "symlink": target,
+                }
+            except EnvironmentError as e:
+                # probably the file was closed in the meantime
+                continue
+
+            result[fd_str] = fd_data
+
+        return result
+
+    def get_properties(self, filename, os_stat = None):
+        """Gets the properties from the file object found in ``filename``"""
+        properties = {}
+
         try:
-            pid = int(pid_str)
-        except ValueError:
-            continue
-        result.append(pid)
-    return result
+            # returns an integer, like 36683988, which should be parsed as a
+            # binary bitmask
+            properties["caps"] = self.m_libcap.cap_get_file(filename)
 
+            if not os_stat:
+                os_stat = os.lstat(filename)
+            properties["st_mode"] = os_stat.st_mode
+            properties["st_uid" ] = os_stat.st_uid
+            properties["st_gid" ] = os_stat.st_gid
+        except EnvironmentError as e:
+            print("Failed to lstat {}: {}".format(
+                    filename, e
+                ),
+                file = sys.stderr
+            )
+            return None
 
+        return properties
 
-def get_properties(m_libcap, filename, os_stat = None):
-    """Gets the properties either from a file or a directory"""
-    properties = {}
+    def collect_filesystem(self):
+        """Collects information about all file system objects and stores them
+        in the self.m_filesystem dictionary."""
 
-    # returns an integer, like 36683988, which should be parsed as a binary bitmask
-    properties["caps"] = m_libcap.cap_get_file(filename)
+        # TODO: determine file system types and mount table
 
-    try: # Broken symlinks throw this exception
-        if not os_stat:
-            os_stat = os.stat(filename)
-        properties["st_mode"] = os_stat.st_mode
-        properties["st_uid" ] = os_stat.st_uid
-        properties["st_gid" ] = os_stat.st_gid
-    except OSError:
-        properties["st_mode"] = None
-        properties["st_uid" ] = None
-        properties["st_gid" ] = None
-    return properties
+        # paths to exclude from the collection
+        exclude = ["/.snapshots", "/proc", "/mounts", "/suse"]
 
+        self.m_filesystem = {
+            "subitems": {},
+            "properties": {}
+        }
 
+        def walk_err(ex):
+            """Is called from os.walk() when errors occur."""
+            if not self.m_have_root_priv and ex.errno == errno.EACCES:
+                # don't print a bunch of EACCES errors if we're not root.
+                # Helpful for testing
+                return
+            print(ex.filename, ": ", ex, sep = '', file = sys.stderr)
 
-def get_filesystem():
-    m_libcap = ctypes.cdll.LoadLibrary("libcap.so.2")
-    m_libcap.cap_to_text.restype = ctypes.c_char_p
+        def get_parent_dict(path):
+            """Find the correct dictionary in self.m_filesystem for inserting
+            the directory info for ``path``."""
 
-    filesystem = {}
-    # TODO: determine file system types and mount table, also include root
-    # node
-    exclude = ["/.snapshots", "/proc", "/mounts", "/suse"]
-    for path, dirs, files in os.walk("/", topdown=True):
-        dirs[:] = [d for d in dirs if os.path.join(path, d) not in exclude]
-        if path == "/":
-            continue
-        # print(path)
-        folders = path[1:].split(os.sep)
-        subdir = dict.fromkeys(files)
-        lst = folders[:-1]
-        the_directories = ["subitems"] * (len(lst) * 2)
-        the_directories[0::2] = lst
-        parent = reduce(dict.get, the_directories, filesystem)
-        parent[folders[-1]] = {}
-        parent[folders[-1]]["subitems"    ] = subdir
-        parent[folders[-1]]["properties"] = get_properties(m_libcap, path)
+            ret = self.m_filesystem
 
-        for a_file in files:
-            parent[folders[-1]]["subitems"][a_file] = {}
-            file_path_name = os.path.join(path, a_file)
-            parent[folders[-1]]["subitems"][a_file]["properties"] = get_properties(m_libcap, file_path_name)
+            for node in os.path.dirname(path[1:]).split(os.path.sep):
 
-    return filesystem
+                if not node:
+                    continue
 
-def collect():
-    # Send one big dictionary at the end
-    result = {}
-    status_parents = get_status_parents()
-    result["proc_data"] = status_parents["status"]
-    result["parents"  ] = status_parents["parents"]
-    uid_gid = get_uid_gid_name()
-    result["uid_name" ] = uid_gid["uid_name"]
-    result["gid_name" ] = uid_gid["gid_name"]
-    result["tcp"      ] = load_network("tcp")
-    result["tcp6"     ] = load_network("tcp6")
-    result["udp"      ] = load_network("udp")
-    result["udp6"     ] = load_network("udp6")
-    result["unix"     ] = load_network("unix")
-    result["filesystem"] = get_filesystem()
+                ret = ret["subitems"][node]
 
-    return result
+            return ret
 
+        for path, dirs, files in os.walk("/", topdown=True, onerror = walk_err):
 
+            if path == "/":
+                # remove excluded directories, only top-level dirs are
+                # considered ATM
+                dirs[:] = [d for d in dirs if os.path.join(path, d) not in exclude]
+                self.m_filesystem["properties"] = self.get_properties(path)
+                continue
 
-if __name__ == '__channelexec__' or __name__ == "__main__":
-    result = collect()
+            this_dir = os.path.basename(path)
+            parent = get_parent_dict(path)
 
-    if __name__ == '__channelexec__':
+            path_dict = {
+                "subitems": dict.fromkeys(files),
+                "properties": self.get_properties(path)
+            }
+            parent["subitems"][this_dir] = path_dict
+
+            for name in files:
+                file_path = os.path.join(path, name)
+
+                path_dict["subitems"][name] = {
+                    "properties": self.get_properties(file_path)
+                }
+
+    def collect(self):
+
+        result = {}
+
+        self.collect_process_info()
+        result["proc_data"] = self.m_proc_info["status"]
+        result["parents"  ] = self.m_proc_info["parents"]
+        self.collect_user_group_mappings()
+        result["uid_name" ] = self.m_uid_map
+        result["gid_name" ] = self.m_gid_map
+
+        for prot in ("tcp", "tcp6", "udp", "udp6", "unix"):
+            self.collect_protocol_info(prot)
+            result[prot] = self.m_protocols[prot]
+
+        if self.m_collect_files:
+            self.collect_filesystem()
+            result["filesystem"] = self.m_filesystem
+
+        # we're currently returning a single large dictionary containing all
+        # collected information
+        return result
+
+def main():
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description = """
+            Standalone script for collecting system status information like
+            process tree and file system data.
+
+            This script should be run as root, otherwise the collected
+            information will be incomplete.
+        """
+    )
+
+    parser.add_argument(
+        "-o", "--output",
+        help = "Where to write the pickled, collected data to. Pass '-' to write to stdout (default).",
+        default = '-'
+    )
+
+    parser.add_argument(
+        "--no-files", action = 'store_true',
+        default = False,
+        help = "Don't collect file system information. This will save a lot of time and space."
+    )
+
+    args = parser.parse_args()
+
+    try:
+        out_file = sys.stdout if args.output == "-" else open(args.output, 'wb')
+    except EnvironmentError as e:
+        exit("Failed to open output file {}: {}".format(args.output, str(e)))
+
+    if os.isatty(out_file.fileno()):
+        exit("Refusing to output binary data to stdout connected to a terminal")
+
+    scanner = SlaveScanner(collect_files = not args.no_files)
+    result = scanner.collect()
+    # for running locally via sudo: simply output the raw data structure
+    # on stdout
+    import cPickle as pickle
+    import gzip
+    zip_out_file = gzip.GzipFile(fileobj = out_file)
+    pickle.dump(result, zip_out_file, protocol = pickle.HIGHEST_PROTOCOL)
+
+if __name__ == '__channelexec__':
+        scanner = SlaveScanner()
+        result = scanner.collect()
         channel.send( result )
-    else:
-        # for running locally via sudo, simply output the raw data structure
-        # on stdout
-        import cPickle as pickle
-        pickle.dump(result, sys.stdout, protocol = 2)
+elif __name__ == "__main__":
+    main()
+
