@@ -30,11 +30,10 @@ import sys
 import os
 
 # local modules
-import sscanner.helper as helper
-from sscanner.helper import eprint
-pickle = helper.importPickle()
-import sscanner.slave as slave
-import sscanner.enrich
+import helper
+from helper import eprint
+import slave
+import enrich
 
 file_extension = "p" # apparently .p is commonly used for pickled data
 
@@ -118,7 +117,6 @@ def dump_local(args):
                 eprint("You're scanning as non-root, only partial data will be collected")
                 eprint("Run as root to get a full result. This mode is not fully supported.")
             else:
-                import pickle
                 import subprocess
                 import gzip
                 import tempfile
