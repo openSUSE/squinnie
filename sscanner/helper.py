@@ -23,6 +23,12 @@ def eprint(*args, **kwargs):
     """Wrapper around print() function that writes to stderr by default."""
     print(*args, file=sys.stderr, **kwargs)
 
+def missingModule(which):
+    """Prints an error message about a missing module and exits."""
+
+    eprint("The module {} could not be found. Please use your system's package manager or pip to install it.".format(which))
+    sys.exit(1)
+
 def importPickle():
     """
     Import the pickle module in a python agnostic way.

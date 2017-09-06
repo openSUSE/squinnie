@@ -36,18 +36,12 @@ pickle = helper.importPickle()
 import sscanner.slave as slave
 import enrich_node_data
 
-
-
 file_extension = "p" # apparently .p is commonly used for pickled data
-error_msg = "The module {} could not be found. Please use your system's package manager or pip to install it."
 
 try:
     import execnet
 except ImportError:
-    print(error_msg.format("execnet"))
-    sys.exit(1)
-
-
+    helper.missingModule("execnet")
 
 def main():
     description = "Dump one file per node configured as network."

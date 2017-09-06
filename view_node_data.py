@@ -37,16 +37,11 @@ import sscanner.helper as helper
 pickle = helper.importPickle()
 import sscanner.file_mode as file_mode
 
-error_msg = "The module {} could not be found. Please use your system's package manager or pip to install it."
-
 # PyPy modules
 try:
     import terminaltables
 except ImportError:
-    print(error_msg.format("terminaltables"))
-    sys.exit(1)
-
-
+    helper.missingModule("terminaltables")
 
 def main():
     description = "View a data dump of any single node."

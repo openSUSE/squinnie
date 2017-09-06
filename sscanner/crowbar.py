@@ -33,14 +33,14 @@ import os
 import termcolor
 
 # Local modules
+import helper
 from helper import eprint
 
 # PyPy modules
 try:
     import execnet
 except ImportError:
-    print("The module execnet could not be found. Please use your system's package manager or pip to install it.", file = sys.stderr)
-    sys.exit(1)
+    helper.missingModule("execnet")
 
 class Crowbar(object):
 
