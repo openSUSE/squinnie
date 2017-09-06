@@ -30,7 +30,6 @@ import re
 import os
 
 # Local modules
-import sscanner.crowbar as crowbar
 from sscanner.helper import eprint
 import dump_node_data
 import view_node_data
@@ -118,13 +117,15 @@ def main():
     nwconfig_file_name_path = os.path.join(args.directory, nwconfig_file_name)
 
     if args.mode == "susecloud":
+        import sscanner.crowbar
         # crowbar module arguments
         crowbar_args = argparse.Namespace()
         crowbar_args.entry = args.entry
         crowbar_args.nocache = args.nocache
         crowbar_args.output = nwconfig_file_name_path
 
-        entry_node = crowbar.dump_crowbar_to_file(crowbar_args)
+        crowbar = sscanner.Crowbar(crowbar_args)
+        entry_node = crowbar.dump_crowbar_to_file()
         files_produced.append(nwconfig_file_name)
 
     dump_args = argparse.Namespace()
