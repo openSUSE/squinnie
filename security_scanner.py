@@ -29,15 +29,12 @@ import copy
 import re
 import os
 
-
-
 # Local modules
-import dump_crowbar_network
+import sscanner.crowbar as crowbar
+from sscanner.helper import eprint
 import dump_node_data
 import view_node_data
 import slave
-
-
 
 def main():
 
@@ -121,13 +118,13 @@ def main():
     nwconfig_file_name_path = os.path.join(args.directory, nwconfig_file_name)
 
     if args.mode == "susecloud":
-        # dump_crowbar_network arguments
+        # crowbar module arguments
         crowbar_args = argparse.Namespace()
         crowbar_args.entry = args.entry
         crowbar_args.nocache = args.nocache
         crowbar_args.output = nwconfig_file_name_path
 
-        entry_node = dump_crowbar_network.dump_crowbar_to_file(crowbar_args)
+        entry_node = crowbar.dump_crowbar_to_file(crowbar_args)
         files_produced.append(nwconfig_file_name)
 
     dump_args = argparse.Namespace()
@@ -188,11 +185,6 @@ def main():
         if args.verbose:
             eprint("Deleting {}".format(args.directory))
             eprint("")
-
-
-
-def eprint(*args, **kwargs):
-    print(*args, file=sys.stderr, **kwargs)
 
 
 

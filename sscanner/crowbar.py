@@ -29,21 +29,16 @@ import json
 import sys
 import os
 
-
-
 # Local modules
+from helper import eprint
 import dump_node_data
-
-
 
 # PyPy modules
 try:
     import execnet
 except ImportError:
-    print("The module execnet could not be found. Please use your system's package manager or pip to install it.")
+    print("The module execnet could not be found. Please use your system's package manager or pip to install it.", file = sys.stderr)
     sys.exit(1)
-
-
 
 def main():
     description = "Connect to a crowbar node and extract its network configuration as JSON."
@@ -61,13 +56,6 @@ def main():
     args = parser.parse_args()
 
     dump_crowbar_to_file(args)
-
-
-
-def eprint(*args, **kwargs):
-    print(*args, file=sys.stderr, **kwargs)
-
-
 
 def get_crowbar_config(entry_node):
     if not entry_node:

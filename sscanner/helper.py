@@ -19,6 +19,10 @@ def isPython2():
 def isPython3():
     return not isPython2()
 
+def eprint(*args, **kwargs):
+    """Wrapper around print() function that writes to stderr by default."""
+    print(*args, file=sys.stderr, **kwargs)
+
 def importPickle():
     """
     Import the pickle module in a python agnostic way.

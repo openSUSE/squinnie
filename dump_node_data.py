@@ -31,6 +31,7 @@ import os
 
 # local modules
 import sscanner.helper as helper
+from sscanner.helper import eprint
 pickle = helper.importPickle()
 import sscanner.slave as slave
 import enrich_node_data
@@ -74,12 +75,6 @@ def main():
         exit("The -o/--output parameter must be a directory.\n")
 
     dump(args)
-
-
-
-def eprint(*args, **kwargs):
-    print(*args, file=sys.stderr, **kwargs)
-
 
 
 def files_already_exist(directory_path, filenames):
