@@ -44,6 +44,9 @@ import os, sys
 import stat
 import errno
 
+def isPython2():
+    return sys.version_info.major == 2
+
 class SlaveScanner(object):
 
     def __init__(self, collect_files = True):
@@ -406,8 +409,12 @@ def main():
 
     args = parser.parse_args()
 
+    # on python3 we need to use the buffer sub-object to write binary data to
+    # stdout
+    pipe_out = sys.stdout if isPython2() else sys.stdout.buffer
+
     try:
-        out_file = sys.stdout if args.output == "-" else open(args.output, 'wb')
+        out_file = pipe_out if args.output == "-" else open(args.output, 'wb')
     except EnvironmentError as e:
         exit("Failed to open output file {}: {}".format(args.output, str(e)))
 
@@ -416,12 +423,18 @@ def main():
 
     scanner = SlaveScanner(collect_files = not args.no_files)
     result = scanner.collect()
-    # for running locally via sudo: simply output the raw data structure
-    # on stdout
-    import cPickle as pickle
+    if isPython2():
+        # for running locally via sudo: simply output the raw data structure
+        # on stdout
+        import cPickle as pickle
+        protocol = pickle.HIGHEST_PROTOCOL
+    else:
+        import _pickle as pickle
+        # constant missing in py3 on _pickle
+        protocol = 4
     import gzip
     zip_out_file = gzip.GzipFile(fileobj = out_file)
-    pickle.dump(result, zip_out_file, protocol = pickle.HIGHEST_PROTOCOL)
+    pickle.dump(result, zip_out_file, protocol = protocol)
 
 if __name__ == '__channelexec__':
         scanner = SlaveScanner()

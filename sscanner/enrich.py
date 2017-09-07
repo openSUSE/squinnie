@@ -54,7 +54,7 @@ class Enricher(object):
     def getDict(self):
 
         self._assertData()
-        return self.m_node_data.itervalues().next()
+        return next(iter(self.m_node_data.values()))
 
     def load_data(self, file_name):
         """Load data from the given node data dump file and store it in the

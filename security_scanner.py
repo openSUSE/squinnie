@@ -30,164 +30,228 @@ import re
 import os
 
 # Local modules
-from sscanner.helper import eprint
-import dump_node_data
+import sscanner.dump_node_data
+import sscanner.crowbar
+import sscanner.errors
 import view_node_data
-import slave
 
-def main():
+# Foreign modules
+try:
+    import termcolor
+except ImportError as e:
+    scanner.helper.missingModule(ex = e)
 
-    description = "The main cloud scanner, initially built for scanning a SUSE OpenStack Cloud 7 instance. A single wrapper around the functionality of all individual tools."
-    parser = argparse.ArgumentParser(description=description)
+class Modes(object):
+    """enum-like class for hold the different security scanner modes we
+    support"""
+    local = 1
+    ssh = 2
+    susecloud = 3
 
-    # General
-    general_group = parser.add_argument_group('general arguments')
+    all_modes = ["local", "ssh", "susecloud"]
 
-    description = "The directory all files are cached in. If no value is given here, /tmp/cloud_scanner/ will be used to save files during the execution of the script and then deleted at the end."
-    general_group.add_argument("-d", "--directory", type=str, help=description)
+    @classmethod
+    def fillModes(cls):
+        num = 1
+        for mode in cls.all_modes:
+            setattr(cls, mode, num)
+            num += 1
 
-    description = "Print more detailed information."
-    general_group.add_argument("-v", "--verbose", action="store_true", help=description)
+    @classmethod
+    def checkModeArg(cls, mode):
 
-    # description = "List all nodes in the network."
-    # general_group.add_argument("-l", "--list", action="store_true", help=description)
+        if not mode in cls.all_modes:
+            raise argparse.ArgumentTypeError(
+                "unsupported mode, choose one of {}".format(
+                    ', '.join(cls.all_modes)
+                )
+            )
 
-    description = "When using a mode that scans multiple hosts, print information from all nodes. By default, only the entry node is printed. This has no effect if the local mode is used."
-    general_group.add_argument("-a", "--all", action="store_true", help=description)
+        return getattr(cls, mode)
 
-    # Dump
-    dump_group = parser.add_argument_group('scan / dump arguments')
+class SecurityScanner(object):
+    """main class that implements this command-line utility."""
 
-    description = "The mode the scanner should be operating under. Currenly supported are local and susecloud."
-    dump_group.add_argument("-m", "--mode", type=str, help=description)
+    def __init__(self):
 
-    description = "The host on which crowbar is running. Only valid if using the susecloud mode."
-    dump_group.add_argument("-e", "--entry", type=str, help=description)
+        self.m_discard_data = False
+        self.setupParser()
 
-    description = "Remove cached files after every run, forcing a re-scan on next execution."
-    dump_group.add_argument("--nocache", action="store_true", help=description)
+    def setupParser(self):
 
-    # View
-    view_group = parser.add_argument_group('view arguments')
+        description = "Main security scanner tool. Collect and display security data of local and remote hosts."
+        parser = argparse.ArgumentParser(description=description)
 
-    description = "Show parameters from the executable cmdline variable."
-    view_group.add_argument("--params", action="store_true", help=description)
+        # General
+        general_group = parser.add_argument_group('general arguments')
 
-    description = "Include kernel threads. Kernel threads are excluded by default."
-    view_group.add_argument("-k", "--kthreads", action="store_true", help=description)
+        description = "The directory all files are cached in. If not specified, a temporary directory will be used to save files during the execution of the script and then deleted at the end."
+        general_group.add_argument("-d", "--directory", type=str, help=description)
 
-    description = "Only show data that belongs to the provided pid."
-    view_group.add_argument("-p", "--pid", type=str, help=description)
+        description = "Print more detailed information."
+        general_group.add_argument("-v", "--verbose", action="store_true", help=description)
 
-    description = "Also print all the children of the process provided by -p/--pid."
-    view_group.add_argument("--children", action="store_true", help=description)
+        # description = "List all nodes in the network."
+        # general_group.add_argument("-l", "--list", action="store_true", help=description)
 
-    description = "Print the parent of the process provided by -p/--pid."
-    view_group.add_argument("--parent", action="store_true", help=description)
+        description = "When using a mode that scans multiple hosts, print information from all nodes. By default, only the entry node is printed."
+        general_group.add_argument("-a", "--all", action="store_true", help=description)
 
-    description = "Show all open file descriptors for every process."
-    view_group.add_argument("--fd", action="store_true", help=description)
+        # Dump
+        dump_group = parser.add_argument_group('scan / dump arguments')
 
-    description = "Show only the open file descriptors in a dedicated view and nothing else."
-    view_group.add_argument("--onlyfd", action="store_true", help=description)
+        description = "The mode the scanner should be operating under. 'local' by default"
+        dump_group.add_argument("-m", "--mode", type=Modes.checkModeArg, help=description, default="local")
 
-    description = "View alle files on the file system, including their permissions."
-    view_group.add_argument("--filesystem", action="store_true", help=description)
+        description = "The first hop scan host. The only target host for mode == 'ssh', the crowbar host for mode == 'susecloud'"
+        dump_group.add_argument("-e", "--entry", type=str, help=description)
 
-    args = parser.parse_args(sys.argv[1:])
+        description = "Path to the JSON network configuration file for scanning (for mode =='crowbar'). Will be generated here if not already existing."
+        dump_group.add_argument("-n", "--network", type=str, help=description,
+                default = "etc/network.json"
+        )
 
-    if not args.mode:
-        args.mode = "local"
-        eprint("No mode was given, so localhost is scanned by default.")
+        description = "Ignore and remove any cached files, forcing a fresh scan."
+        dump_group.add_argument("--nocache", action="store_true", help=description)
 
-    finally_remove_dir = False
-    if not args.directory:
-        args.directory = "/tmp/cloud_scanner_{}/".format(os.getpid())
-        if not os.path.isdir(args.directory):
-            os.mkdir(args.directory)
-        finally_remove_dir = True
-        print("No directory supplied. Cached data will be automatically deleted at the end of this run.")
-        print("")
+        # View
+        # TODO: share these definitions with the view module
+        view_group = parser.add_argument_group('view arguments')
 
-    if not os.path.isdir(args.directory):
-        exit("The directory {} does not exist. Please create it using mkdir.".format(args.directory))
+        description = "Include complete command line arguments for each process."
+        view_group.add_argument("--params", action="store_true", help=description)
 
-    files_produced = []
-    nwconfig_file_name = "network.json"
-    nwconfig_file_name_path = os.path.join(args.directory, nwconfig_file_name)
+        description = "Include kernel threads. Kernel threads are excluded by default."
+        view_group.add_argument("-k", "--kthreads", action="store_true", help=description)
 
-    if args.mode == "susecloud":
-        import sscanner.crowbar
-        # crowbar module arguments
-        crowbar_args = argparse.Namespace()
-        crowbar_args.entry = args.entry
-        crowbar_args.nocache = args.nocache
-        crowbar_args.output = nwconfig_file_name_path
+        description = "Only show data that belongs to the provided pid."
+        view_group.add_argument("-p", "--pid", type=str, help=description)
 
-        crowbar = sscanner.Crowbar(crowbar_args)
-        entry_node = crowbar.dump_crowbar_to_file()
-        files_produced.append(nwconfig_file_name)
+        description = "Also print all the children of the process provided by -p/--pid."
+        view_group.add_argument("--children", action="store_true", help=description)
 
-    dump_args = argparse.Namespace()
-    dump_args.output = args.directory
-    dump_args.nocache = args.nocache
+        description = "Print the parent of the process provided by -p/--pid."
+        view_group.add_argument("--parent", action="store_true", help=description)
 
-    if args.mode == "local":
-        import socket
-        # dump_node_data arguments
-        dump_args.input = socket.gethostname()
+        description = "Show all open file descriptors for every process."
+        view_group.add_argument("--fd", action="store_true", help=description)
 
-        node_filenames = dump_node_data.dump_local(dump_args)
-        files_produced += node_filenames
+        description = "Show only the open file descriptors in a dedicated view and nothing else."
+        view_group.add_argument("--onlyfd", action="store_true", help=description)
 
-    elif args.mode == "susecloud":
-        # dump_node_data arguments
-        dump_args.input = nwconfig_file_name_path
+        description = "Show all files on the file system, including their permissions."
+        view_group.add_argument("--filesystem", action="store_true", help=description)
 
-        node_filenames = dump_node_data.dump(dump_args)
-        files_produced += node_filenames
+        self.m_parser = parser
 
-    # view_node_data arguments
-    view_args = argparse.Namespace()
-    view_args.verbose     = args.verbose
-    view_args.params      = args.params
-    view_args.kthreads    = args.kthreads
-    view_args.pid         = args.pid
-    view_args.children    = args.children
-    view_args.parent      = args.parent
-    view_args.fd          = args.fd
-    view_args.onlyfd      = args.onlyfd
-    view_args.filesystem  = args.filesystem
+    def _checkDirectoryArg(self):
 
-    if args.mode == "local":
-        args.all = True
+        self.m_discard_data = False
 
-    if not args.all:
-        eprint("\n\nPreparing report for {} ...".format(entry_node))
-        view_args.input = os.path.join(args.directory, dump_node_data.get_filename(entry_node))
-        view_node_data.view_data(view_args)
-    else:
-        for node_file in node_filenames:
-            eprint("\n\nPreparing report for {} ...".format(node_file))
-            view_args.input = os.path.join(args.directory, node_file)
+        if not self.m_args.directory:
+            import tempfile
+            self.m_args.directory = tempfile.mkdtemp(prefix = "cloud_scanner")
+            self.m_discard_data = True
+            print("Storing temporary data in", self.m_args.directory)
+        elif not os.path.isdir(self.m_args.directory):
+            os.makedirs(self.m_args.directory)
+
+    def _checkModeArgs(self):
+
+        if self.m_args.mode in (Modes.susecloud, Modes.ssh):
+
+            if not self.m_args.entry:
+                raise sscanner.errors.ScannerError(
+                    "For susecloud and ssh mode the --entry argument is requried"
+                )
+
+    def _collectDumps(self):
+        """Collects the node dumps according to the selected mode and cached
+        data use. The result is stored in self.m_node_data"""
+        dumper = sscanner.dump_node_data.Dumper()
+        dumper.set_output_dir(self.m_args.directory)
+        dumper.set_use_cache(not self.m_args.nocache)
+
+        if self.m_args.mode == Modes.susecloud:
+            nwconfig_path = self.m_args.network
+
+            if not os.path.isabs(nwconfig_path):
+                nwconfig_path = os.path.realpath(nwconfig_path)
+
+            # crowbar module arguments
+            crowbar_args = argparse.Namespace()
+            crowbar_args.entry = self.m_args.entry
+            crowbar_args.nocache = self.m_args.nocache
+            crowbar_args.output = nwconfig_path
+
+            crowbar = sscanner.crowbar.Crowbar(crowbar_args)
+            nwconfig = crowbar.dump_crowbar_to_file()
+            dumper.set_network_config(nwconfig)
+            dumper.collect(load_cached = True)
+        elif self.m_args.mode == Modes.ssh:
+            dumper.set_network_config({self.m_args.entry: []})
+            dumper.collect(load_cached = True)
+        elif self.m_args.mode == Modes.local:
+            dumper.collect_local(load_cached = True)
+
+        self.m_node_data = dumper.get_node_data()
+        dumper.save()
+        dumper.print_cached_dumps()
+
+    def _viewData(self):
+        """Performs the view operation according to command line parameters.
+        The node data needs to have been collected for this to work."""
+
+        view_args = argparse.Namespace()
+        view_args.verbose     = self.m_args.verbose
+        view_args.params      = self.m_args.params
+        view_args.kthreads    = self.m_args.kthreads
+        view_args.pid         = self.m_args.pid
+        view_args.children    = self.m_args.children
+        view_args.parent      = self.m_args.parent
+        view_args.fd          = self.m_args.fd
+        view_args.onlyfd      = self.m_args.onlyfd
+        view_args.filesystem  = self.m_args.filesystem
+
+        # TODO: don't let the viewer read in the dump once more, pass it
+        # directly in memory
+        if self.m_args.mode in (Modes.local, Modes.ssh):
+            self.m_args.all = True
+
+        if not self.m_args.all:
+            # only show data for the starting node
+            entry_node = self.m_node_data[0]
+            print("\n\nPreparing report for {} ...".format(entry_node["node"]))
+            view_args.input = entry_node["full_path"]
             view_node_data.view_data(view_args)
+        else:
+            for config in self.m_node_data:
+                print("\n\nPreparing report for {} ...".format(config['node']))
+                view_args.input = config['full_path']
+                view_node_data.view_data(view_args)
 
+    def _cleanupData(self):
+        import shutil
+        if self.m_args.verbose:
+            print("Removing temporary data in", self.m_args.directory)
+        shutil.rmtree(self.m_args.directory)
 
-    if finally_remove_dir:
-        if args.verbose:
-            eprint("")
-            eprint("Deleting cached files after protocol run:")
-        for file_name in files_produced:
-            file_name_path = os.path.join(args.directory, file_name)
-            os.remove(file_name_path)
-            if args.verbose:
-                eprint("Deleting {}".format(file_name_path))
-        os.rmdir(args.directory)
-        if args.verbose:
-            eprint("Deleting {}".format(args.directory))
-            eprint("")
+    def run(self):
+        try:
+            self.m_args = self.m_parser.parse_args()
+            self._checkDirectoryArg()
+            self._checkModeArgs()
 
+            self._collectDumps()
+            self._viewData()
+        finally:
+            if self.m_discard_data:
+                self._cleanupData()
 
+Modes.fillModes()
 
 if __name__ == "__main__":
-    main()
+
+    scanner = SecurityScanner()
+    sscanner.helper.executeMain(scanner.run)
+

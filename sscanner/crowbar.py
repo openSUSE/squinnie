@@ -23,18 +23,17 @@
 # Standard library modules.
 from __future__ import print_function
 from __future__ import with_statement
-from collections import OrderedDict
 import argparse
-import json
 import sys
 import os
 
-# Non-standard modules
+# foreign modules
 import termcolor
 
 # Local modules
 import helper
 from helper import eprint
+import network_config
 
 # PyPy modules
 try:
@@ -50,7 +49,7 @@ class Crowbar(object):
 
     def _haveCache(self):
 
-        use_cache = not self.m_args.nocache 
+        use_cache = not self.m_args.nocache
 
         return use_cache and os.path.isfile(self.m_args.output)
 
@@ -58,6 +57,10 @@ class Crowbar(object):
         """
         Creates a connection to the configured entry node and retrieves a
         machine listing from crowbar running there.
+
+        Returns a dictionary of the form {
+            "entry": ["machine1", "machine2", ...]
+        }
         """
 
         entry_node = self.m_args.entry
@@ -85,37 +88,32 @@ class Crowbar(object):
         except ValueError:
             raise Exception("entry_node was not found in returned crowbar data")
 
-        return [str(item) for item in all_nodes_strs]
+        return {
+            entry_node: [str(item) for item in all_nodes_strs]
+        }
 
     def dump_crowbar_to_file(self):
 
+        net_config = network_config.NetworkConfig()
+
         # TODO: in the cached case we're not actually dumping something to
-        # file, so maybe we should split this function?
+        # file, but return and read from the file. So maybe we should split
+        # this function?
         if self._haveCache():
-            # TODO: reading the cached data should be in this module, too, no?
             import dump_node_data
             cache = self.m_args.output
             eprint("Using cached crowbar network data from", cache)
+            net_config.load(cache)
 
-            tree_dict_str = dump_node_data.read_network_config(cache)
-            entry_node = tree_dict_str.keys()[0]
-
-            return entry_node
+            return next(iter(net_config.getNetwork()))
         else:
 
             entry_node = self.m_args.entry
 
-            network_tree = OrderedDict()
-            network_tree[entry_node] = self.get_crowbar_config()
-
-            file_name = self.m_args.output
-            with open(file_name, "w") as fi:
-                json.dump(network_tree, fi, indent=4, sort_keys=True)
-                print("Wrote crowbar network data to {}\n".format(file_name))
-
-            all_nodes_strs = []
-            all_nodes_strs.append(entry_node)
-            all_nodes_strs += network_tree[entry_node]
+            outfile = self.m_args.output
+            net_config.setNetwork(self.get_crowbar_config())
+            net_config.save(outfile)
+            print("Wrote crowbar network data to {}\n".format(outfile))
 
             return entry_node
 

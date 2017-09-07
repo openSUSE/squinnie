@@ -23,8 +23,11 @@ def eprint(*args, **kwargs):
     """Wrapper around print() function that writes to stderr by default."""
     print(*args, file=sys.stderr, **kwargs)
 
-def missingModule(which):
+def missingModule(which = None, ex = None):
     """Prints an error message about a missing module and exits."""
+
+    if which == None:
+        which = ex.message.split()[-1]
 
     eprint("The module {} could not be found. Please use your system's package manager or pip to install it.".format(which))
     sys.exit(1)
@@ -50,6 +53,10 @@ def importPickle():
         pickle.load = functools.partial(
             pickle.load, encoding = 'utf-8'
         )
+
+        if not hasattr(pickle, "HIGHEST_PROTOCOL"):
+            # this constant is missing in _pickle in python3
+            pickle.HIGHEST_PROTOCOL = 4
 
     return pickle
 
@@ -111,4 +118,27 @@ def readPickle(path = None, fileobj = None):
             fileobj.close()
 
     return ret
+
+def executeMain(call):
+    """Runs the given function call wrapped in try/except clauses that provide
+    sensible error handling and output."""
+
+    try:
+        import termcolor
+        from . import errors
+    except ImportError as e:
+        missingModule(ex = e)
+
+    try:
+        call()
+        return
+    except errors.ScannerError as e:
+        print(termcolor.colored("Error:", color = "red"), e)
+    except EnvironmentError as e:
+        print(termcolor.colored("Failed:", color = "red"), e)
+    except Exception as e:
+        print(termcolor.colored("Unexpected error:", color = "red"))
+        raise
+
+    sys.exit(1)
 

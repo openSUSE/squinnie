@@ -25,240 +25,335 @@ from __future__ import print_function
 from __future__ import with_statement
 from collections import OrderedDict
 import argparse
-import json
 import sys
 import os
 
 # local modules
 import helper
-from helper import eprint
 import slave
 import enrich
+import network_config
 
-file_extension = "p" # apparently .p is commonly used for pickled data
-
+# foreign modules
 try:
     import execnet
-except ImportError:
-    helper.missingModule("execnet")
+    import termcolor
+except ImportError as e:
+    helper.missingModule(ex = e)
+
+class Dumper(object):
+    """This class is able to collect the node data from local or remote hosts
+    and stores and loads the data from dump files on disk as required."""
+
+    def __init__(self):
+
+        self.m_network = None
+        self.m_outdir = None
+        self.m_use_cache = True
+
+    def set_use_cache(self, use):
+        self.m_use_cache = use
+
+    def set_output_dir(self, path):
+        self.m_outdir = path
+
+    def print_cached_dumps(self):
+        """Prints an informational line for each dump that was not freshly
+        collected due to caching."""
+        if not self.m_use_cache:
+            return
+
+        for node in self.get_node_data():
+            if node['cached']:
+                print("Not regenerating cached dump for", node['node'])
+
+    def load_network_config(self, file_name):
+        """Reads the target network configuration from the given JSON file and
+        stores it in the object for further use during collect()."""
+        self.m_network = network_config.NetworkConfig().load(file_name)
+
+    def set_network_config(self, nc):
+        """Set an already existing network configuration dictionary for futher
+        use during collect()."""
+        self.m_network = nc
+
+    def get_node_data(self):
+        """Returns the currently collected node data. Only valid after a call
+        to collect()."""
+        return self.m_nodes
+
+    def collect(self, load_cached):
+        if not self.m_network or not self.m_outdir:
+            raise Exception("Missing network and/or output directory")
+
+        node_list = self._get_network_nodes()
+        self._setup_dump_nodes(node_list)
+
+        if not self.m_use_cache:
+            self._discard_cached_dumps()
+
+        self._receive_data()
+        if load_cached:
+            self._load_cached_dumps()
+
+    # TODO: separating the local and remote scan into different class
+    # specializations would be way cleaner
+    def collect_local(self, load_cached):
+
+        if not self.m_outdir:
+            raise Exception("Missing output directory")
+
+        node_list = self._get_local_node()
+        self._setup_dump_nodes(node_list)
+
+        if not self.m_use_cache:
+            self._discard_cached_dumps()
+        elif self.m_nodes[0]['cached']:
+            # nothing to do
+            return
+
+        have_root_privs = os.geteuid() == 0
+
+        if have_root_privs:
+            node_data = slave.collect()
+            self.m_nodes[0]['data'] = node_data
+        else:
+            # might be a future command line option to allow this, is helpful
+            # for testing. For now we use sudo.
+            #print("You're scanning as non-root, only partial data will be collected")
+            #print("Run as root to get a full result. This mode is not fully supported.")
+            node_data = self._sudo_collect()
+            self.m_nodes[0]['data'] = node_data
+
+    def _sudo_collect(self):
+        import subprocess
+
+        # gzip has a bug in python2, it can't stream, because it tries
+        # to seek *sigh*
+        use_pipe = helper.isPython3()
+
+        if not use_pipe:
+            import tempfile
+            tmpfile = tempfile.TemporaryFile(mode = 'wb+')
+
+        slave_proc = subprocess.Popen(
+            [
+                "sudo",
+                # use the same python interpreter as we're currently
+                # running
+                sys.executable,
+                os.path.join(
+                    os.path.dirname(__file__),
+                    "slave.py"
+                )
+            ],
+            stdout = subprocess.PIPE if use_pipe else tmpfile,
+            close_fds = True
+        )
+
+        if use_pipe:
+            try:
+                node_data = helper.readPickle(fileobj = slave_proc.stdout)
+            finally:
+                if slave_proc.wait() != 0:
+                    raise Exception("Failed to run slave.py")
+        else:
+            try:
+                if slave_proc.wait() != 0:
+                    raise Exception("Failed to run slave.py")
+                tmpfile.seek(0)
+                node_data = helper.readPickle(fileobj = tmpfile)
+            finally:
+                tmpfile.close()
+
+        return node_data
+
+    def save(self):
+        """Save collected node dumps in their respective dump files, if
+        they're not cached."""
+        for config in self.m_nodes:
+            if config['cached']:
+                continue
+
+            node_data_dict = {
+                    config['node']: config['data']
+            }
+            enricher = enrich.Enricher(node_data_dict)
+            print("Enriching node data")
+            enricher.enrich()
+            dump_path = config['full_path']
+            print("Saving data to {}".format(dump_path))
+            enricher.save_data(dump_path)
+
+    def _get_network_nodes(self):
+        """Flattens the nodes found in self.m_network and returns them as a
+        list of (node, parent), where parent is an optional jump host to reach
+        the node."""
+
+        ret = []
+
+        def gather_nodes(lst, data, parent = None):
+
+            if type(data) in (OrderedDict,dict):
+                for key, val in data.items():
+                    lst.append((key,None))
+                    gather_nodes(lst, val, key)
+            elif type(data) is list:
+                ret.extend( [ (node, parent) for node in data ] )
+            else:
+                raise Exception("Bad network description data, unexpected type "
+                    + str(type(data)))
+
+            return ret
+
+        gather_nodes(ret, self.m_network)
+
+        return ret
+
+    def _get_local_node(self):
+        """Returns a node list containing just the localhost for local
+        dumping."""
+        import socket
+        node = socket.gethostname()
+        return [(node, None)]
+
+    def _get_filename(self, node_str):
+        # apparently .p is commonly used for pickled data
+        file_extension = "p"
+        return "{}.{}".format(node_str.replace(".", "-"), file_extension)
+
+
+    def _get_full_dump_path(self, dump):
+        return os.path.join(self.m_outdir, dump)
+
+    def _have_cached_dump(self, dump):
+        return os.path.isfile( self._get_full_dump_path(dump) )
+
+    def _discard_cached_dumps(self):
+        """Discards any cached dump files for the nodes currently setup in
+        self.m_nodes"""
+
+        for config in self.m_nodes:
+
+            if config['cached']:
+                print("Discarding cached data for", config['node'])
+                os.remove(config['full_path'])
+                config['cached'] = False
+
+    def _load_cached_dumps(self):
+        """Loads any dumps for nodes in self.m_nodes that are marked as cached
+        from their respective dump file paths."""
+
+        for config in self.m_nodes:
+
+            if not config['cached'] or 'data' in config:
+                continue
+            dump_path = config['full_path']
+
+            print("Loading cached dump from", dump_path)
+            data = helper.readPickle( path = dump_path )
+            config['data'] = data.values()[0]
+
+    def _setup_dump_nodes(self, node_list):
+        """Stores a list in self.m_nodes containing dictionaries describing
+        the nodes and their respective dump paths for future operations.
+        """
+
+        self.m_nodes = []
+
+        for node, parent in node_list:
+
+            dump = self._get_filename(node)
+
+            self.m_nodes.append( {
+                "node": node,
+                "path": dump,
+                "full_path": self._get_full_dump_path(dump),
+                "via": parent,
+                "cached": self._have_cached_dump(dump)
+            } )
+
+    def get_execnet_gateway(self, node, via):
+        """Returns a configuration string for execnet's makegatway() function
+        for dumping the given node."""
+        data = {
+            "ssh"   :"root@{}".format(node),
+            "id"    : "{}".format(node),
+            "python":"python{}".format(2)
+        }
+
+        if via:
+            data["via"] = via
+
+        parts = ["{}={}".format(key, value) for key, value in data.items()]
+
+        return "//".join(parts)
+
+    def _receive_data(self):
+
+        group = execnet.Group()
+        data = {}
+
+        for config in self.m_nodes:
+            if config['cached']:
+                continue
+            node = config['node']
+            print("Receiving data from {}".format(node))
+            gateway = self.get_execnet_gateway(node, config['via'])
+            group.makegateway(gateway)
+
+            config['data'] = group[node].remote_exec(slave).receive()
 
 def main():
-    description = "Dump one file per node configured as network."
+
+    import functools
+
+    def file_path(s, check = os.path.isfile):
+        if not os.path.exists(s):
+            raise argparse.ArgumentTypeError("The given path does not exist")
+        elif not check(s):
+            raise argparse.ArgumentTypeError("The given path is not a {}".format(
+                "file" if check == os.path.isfile else "directory"
+            ))
+
+        return s
+
+    description = "Dump one file per node described in the network configuration"
     parser = argparse.ArgumentParser(prog=sys.argv[0], description=description)
 
-    description = "The input file your network is described with."
-    parser.add_argument("-i", "--input", required=True, type=str, help=description)
+    description = "The input JSON file your network is described with. Pass 'local' to perform a scan of the local machine"
+    parser.add_argument("-i", "--input", type=file_path, help=description)
 
     description = "The output path you want your data files to be dumped to."
-    parser.add_argument("-o", "--output", required=True, type=str, help=description)
+    parser.add_argument("-o", "--output", required=True, type=functools.partial(file_path, check = os.path.isdir), help=description)
 
     description = "Force overwriting files, even if cached files are already present."
     parser.add_argument("--nocache", action="store_true", help=description)
+    description = "Perform a collection on the local machine, conflicts with -i"
+    parser.add_argument("-l", "--local", action="store_true", help=description)
 
     args = parser.parse_args()
 
-    if not os.path.exists(args.input):
-        exit("The file given by the -i/--input parameter does not exist.\n")
-    elif not os.path.isfile(args.input):
-        exit("The -i/--input parameter must be a file.\n")
+    if args.input and args.local:
+        raise Exception("Conflicting arguments -i and -l encountered")
+    elif not args.input and not args.local:
+        raise Exception("Please specify either -i or -l")
 
-    if not os.path.exists(args.output):
-        exit("The directory given by the -o/--output parameter does not exist.\n")
-    elif not os.path.isdir(args.output):
-        exit("The -o/--output parameter must be a directory.\n")
-
-    dump(args)
-
-
-def files_already_exist(directory_path, filenames):
-    result = True
-    for fname in filenames:
-        if not os.path.isfile( os.path.join(directory_path, fname) ):
-            result = False
-    return result
-
-
-
-def dump(args):
-    directory_path = args.output
-    tree_dict_str = read_network_config(args.input)
-
-    node_list = []
-    tree_dict_to_list(node_list, tree_dict_str)
-    node_list_filenames = [get_filename(item) for item in node_list]
-
-
-    if not args.nocache and files_already_exist(directory_path, node_list_filenames):
-        eprint("Skip scanning the nodes again because a suitable cache was found.")
-        eprint("You can force rebuilding the cache from scratch using --nocache.")
-        eprint("")
+    dumper = Dumper()
+    dumper.set_output_dir(args.output)
+    dumper.set_use_cache(not args.nocache)
+    if args.local:
+        dumper.collect_local(load_cached = False)
     else:
-
-        (datastructure, node_list) = receive_data(tree_dict_str)
-        write_data(directory_path, datastructure, node_list)
-
-    return node_list_filenames
-
-
-
-def dump_local(args):
-    directory_path = args.output
-    node_list = [args.input]
-    node_list_filenames = [get_filename(item) for item in node_list]
-    if not args.nocache and files_already_exist(directory_path, node_list_filenames):
-        eprint("Skip scanning the nodes again because a suitable cache was found.")
-        eprint("You can force rebuilding the cache from scratch using --nocache.")
-        eprint("")
-    else:
-        directory_path = args.output
-        if os.geteuid() != 0:
-            if False:
-                # might be a future command line option
-                eprint("You're scanning as non-root, only partial data will be collected")
-                eprint("Run as root to get a full result. This mode is not fully supported.")
-            else:
-                import subprocess
-                import gzip
-                import tempfile
-
-                # gzip has a bug in python2, it can't stream, because it tries
-                # to seek *sigh*
-                use_pipe = helper.isPython3()
-
-                if not use_pipe:
-                    tmpfile = tempfile.TemporaryFile(mode = 'wb+')
-
-                slave_proc = subprocess.Popen(
-                    [
-                        "sudo",
-                        # use the same python interpreter as we're currently
-                        # running
-                        sys.executable,
-                        os.path.join(
-                            os.path.dirname(__file__),
-                            "sscanner",
-                            "slave.py"
-                        )
-                    ],
-                    stdout = subprocess.PIPE if use_pipe else tmpfile,
-                    close_fds = True
-                )
-
-                if use_pipe:
-                    zifi = gzip.GzipFile(fileobj = slave_proc.stdout)
-                    if slave_proc.wait() != 0:
-                        raise Exception("Failed to run slave.py")
-                    datastructure = helper.readPickle(fileobj = zifi)
-
-                else:
-                    if slave_proc.wait() != 0:
-                        raise Exception("Failed to run slave.py")
-                    tmpfile.seek(0)
-                    datastructure = helper.readPickle(fileobj = tmpfile)
-
-        else:
-            datastructure = slave.collect()
-        write_data(directory_path, {args.input:datastructure}, node_list)
-    return node_list_filenames
-
-
-
-def execnet_recursive_setup(group, parent, tree_dict_str):
-
-    # In case the current node has children
-    if type(tree_dict_str) is OrderedDict:
-        for self_node, children in tree_dict_str.items():
-            group.makegateway(get_gateway_option_string(parent, self_node))
-
-            execnet_recursive_setup(group, self_node, children)
-
-    # In case the current node is a leaf in the tree
-    elif type(tree_dict_str) is list:
-        for self_node in tree_dict_str:
-            group.makegateway(get_gateway_option_string(parent, self_node))
-
-
-
-def tree_dict_to_list(working_set, tree_dict_str):
-
-    # In case the current node has children
-    if type(tree_dict_str) is OrderedDict:
-        for self_node, children in tree_dict_str.items():
-            working_set.append(self_node)
-
-            tree_dict_to_list(working_set, children)
-
-    # In case the current node is a leaf in the tree
-    elif type(tree_dict_str) is list:
-        for self_node in tree_dict_str:
-            working_set.append(self_node)
-
-
-
-def get_gateway_option_string(execnet_via, execnet_id):
-    data = {
-        "ssh"   :"root@{}".format(execnet_id),
-        "id"    : "{}".format(execnet_id),
-        "python":"python{}".format(sys.version_info.major),
-    }
-
-    if execnet_via:
-        data["via"] = execnet_via
-
-    data_str = ["{}={}".format(key, value) for key, value in data.items()]
-
-    return "//".join(data_str)
-
-
-
-def receive_data(tree_dict_str):
-    group = execnet.Group()
-    execnet_recursive_setup(group, None, tree_dict_str)
-
-    node_list = []
-    tree_dict_to_list(node_list, tree_dict_str)
-
-    datastructure = {}
-    for node_str in node_list:
-        print("Receiving data from {}".format(node_str))
-        datastructure[node_str] = group[node_str].remote_exec(slave).receive()
-    print("")
-
-    return (datastructure, node_list)
-
-
-
-def read_network_config(file_name):
-    if os.path.exists(file_name):
-        with open(file_name, "r") as fi:
-            tree_dict_str = json.load(fi, object_pairs_hook=OrderedDict)
-    else:
-        exit("The file {} does not exist. Exiting.".format(file_name))
-
-    assert len(tree_dict_str.keys()) == 1
-
-    return tree_dict_str
-
-
-
-def get_filename(node_str):
-    return "{}.{}".format(node_str.replace(".", "-"), file_extension)
-
-
-
-def write_data(file_path, datastructure, node_list):
-    for node_str in node_list:
-        file_name = get_filename(node_str)
-        file_path_name = os.path.join(file_path, file_name)
-
-        node_data = {node_str:datastructure[node_str]}
-        enricher = sscanner.enrich.Enricher(node_data)
-        print("Enriching node data")
-        enricher.enrich()
-        print("Saving data to {}".format(file_path_name))
-        enricher.save_data(file_path_name)
-
-    print("")
+        dumper.load_network_config(args.input)
+        dumper.collect(load_cached = False)
+    dumper.save()
+    dumper.print_cached_dumps()
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        print(termcolor.colored("Error:", "red"), e)
+        raise
+
