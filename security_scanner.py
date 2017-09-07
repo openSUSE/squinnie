@@ -30,10 +30,10 @@ import re
 import os
 
 # Local modules
-import sscanner.dump_node_data
+import sscanner.dumper
 import sscanner.crowbar
 import sscanner.errors
-import view_node_data
+import sscanner.viewer
 
 # Foreign modules
 try:
@@ -168,7 +168,7 @@ class SecurityScanner(object):
     def _collectDumps(self):
         """Collects the node dumps according to the selected mode and cached
         data use. The result is stored in self.m_node_data"""
-        dumper = sscanner.dump_node_data.Dumper()
+        dumper = sscanner.dumper.Dumper()
         dumper.set_output_dir(self.m_args.directory)
         dumper.set_use_cache(not self.m_args.nocache)
 
@@ -223,12 +223,12 @@ class SecurityScanner(object):
             entry_node = self.m_node_data[0]
             print("\n\nPreparing report for {} ...".format(entry_node["node"]))
             view_args.input = entry_node["full_path"]
-            view_node_data.view_data(view_args)
+            scanner.viewer.view_data(view_args)
         else:
             for config in self.m_node_data:
                 print("\n\nPreparing report for {} ...".format(config['node']))
                 view_args.input = config['full_path']
-                view_node_data.view_data(view_args)
+                sscanner.viewer.view_data(view_args)
 
     def _cleanupData(self):
         import shutil

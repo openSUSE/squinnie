@@ -100,7 +100,6 @@ class Crowbar(object):
         # file, but return and read from the file. So maybe we should split
         # this function?
         if self._haveCache():
-            import dump_node_data
             cache = self.m_args.output
             eprint("Using cached crowbar network data from", cache)
             net_config.load(cache)
