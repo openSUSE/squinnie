@@ -4,10 +4,8 @@ This is a simple scanner that was written while auditing the SUSE OpenStack Clou
 
 ## Installation
 
-The requirements for this project can be found in `requirements.txt`. At this point, they are:
-- execnet
-- terminaltables
-- termcolor
+The additional python module requirements for this project can be found in the
+PIP requirements file `requirements.txt`.
 
 ## Usage
 
