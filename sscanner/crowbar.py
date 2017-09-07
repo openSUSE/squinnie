@@ -31,15 +31,14 @@ import os
 import termcolor
 
 # Local modules
-import helper
-from helper import eprint
-import network_config
+import sscanner.helper
+import sscanner.network_config
 
 # PyPy modules
 try:
     import execnet
 except ImportError:
-    helper.missingModule("execnet")
+    sscanner.helper.missingModule("execnet")
 
 class Crowbar(object):
 
@@ -94,14 +93,14 @@ class Crowbar(object):
 
     def dump_crowbar_to_file(self):
 
-        net_config = network_config.NetworkConfig()
+        net_config = sscanner.network_config.NetworkConfig()
 
         # TODO: in the cached case we're not actually dumping something to
         # file, but return and read from the file. So maybe we should split
         # this function?
         if self._haveCache():
             cache = self.m_args.output
-            eprint("Using cached crowbar network data from", cache)
+            print("Using cached crowbar network data from", cache)
             net_config.load(cache)
 
             return next(iter(net_config.getNetwork()))

@@ -29,17 +29,17 @@ import sys
 import os
 
 # local modules
-import helper
-import slave
-import enrich
-import network_config
+import sscanner.helper
+import sscanner.slave
+import sscanner.enrich
+import sscanner.network_config
 
 # foreign modules
 try:
     import execnet
     import termcolor
 except ImportError as e:
-    helper.missingModule(ex = e)
+    sscanner.helper.missingModule(ex = e)
 
 class Dumper(object):
     """This class is able to collect the node data from local or remote hosts
@@ -70,7 +70,7 @@ class Dumper(object):
     def load_network_config(self, file_name):
         """Reads the target network configuration from the given JSON file and
         stores it in the object for further use during collect()."""
-        self.m_network = network_config.NetworkConfig().load(file_name)
+        self.m_network = sscanner.network_config.NetworkConfig().load(file_name)
 
     def set_network_config(self, nc):
         """Set an already existing network configuration dictionary for futher
@@ -115,7 +115,7 @@ class Dumper(object):
         have_root_privs = os.geteuid() == 0
 
         if have_root_privs:
-            node_data = slave.collect()
+            node_data = sscanner.slave.collect()
             self.m_nodes[0]['data'] = node_data
         else:
             # might be a future command line option to allow this, is helpful
@@ -130,7 +130,7 @@ class Dumper(object):
 
         # gzip has a bug in python2, it can't stream, because it tries
         # to seek *sigh*
-        use_pipe = helper.isPython3()
+        use_pipe = sscanner.helper.isPython3()
 
         if not use_pipe:
             import tempfile
@@ -153,7 +153,7 @@ class Dumper(object):
 
         if use_pipe:
             try:
-                node_data = helper.readPickle(fileobj = slave_proc.stdout)
+                node_data = sscanner.helper.readPickle(fileobj = slave_proc.stdout)
             finally:
                 if slave_proc.wait() != 0:
                     raise Exception("Failed to run slave.py")
@@ -162,7 +162,7 @@ class Dumper(object):
                 if slave_proc.wait() != 0:
                     raise Exception("Failed to run slave.py")
                 tmpfile.seek(0)
-                node_data = helper.readPickle(fileobj = tmpfile)
+                node_data = sscanner.helper.readPickle(fileobj = tmpfile)
             finally:
                 tmpfile.close()
 
@@ -178,7 +178,7 @@ class Dumper(object):
             node_data_dict = {
                     config['node']: config['data']
             }
-            enricher = enrich.Enricher(node_data_dict)
+            enricher = sscanner.enrich.Enricher(node_data_dict)
             print("Enriching node data")
             enricher.enrich()
             dump_path = config['full_path']
@@ -251,7 +251,7 @@ class Dumper(object):
             dump_path = config['full_path']
 
             print("Loading cached dump from", dump_path)
-            data = helper.readPickle( path = dump_path )
+            data = sscanner.helper.readPickle( path = dump_path )
             config['data'] = data.values()[0]
 
     def _setup_dump_nodes(self, node_list):
@@ -302,7 +302,7 @@ class Dumper(object):
             gateway = self.get_execnet_gateway(node, config['via'])
             group.makegateway(gateway)
 
-            config['data'] = group[node].remote_exec(slave).receive()
+            config['data'] = group[node].remote_exec(sscanner.slave).receive()
 
 def main():
 

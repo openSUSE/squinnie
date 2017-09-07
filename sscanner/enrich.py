@@ -28,13 +28,13 @@ import sys
 import os
 
 # local modules
-import helper
-pickle = helper.importPickle()
+import sscanner.helper
+pickle = sscanner.helper.importPickle()
 
 try:
     import termcolor
 except ImportError:
-    helper.missingModule("termcolor")
+    sscanner.helper.missingModule("termcolor")
 
 class Enricher(object):
     """This class cares for transforming "enriching" the raw data as it is
@@ -60,13 +60,13 @@ class Enricher(object):
         """Load data from the given node data dump file and store it in the
         object."""
 
-        self.m_node_data = helper.readPickle(path = file_name)
+        self.m_node_data = sscanner.helper.readPickle(path = file_name)
         assert len(self.m_node_data.keys()) == 1
 
     def save_data(self, file_name):
         self._assertData()
 
-        helper.writePickle(self.m_node_data, path = file_name)
+        sscanner.helper.writePickle(self.m_node_data, path = file_name)
 
     def is_enriched(self):
         """Returns whether the currently loaded node data already has been
