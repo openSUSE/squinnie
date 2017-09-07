@@ -12,7 +12,7 @@ import json
 class NetworkConfig(object):
     """This class is responsible for saving and loading network information
     to/from disk.
-    
+
     network information currently is a dictionary of the form {
         "entry_node": ["back_node1", "back_node2", ...]
     }
@@ -31,7 +31,7 @@ class NetworkConfig(object):
         return self.m_network
 
     def save(self, path):
-            
+
         try:
             with open(path, "w") as fi:
                 json.dump(path, fi, indent=4, sort_keys=True)
@@ -39,7 +39,7 @@ class NetworkConfig(object):
             raise Exception("Failed to write JSON network configuration to {}: {}".format(path, str(e)))
 
     def load(self, path):
-        
+
         try:
             with open(path, "r") as fi:
                 self.m_network = json.load(fi, object_pairs_hook=OrderedDict)
