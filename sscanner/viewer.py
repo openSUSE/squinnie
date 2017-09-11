@@ -268,8 +268,8 @@ class Viewer(object):
                 ret.append(["???", base_path_file, "???", "?", "?", "?"])
                 continue
 
-            perm_str = file_mode.get_mode_string(props["st_mode"])
-            file_type = file_mode.get_type_label(props["st_mode"])
+            perm_str = file_mode.getModeString(props["st_mode"])
+            file_type = file_mode.getTypeLabel(props["st_mode"])
 
             if props["st_uid"] not in uid_name:
                 user  = "!USERERROR!"
@@ -330,7 +330,7 @@ class Viewer(object):
                     # TODO: this else branch makes no sense
                     if props:
                         st_mode = props['st_mode']
-                        permissions = file_mode.get_mode_string(st_mode)
+                        permissions = file_mode.getModeString(st_mode)
                     else:
                         permissions = "!PERMERROR"
                     inode_entry = "{} (named socket file permissions: {})".format(
@@ -393,7 +393,7 @@ class Viewer(object):
 
             symlink = info["symlink"]
 
-            flags = file_mode.get_fd_flag_labels(info["file_flags"])
+            flags = file_mode.getFdFlagLabels(info["file_flags"])
             file_perm = info["file_perm"]
             perms_octal = ''.join(
                 [ str(file_perm[key]) for key in ('Uid', 'Gid', 'other') ]
@@ -431,7 +431,7 @@ class Viewer(object):
                         "Gid_set":pid_data["Gid"],
                     }
 
-                    if not file_mode.can_access_file(
+                    if not file_mode.canAccessFile(
                         user_identity,
                         file_identity,
                         file_perm

@@ -55,11 +55,11 @@ _filemode_table = stat._filemode_table if \
 )
 
 if hasattr(stat, "filemode"):
-    def get_mode_string(mode):
+    def getModeString(mode):
         return stat.filemode(mode)
 else:
     # Copied from Python 3.3
-    def get_mode_string(mode):
+    def getModeString(mode):
         """Convert a file's mode to a string of the form '-rwxrwxrwx'."""
         if not isinstance(mode, int): # Broken symlinks have no permissions
             return "!PERMERROR"
@@ -74,7 +74,7 @@ else:
                 perm.append("-")
         return "".join(perm)
 
-def get_type_label(mode):
+def getTypeLabel(mode):
     """Returns a label for the file type found in ``mode``."""
 
     if mode == None:
@@ -95,7 +95,7 @@ def get_type_label(mode):
     elif stat.S_ISBLK(mode):
         return "block special device file"
 
-def perm_readable(file_perm):
+def permReadable(file_perm):
     """
     Get access permission as integer
     Output boolean whether access permissions grant read access
@@ -103,7 +103,7 @@ def perm_readable(file_perm):
 
     return (file_perm & 4) != 0
 
-def can_access_file(user_perms, file_perms, file_mode):
+def canAccessFile(user_perms, file_perms, file_mode):
     """Returns a boolean whether a user owning ``user_perms`` can
     read-access a file having the given ``file_perms`` and ``file_mode``.
 
@@ -114,22 +114,22 @@ def can_access_file(user_perms, file_perms, file_mode):
 
     # uid
     if file_perms["Uid"] == user_perms["Uid"]:
-        if perm_readable(file_mode["Uid"]):
+        if permReadable(file_mode["Uid"]):
             return True
 
     # gid
     elif file_perms["Gid"] in user_perms["Gid_set"]:
-        if perm_readable(file_mode["Gid"]):
+        if permReadable(file_mode["Gid"]):
             return True
 
     # other
     else:
-        if perm_readable(file_mode["other"]):
+        if permReadable(file_mode["other"]):
             return True
 
     return False
 
-def get_fd_flag_labels(flags):
+def getFdFlagLabels(flags):
     """Returns a list of labels corresponding to the file descriptors
     flags."""
     result = []
