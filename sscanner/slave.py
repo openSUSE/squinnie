@@ -62,7 +62,7 @@ class SlaveScanner(object):
         self.m_have_root_priv = os.geteuid() == 0
         self.m_our_pid = os.getpid()
 
-    def get_cmdline(self, p):
+    def getCmdline(self, p):
         """Returns a tuple (cmdline, [parameters]) representing the command
         line belonging to the given process with PID `p`."""
         with open("/proc/{}/cmdline".format(p), "r") as fi:
@@ -72,7 +72,7 @@ class SlaveScanner(object):
             parameters = " ".join(cmdline_items[1:])
         return (executable, parameters)
 
-    def get_all_pids(self):
+    def getAllPids(self):
         """Returns a list of all process PIDs currently seen in /proc."""
         result = []
 
@@ -90,7 +90,7 @@ class SlaveScanner(object):
 
         return result
 
-    def collect_user_group_mappings(self):
+    def collectUserGroupMappings(self):
         """Collects dictionaries in self.m_uid_map and self.m_gid_map
         containing the name->id mappings of users and groups found in the
         system."""
@@ -107,7 +107,7 @@ class SlaveScanner(object):
         for group in grp.getgrall():
             self.m_gid_map[group.gr_gid] = group.gr_name
 
-    def collect_protocol_info(self, protocol):
+    def collectProtocolInfo(self, protocol):
         """Collects protocol state information for ``protocol`` in
         self.m_protocols[``protocol``]."""
 
@@ -136,7 +136,7 @@ class SlaveScanner(object):
                 inode = parts[6]
                 info[inode] = parts[7]
 
-    def collect_process_info(self):
+    def collectProcessInfo(self):
         """
         Collect information about all running processes in the
         self.m_proc_info dictionary.
@@ -164,7 +164,7 @@ class SlaveScanner(object):
         parents = {}
 
         pids_to_remove = set()
-        for p in self.get_all_pids():
+        for p in self.getAllPids():
             if p == self.m_our_pid:
                 # exclude ourselves, we're not so interesting ;)
                 continue
@@ -182,11 +182,11 @@ class SlaveScanner(object):
                     transform_fnct = field_transforms[key]
                     status_pid[key] = transform_fnct(fields[key])
 
-                exe, pars = self.get_cmdline(p)
+                exe, pars = self.getCmdline(p)
                 status_pid["executable"] = exe
                 status_pid["parameters"] = pars
                 status_pid["root"] = os.path.realpath("/proc/{}/root".format(p))
-                status_pid["open_files"] = self.get_fd_data(p)
+                status_pid["open_files"] = self.getFdData(p)
 
                 status[p] = status_pid
                 parents[p] = int(fields["PPid"])
@@ -207,7 +207,7 @@ class SlaveScanner(object):
         self.m_proc_info["status"] = status
         self.m_proc_info["parents"] = parents
 
-    def get_fd_data(self, pid):
+    def getFdData(self, pid):
         """Returns a dictionary describing the currently opened files of
         the process with PID ``pid``.
 
@@ -273,7 +273,7 @@ class SlaveScanner(object):
 
         return result
 
-    def get_properties(self, filename, os_stat = None):
+    def getProperties(self, filename, os_stat = None):
         """Gets the properties from the file object found in ``filename``"""
         properties = {}
 
@@ -297,7 +297,7 @@ class SlaveScanner(object):
 
         return properties
 
-    def collect_filesystem(self):
+    def collectFilesystem(self):
         """Collects information about all file system objects and stores them
         in the self.m_filesystem dictionary."""
 
@@ -311,7 +311,7 @@ class SlaveScanner(object):
             "properties": {}
         }
 
-        def walk_err(ex):
+        def walkErr(ex):
             """Is called from os.walk() when errors occur."""
             if not self.m_have_root_priv and ex.errno == errno.EACCES:
                 # don't print a bunch of EACCES errors if we're not root.
@@ -319,7 +319,7 @@ class SlaveScanner(object):
                 return
             print(ex.filename, ": ", ex, sep = '', file = sys.stderr)
 
-        def get_parent_dict(path):
+        def getParentDict(path):
             """Find the correct dictionary in self.m_filesystem for inserting
             the directory info for ``path``."""
 
@@ -334,21 +334,21 @@ class SlaveScanner(object):
 
             return ret
 
-        for path, dirs, files in os.walk("/", topdown=True, onerror = walk_err):
+        for path, dirs, files in os.walk("/", topdown=True, onerror = walkErr):
 
             if path == "/":
                 # remove excluded directories, only top-level dirs are
                 # considered ATM
                 dirs[:] = [d for d in dirs if os.path.join(path, d) not in exclude]
-                self.m_filesystem["properties"] = self.get_properties(path)
+                self.m_filesystem["properties"] = self.getProperties(path)
                 continue
 
             this_dir = os.path.basename(path)
-            parent = get_parent_dict(path)
+            parent = getParentDict(path)
 
             path_dict = {
                 "subitems": dict.fromkeys(files),
-                "properties": self.get_properties(path)
+                "properties": self.getProperties(path)
             }
             parent["subitems"][this_dir] = path_dict
 
@@ -356,26 +356,26 @@ class SlaveScanner(object):
                 file_path = os.path.join(path, name)
 
                 path_dict["subitems"][name] = {
-                    "properties": self.get_properties(file_path)
+                    "properties": self.getProperties(file_path)
                 }
 
     def collect(self):
 
         result = {}
 
-        self.collect_process_info()
+        self.collectProcessInfo()
         result["proc_data"] = self.m_proc_info["status"]
         result["parents"  ] = self.m_proc_info["parents"]
-        self.collect_user_group_mappings()
+        self.collectUserGroupMappings()
         result["uid_name" ] = self.m_uid_map
         result["gid_name" ] = self.m_gid_map
 
         for prot in ("tcp", "tcp6", "udp", "udp6", "unix"):
-            self.collect_protocol_info(prot)
+            self.collectProtocolInfo(prot)
             result[prot] = self.m_protocols[prot]
 
         if self.m_collect_files:
-            self.collect_filesystem()
+            self.collectFilesystem()
             result["filesystem"] = self.m_filesystem
 
         # we're currently returning a single large dictionary containing all
