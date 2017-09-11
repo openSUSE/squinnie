@@ -1,64 +1,53 @@
-# Cloud Scanner
+# Security Scanner
 
-This is a simple scanner that was written while auditing the SUSE OpenStack Cloud 7. This code was written by Benjamin Deuter during an internship at the SUSE Linux GmbH. The current version is maintained on [GitHub](https://github.com/BenjaminDeuter/security-scanner).
+This is a security scanner that collects security relevant system data from a
+local machine, remote host or SUSE Cloud instance. The collected data is
+cached in a specific format on disk and can be analysed and viewed according
+to command line criteria.
+
+The purpose of the scanner is to:
+
+- identify possibly security issues by inspecting privileges of running
+  processess, opened file descriptors, files on disk etc.
+- allow to navigate through large data sets containing information about a
+  running system, for identifying possible interesting interfaces and software
+  parts that are worth further investigation.
 
 ## Installation
 
 The additional python module requirements for this project can be found in the
 PIP requirements file `requirements.txt`.
 
+## Structure
+
+The scanner program currently consists of a number of independent python
+modules that can also be executed in a standalone manner:
+
+- sscanner/dumper.py is responsible for collecting data from local or remote
+  hosts.
+- sscanner/enrich.py transforms raw data collected via the dumper into a more
+  easy to use data structure for purposes of analysis or display.
+- sscanner/viewer.py is able to load collected data from disk and display
+  various bits of information from it.
+- security\_scanner.py combines all these features into a single interface.
+
+## Security Warning
+
+Be aware that collecting the low level system information may be a security
+risk in its own right, because sensitive data will be collected and made
+accessible in the context of a regular user account.
+
+This scanner is targeted towards analysis of test systems, not for production
+environments. If you do want to scan a production system then you should make
+sure that the resulting dumps are stored safely to avoid security issues.
+
 ## Usage
 
-```
-usage: security_scanner.py [-h] [-d DIRECTORY] [-v] [-a] [-m MODE] [-e ENTRY]
-                           [--nocache] [--params] [-k] [-p PID] [--children]
-                           [--parent] [--fd] [--onlyfd] [--filesystem]
+Please see the online help output produced by `./security_scanner.py -h`.
 
-The main cloud scanner, initially built for scanning a SUSE OpenStack Cloud 7
-instance. A single wrapper around the functionality of all individual tools.
-
-optional arguments:
-  -h, --help            show this help message and exit
-
-general arguments:
-  -d DIRECTORY, --directory DIRECTORY
-                        The directory all files are cached in. If no value is
-                        given here, /tmp/cloud_scanner/ will be used to save
-                        files during the execution of the script and then
-                        deleted at the end.
-  -v, --verbose         Print more detailed information.
-  -a, --all             When using a mode that scans multiple hosts, print
-                        information from all nodes. By default, only the entry
-                        node is printed. This has no effect if the local mode
-                        is used.
-
-scan / dump arguments:
-  -m MODE, --mode MODE  The mode the scanner should be operating under.
-                        Currenly supported are local and susecloud.
-  -e ENTRY, --entry ENTRY
-                        The host on which crowbar is running. Only valid if
-                        using the susecloud mode.
-  --nocache             Remove cached files after every run, forcing a re-scan
-                        on next execution.
-
-view arguments:
-  --params              Show parameters from the executable cmdline variable.
-  -k, --kthreads        Include kernel threads. Kernel threads are excluded by
-                        default.
-  -p PID, --pid PID     Only show data that belongs to the provided pid.
-  --children            Also print all the children of the process provided by
-                        -p/--pid.
-  --parent              Print the parent of the process provided by -p/--pid.
-  --fd                  Show all open file descriptors for every process.
-  --onlyfd              Show only the open file descriptors in a dedicated
-                        view and nothing else.
-  --filesystem          View alle files on the file system, including their
-                        permissions.
-```
-
-`./security_scanner.py` is a global wrapper that makes use of almost all the other Python files.
-
-The scanner scans localhost by default, collecting relevant information that will be cached and displayed, depending on the provided command-line arguments.
+The scanner scans localhost by default, collecting relevant information that
+will be cached and displayed, depending on the provided command-line
+arguments.
 
 ```
 $ mkdir -p /tmp/my_test_scan/                              # The scanner will cache collected data here
@@ -68,7 +57,10 @@ $ ./security_scanner.py -d /tmp/my_test_scan/ --fd         # Show open file desc
 $ ./security_scanner.py -d /tmp/my_test_scan/ --filesystem # Show all files on the filesystem
 ```
 
-## Advanced
+For scanning localhost root privileges are required, because data from all
+processes, even root owned ones, will be acquired.
+
+## Advanced Usage
 
 Show which processes run with which capabilities:
 ```
@@ -82,7 +74,7 @@ $ ./security_scanner.py -d /tmp/my_test_scan/ --filesystem | grep CAP_
 
 ## SUSE OpenStack Cloud 7
 
-To scan many nodes of a SUSE OpenStack Cloud instance iteratively with one command, use:
+To scan many nodes of a SUSE OpenStack Cloud instance iteratively, use:
 ```
 $ ./security_scanner.py -d /tmp/my_test_scan/ -m susecloud -e <ip-of-cloud-admin-node>
 ```
