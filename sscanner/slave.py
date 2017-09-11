@@ -225,7 +225,7 @@ class SlaveScanner(object):
 
             # we want the the target's properties here, not the symlink's, so
             # don't use lstat. NOTE: even if this is a seemingly broken
-            # symlink for unnamed files like sockets the stat will return
+            # symlink for unnamed files like sockets, the stat will return
             # valid information.
             #
             # the lstat() seemingly returns file descriptor information like
