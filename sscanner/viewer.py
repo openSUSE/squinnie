@@ -24,106 +24,52 @@
 from __future__ import print_function
 from __future__ import with_statement
 import sys
-import argparse
-import stat
-import copy
-import re
 import os
-import termcolor
+import argparse
+import re
+import subprocess
 
 # Local modules.
 import sscanner.cap_translator as cap_translator
 import sscanner.helper as helper
 pickle = helper.importPickle()
 import sscanner.file_mode as file_mode
+import sscanner.errors
 
-# PyPy modules
+# foreign modules
 try:
     import terminaltables
-except ImportError:
-    helper.missingModule("terminaltables")
+    import termcolor
+except ImportError as e:
+    helper.missingModule(ex = e)
 
-def main():
-    description = "View a data dump of any single node."
-    parser = argparse.ArgumentParser(prog=sys.argv[0], description=description)
+class Viewer(object):
+    """This class implements the various view operations on node data."""
 
+    def __init__(self):
 
+        self.m_node_data = None
+        self.m_verbose = False
+        self.m_have_tty = os.isatty(sys.stdout.fileno())
+        self.m_show_fds = False
+        self.m_show_params = False
+        self.m_pid_filter = []
+        self.m_show_filter_parents = False
+        self.m_show_filter_children = False
+        self.m_show_kthreads = False
+        self.m_indentation_width = 4
 
-    description = "The input file to view your dumped data from."
-    parser.add_argument("-i", "--input", required=True, type=str, help=description)
+        cap_json = os.path.sep.join([
+            os.path.abspath( os.path.dirname(__file__) ),
+            os.path.pardir,
+            "etc",
+            "cap_data.json"
+        ])
+        self.m_cap_translator = cap_translator.CapTranslator(cap_json)
 
-    description = "Print more detailed information."
-    parser.add_argument("-v", "--verbose", action="store_true", help=description)
-
-
-
-    description = "Show parameters from the executable cmdline variable."
-    parser.add_argument("--params", action="store_true", help=description)
-
-    description = "Include kernel threads. Kernel threads are excluded by default."
-    parser.add_argument("-k", "--kthreads", action="store_true", help=description)
-
-    description = "Only show data that belongs to the provided pid."
-    parser.add_argument("-p", "--pid", type=str, help=description)
-
-    description = "Also print all the children of the process provided by -p/--pid."
-    parser.add_argument("--children", action="store_true", help=description)
-
-    description = "Print the parent of the process provided by -p/--pid."
-    parser.add_argument("--parent", action="store_true", help=description)
-
-    description = "Show all open file descriptors for every process."
-    parser.add_argument("--fd", action="store_true", help=description)
-
-    description = "Show only the open file descriptors in a dedicated view and nothing else."
-    parser.add_argument("--onlyfd", action="store_true", help=description)
-
-    description = "View alle files on the file system, including their permissions."
-    parser.add_argument("--filesystem", action="store_true", help=description)
-
-
-    args = parser.parse_args()
-
-    view_data(args)
-
-
-
-def get_term_width():
-    return int(os.popen('stty size', 'r').read().split()[1])
-
-
-
-def view_data(args):
-
-    file_name = args.input
-
-    try:
-        datastructure = helper.readPickle(path = file_name)
-    except Exception as e:
-        if isinstance(e, EOFError):
-            # on python2 no sensible error string is contained in EOFError
-            e = "Premature end of file"
-        exit("Failed to load node data from {}: {}".format(file_name, str(e)))
-    sys.stdout.flush()
-    assert len(datastructure.keys()) == 1
-
-    node_str = list(datastructure.keys())[0]
-    collected_data_dict = datastructure[node_str]
-
-    if args.onlyfd: # file descriptor view
-        print_only_file_descriptors(collected_data_dict, args)
-    elif args.filesystem:
-        str_table = []
-        get_filesystem_table(str_table, collected_data_dict["filesystem"], collected_data_dict["uid_name" ], collected_data_dict["gid_name" ], "/", args)
-
-        width_column_dict = build_width_column_dict(str_table)
-        term_width = get_term_width()
-        print_table_width_column_dict(str_table, width_column_dict, term_width)
-
-    else: # process tree view
-        print("There are {} processes running on this host.".format(len(collected_data_dict["proc_data"].keys())))
-        print("")
-        column_headers = [
+        # current default column headers
+        # TODO: should rather be a list of enum like values instead of strings
+        self.m_column_headers = [
             "pid",
             "executable",
             "parameters",
@@ -137,441 +83,706 @@ def view_data(args):
             "CapBnd",
             "CapAmb",
         ]
-        print_process_tree(collected_data_dict, column_headers, args)
 
-    print("")
+    def activate_settings(self, args):
+        """Activates the settings found in the given argparse.Namespace
+        object."""
+        self.set_verbose(args.verbose)
+        self.set_show_fds(args.fd)
+        self.set_show_params(args.params)
+        self.set_show_kthreads(args.kthreads)
+        self.set_show_filter_children(args.children)
+        self.set_show_filter_parents(args.parent)
 
+    def perform_action(self, args):
+        """Performs the action specified in the given argparse.Namespace
+        object."""
+        if args.pid:
+            self.add_pid_filter(args.pid)
 
-
-
-def build_width_column_dict(str_table):
-    width_column_dict = {}
-    for i in range(len(str_table[0])):
-        width_column_dict[i] = max(len(row[i]) for row in str_table)
-
-    return width_column_dict
-
-
-
-def print_table_width_column_dict(str_table, width_column_dict, max_width):
-    for row in str_table:
-        to_print = " ".join(row[i].ljust(width_column_dict[i]) for i in range(len(str_table[0])))
-        if sys.stdout.isatty():
-            print(to_print[:max_width])
+        if args.onlyfd:
+            # file descriptor view
+            self.print_file_descriptors()
+        elif args.filesystem:
+            # file-system view
+            self.print_filesystem_table()
         else:
-            print(to_print)
+            # process tree view
+            self.print_process_tree()
+
+    @classmethod
+    def add_parser_arguments(cls, parser):
+        """Adds the viewer specific command line arguments to the given
+        argparse.ArgumentParser object."""
+        # this is for reuse in the main security_scanner script.
+
+        description = "Show parameters from the process's cmdline entry."
+        parser.add_argument("--params", action="store_true", help=description)
+
+        description = "Include kernel threads. Kernel threads are excluded by default."
+        parser.add_argument("-k", "--kthreads", action="store_true", help=description)
+
+        description = "Only show data that belongs to the provided pid."
+        parser.add_argument("-p", "--pid", type=int, help=description)
+
+        description = "Also print all the children of the process provided by -p/--pid."
+        parser.add_argument("--children", action="store_true", help=description)
+
+        description = "Print the parent of the process provided by -p/--pid."
+        parser.add_argument("--parent", action="store_true", help=description)
+
+        description = "Show all open file descriptors for every process."
+        parser.add_argument("--fd", action="store_true", help=description)
+
+        description = "Show only the open file descriptors in a dedicated view and nothing else."
+        parser.add_argument("--onlyfd", action="store_true", help=description)
+
+        description = "View all files on the file system, including their permissions."
+        parser.add_argument("--filesystem", action="store_true", help=description)
 
 
+    def load_data(self, node_dump):
+        """Load node data to operate on from the given file."""
 
-def get_file_properties(filesystem, filename):
-    tokens = filename[1:].split("/")
-    last = tokens.pop()
-    current_fs = filesystem
-    try:
-        while tokens:
-            t = tokens.pop(0)
-            current_fs = current_fs[t]["subitems"]
-        result = current_fs[last]["properties"]["st_mode"]
-    except KeyError:
-        result = "_PERMERROR"
+        try:
+            self.m_node_data = helper.readPickle(path = node_dump)
+        except Exception as e:
+            if isinstance(e, EOFError):
+                # on python2 no sensible error string is contained in EOFError
+                e = "Premature end of file"
+            raise sscanner.errors.ScannerError(
+                "Failed to load node data from {}: {}".format(node_dump, str(e))
+            )
 
-    return result
+        assert len(self.m_node_data.keys()) == 1
+        self.m_node_label = next(iter(self.m_node_data.keys()))
+        self.m_node_data = next(iter(self.m_node_data.values()))
 
+    def set_data(self, label, node_data):
+        """Use the given node data structure to operate on."""
+        self.m_node_label = label
+        self.m_node_data = node_data
 
+    def set_verbose(self, verbose):
+        self.m_verbose = verbose
 
-def get_filesystem_table(datastructure, filesystem, uid_name, gid_name, base_path, args):
-    """
-    Note: This is a recursive function
-    """
+    def set_show_fds(self, show):
+        """Also show per process file descriptor info."""
+        self.m_show_fds = show
 
-    if 'subitems' in filesystem:
-        return get_filesystem_table(
-            datastructure, filesystem['subitems'], uid_name, gid_name, base_path, args
-        )
+    def set_show_params(self, show):
+        """Also show process parameters in an extra column."""
+        self.m_show_params = show
 
-    for item_name, item_val in sorted(filesystem.items()):
-        base_path_file = os.path.join(base_path, item_name)
-        item_properties = item_val["properties"]
+    def add_pid_filter(self, pid):
+        """Don't show all PIDs but just the given PID in the table.
+        Accumulates."""
+        self.m_pid_filter.append(pid)
 
-        if not item_properties:
-            # some file we couldn't get properties for
-            datastructure.append(["???", base_path_file, "???", "?", "?", "?"])
-            continue
-        perm_str      = file_mode.get_mode_string(item_properties["st_mode"])
-        file_type_str = file_mode.get_type_label(item_properties["st_mode"])
+    def set_show_filter_parents(self, show):
+        """If a PID filter is in effect, also show the parents of selected
+        PIDs."""
+        self.m_show_filter_parents = show
 
-        if item_properties["st_uid"] == None or item_properties["st_uid"] not in uid_name:
-            user  = "!USERERROR!"
+    def set_show_filter_children(self, show):
+        """If a PID filter is in effect, also show the children of selected
+        PIDs."""
+        self.m_show_filter_children = show
+
+    def set_show_kthreads(self, show):
+        """Also include kernel thread PIDs in the table."""
+        self.m_show_kthreads = show
+
+    def print_file_descriptors(self):
+        """Prints all file descriptors of all processes found in the current
+        data set."""
+
+        all_pids = self.m_node_data["proc_data"].keys()
+
+        for pid in sorted(all_pids):
+            info = self.m_node_data["proc_data"][pid]
+            open_file_count = len(info["open_files"])
+
+            # Hide the process if it has no open files
+            # But always show all processes on -v
+            if open_file_count > 0 or self.m_verbose:
+                list_str = self.get_list_of_open_file_descriptors(info)
+                print("{} (pid: {})".format(info["executable"], pid))
+                print("----")
+                print(list_str)
+                print("")
+
+    def get_file_properties(self, filename):
+        """Returns the properties of a given file path in the file system. Or
+        an empty dictionary on failure."""
+        tokens = filename[1:].split(os.path.sep)
+        filesystem = self.m_node_data['filesystem']['subitems']
+        try:
+            while True:
+                t = tokens.pop(0)
+                if tokens:
+                    filesystem = filesystem[t]["subitems"]
+                else:
+                    # last node, get the property
+                    return filesystem[t]["properties"]
+        except KeyError:
+            # file not found
+            pass
+
+        return {}
+
+    def build_width_column_dict(self, table):
+        """Builds a dictionary containing the maximum width for each column in
+        the given table list."""
+        width_column_dict = {}
+        for i in range(len(table[0])):
+            width_column_dict[i] = max(len(row[i]) for row in table)
+
+        return width_column_dict
+
+    def print_table_width_column_dict(self, table, width_column_dict, max_width):
+        for row in table:
+            to_print = " ".join(row[i].ljust(width_column_dict[i]) for i in range(len(table[0])))
+            if max_width:
+                print(to_print[:max_width])
+            else:
+                print(to_print)
+
+    def get_filesystem_table(self, cur_path = None, cur_node = None):
+        """
+        Recursively constructs and returns list of strings that describes the
+        complete file system structure rooted at cur_path/cur_node.
+
+        :param str cur_path: The current path string which needs to correspond
+        to `cur_node`.
+        :param dict cur_node: The current dictionary entry from
+        self.m_node_data['filesystem'] that corresponds to `cur_path`
+        """
+
+        if not cur_node and not cur_path:
+            cur_node = self.m_node_data['filesystem']
+            cur_path = '/'
+        elif not cur_node or not cur_path:
+            raise Exception("Need either both or none of `cur_node` and `cur_path`")
+
+        uid_name = self.m_node_data["uid_name"]
+        gid_name = self.m_node_data["gid_name"]
+
+        # for the root node, TODO: get rid of this, root node info is also
+        # interesting
+        subitems = cur_node.get('subitems', None)
+        if subitems:
+            # descend into the sub-nodes
+            return self.get_filesystem_table(cur_path, subitems)
+
+        ret = []
+
+        for name, info in sorted(cur_node.items()):
+            base_path_file = os.path.join(cur_path, name)
+            props = info["properties"]
+
+            if not props:
+                # some file we couldn't get properties for
+                ret.append(["???", base_path_file, "???", "?", "?", "?"])
+                continue
+
+            perm_str = file_mode.get_mode_string(props["st_mode"])
+            file_type = file_mode.get_type_label(props["st_mode"])
+
+            if props["st_uid"] not in uid_name:
+                user  = "!USERERROR!"
+            else:
+                user  = uid_name[props["st_uid"]]
+
+            if props["st_gid"] not in gid_name:
+                group = "!GROUPERROR!"
+            else:
+                group = gid_name[props["st_gid"]]
+
+            caps = self.m_cap_translator.get_cap_strings(props["caps"])
+            cap_str = "|".join(caps)
+
+            ret.append(
+                [perm_str, base_path_file, file_type, user, group, cap_str]
+            )
+
+            subitems = info.get("subitems", None)
+            if subitems:
+                # descend into the next node, depth-first
+                ret += self.get_filesystem_table(base_path_file, subitems)
+
+        return ret
+
+    def inode_to_identifier(self, _type, inode):
+        """
+        Returns a human readable string describing the given node number.
+
+        This is helpful for pseudo files found in /proc/<pid>/fd, that for
+        some types of files contain the inode number which can be looked up in
+        other data structures.
+
+        :param str _type: The type of the inode like "socket"
+        :param int inode: The inode number to lookup.
+        """
+
+        if _type != "socket":
+            raise Exception("Can only translate socket inodes for now")
+
+        result = []
+        for transport_protocol in ["tcp", "tcp6", "udp", "udp6", "unix"]:
+            transport_dict = self.m_node_data.get(transport_protocol, {})
+            if not transport_dict:
+                continue
+            inode_entry = transport_dict.get(str(inode), -1)
+
+            if inode_entry == -1:
+                continue
+
+            # a named unix domain socket
+            if transport_protocol == "unix":
+                if inode_entry == "": # unnamed unix domain socket
+                    inode_entry = "<anonymous>"
+                else: # named or abstract unix domain socket
+                    # TODO: this lookup doesn't work for abstract sockets
+                    props = self.get_file_properties(inode_entry)
+                    # TODO: this else branch makes no sense
+                    if props:
+                        st_mode = props['st_mode']
+                        permissions = file_mode.get_mode_string(st_mode)
+                    else:
+                        permissions = "!PERMERROR"
+                    inode_entry = "{} (named socket file permissions: {})".format(
+                        inode_entry, permissions
+                    )
+            else: # TCP or UDP socket with IP address and port
+                # TODO: state flags are missing in the data to determine
+                # listening sockets for tcp
+                # TODO: also include IP addresses for IPv4/v6 respectively
+                # using python socket formatting functions
+                inode_entry = int(inode_entry[0][1], 16) # port of the local ip
+
+            result.append("{}:{}".format(transport_protocol, inode_entry))
+
+        result = "|".join(result)
+
+        if result:
+            return result
         else:
-            user  = uid_name[item_properties["st_uid"]]
+            return "<port not found, inode: {:>15}>".format(inode)
 
-        if item_properties["st_gid"] == None or item_properties["st_gid"] not in gid_name:
-            group = "!GROUPERROR!"
+    def get_pseudo_file_desc(self, pseudo_label):
+        """
+        Returns a descriptive, formatted string for the given ``pseudo_label``
+        which is the symlink content for pseudo files in /proc/<pid>/fd.
+        """
+
+        # Convert fds to more easy-to-read strings
+
+        # this is a string like "<type>:<value>", where <value> is either an
+        # inode of the form "[num]" or a subtype field like "inotify".
+        _type, value = pseudo_label.split(':', 1)
+        value = value.strip("[]")
+
+        if _type == "pipe":
+            # TODO: include to which process this pipe is connected to
+            result = "{} : {:>10}".format(_type, value)
+        elif _type == "socket":
+            result = "{} : {:>10}".format(
+                _type, self.inode_to_identifier(_type, int(value))
+            )
+        elif _type == "anon_inode":
+            result = "{} : {}".format(_type, value)
         else:
-            group = gid_name[item_properties["st_gid"]]
-
-
-        cap_trans = cap_translator.CapTranslator("cap_data.json")
-        cap_str = "|".join(cap_trans.get_cap_strings(item_properties["caps"]))
-
-        datastructure.append([perm_str, base_path_file, file_type_str, user, group, cap_str])
-
-        if "subitems" in item_val:
-            get_filesystem_table(datastructure, item_val["subitems"], uid_name, gid_name, base_path_file, args)
-        else:
-            base_path_file = base_path
-
-
-
-def print_only_file_descriptors(collected_data_dict, args):
-    all_pids = collected_data_dict["proc_data"].keys()
-
-    for pid in sorted(all_pids):
-        open_file_count = len(collected_data_dict["proc_data"][pid]["open_files"].keys())
-
-        # Hide the process if it has no open files
-        # But always show all processes on -v
-        if open_file_count > 0 or args.verbose:
-            print("{} (pid: {})".format(collected_data_dict["proc_data"][pid]["executable"], pid))
-            print("----")
-            list_str = get_list_of_open_file_descriptors(collected_data_dict, pid, args)
-            print(list_str)
-            print("")
-
-
-
-def inode_to_identifier(collected_data_dict, inode):
-    """
-    Return the string representation of an inode number, according to the
-    network lookup tables
-    """
-    result = ""
-
-    result = []
-    for transport_protocol in ["tcp", "tcp6", "udp", "udp6", "unix"]:
-        if transport_protocol in collected_data_dict:
-            if inode in collected_data_dict[transport_protocol]:
-                if transport_protocol == "unix": # unix domain socket
-                    the_identifier = collected_data_dict[transport_protocol][inode]
-                    if the_identifier == "": # unnamed unix domain socket
-                        the_identifier = "<unnamed>"
-                    else: # else: named or abstract unix domain socket
-                        st_mode = get_file_properties(collected_data_dict["filesystem"], the_identifier)
-                        if st_mode:
-                            permissions = file_mode.get_mode_string(st_mode)
-                        else:
-                            permissions = st_mode
-                        the_identifier = "{} (named socket file permissions: {})".format(the_identifier, permissions)
-                else: # TCP or UDP socket
-                    the_identifier = int(collected_data_dict[transport_protocol][inode][0][1], 16) # port of the local ip
-                result.append("{}:{}".format(transport_protocol, the_identifier))
-
-
-    result = "|".join(result)
-
-    if result != "":
+            raise Exception("Unexpected pseudo file type " + _type)
         return result
-    else:
-        return "<port not found, inode: {:>15}>".format(inode)
 
+    def get_list_of_open_file_descriptors(self, pid_data):
+        """
+        Get all open file descriptors as a list of strings.
 
+        :param dict pid_data: the info dictionary of the PID for which to get the
+        info.
+        """
 
-def get_pseudo_file_str_rep(collected_data_dict, raw_pseudo_file_str):
-    """
-    Return the supplied file path in addition its file type
-    """
+        real_files = []
+        pseudo_files = []
 
-    # Convert fds to more easy-to-read strings
-    regex = re.compile("\/proc\/\d+\/fd\/(socket|pipe|anon\_inode)+:\[?(\w+)\]?")
-    match = re.match(regex, raw_pseudo_file_str)
+        for fd, info in pid_data["open_files"].items():
 
-    if match:
-        the_type  = match.group(1)
-        the_value = match.group(2)
+            symlink = info["symlink"]
 
-        if the_type == "pipe":
-            result = "{} : {:>10}".format(the_type, the_value)
-        elif the_type == "socket":
-            result = "{} : {:>10}".format(the_type, inode_to_identifier(collected_data_dict, the_value))
-        elif the_type == "anon_inode":
-            result = "{} : {}".format(the_type, the_value)
-        else:
-            assert False
-        return result
-    else:
-        return "{} : {}".format("!FORMATERROR!", raw_pseudo_file_str)
+            flags = file_mode.get_fd_flag_labels(info["file_flags"])
+            file_perm = info["file_perm"]
+            perms_octal = ''.join(
+                [ str(file_perm[key]) for key in ('Uid', 'Gid', 'other') ]
+            )
 
+            # TODO: this is a bug, the symlink may contain a colon even if it
+            # is a real file. Only if it is a broken symlink we can assume
+            # this.
+            is_pseudo_file = ":" in symlink
 
-def get_list_of_open_file_descriptors(collected_data_dict, pid, args):
-    """
-    Get all open file descriptors as a list of strings.
-    """
-
-    pid_data = collected_data_dict["proc_data"][pid]
-    real_files_strs = []
-    pseudo_files_strs = []
-    for fd_num_str in pid_data["open_files"].keys():
-        fd_perm = pid_data["open_files"][fd_num_str]
-
-        fd_symlink = fd_perm["symlink"]
-
-        flags = file_mode.get_fd_flag_labels(fd_perm["file_flags"])
-        file_perm     = fd_perm["file_perm"]
-        file_perm_str = str(file_perm["Uid"]) + str(file_perm["Gid"]) + str(file_perm["other"])
-
-        if ":" not in fd_symlink:
-            # real files on disk
-
-            file_identity = fd_perm["file_identity"]
-
-            color_it = False
-            for uid_type in pid_data["Uid"]:
-
-                user_identity = {
-                    "Uid":uid_type,
-                    "Gid_set":pid_data["Gid"],
-                }
-
-                if not file_mode.can_access_file(user_identity, file_identity, file_perm):
-                    color_it = True
-
-            tmp_file_str = fd_symlink
-            if color_it:
-                tmp_file_str = get_color_str(tmp_file_str)
-
-            if args.verbose:
-                tmp_file_str = "{:>5}: ".format(fd_num_str) + tmp_file_str
-            tmp_file_str = "{} (permissions: {})".format(tmp_file_str, file_perm_str)
-            if flags:
-                tmp_file_str = "{} (flags: {})".format(tmp_file_str, "|".join(flags))
-            real_files_strs.append(tmp_file_str)
-
-        else:
             # pseudo files: sockets, pipes, ...
-            tmp_file_str = get_pseudo_file_str_rep(collected_data_dict, fd_symlink)
+            if is_pseudo_file:
 
-            if args.verbose:
-                tmp_file_str = "{:>5}: ".format(fd_num_str) + tmp_file_str
-            if "socket" not in fd_symlink:
-                tmp_file_str = "{} (permissions: {})".format(tmp_file_str, file_perm_str)
-            if flags:
-                tmp_file_str = "{} (flags: {})".format(tmp_file_str, "|".join(flags))
+                type, inode = symlink.split(':', 1)
+                line = self.get_pseudo_file_desc(symlink)
 
+                if self.m_verbose:
+                    line = "{:>5}: ".format(fd) + line
+                if type == "socket":
+                    line = "{} (permissions: {})".format(line, perms_octal)
+                if flags:
+                    line = "{} (flags: {})".format(line, "|".join(flags))
 
-            pseudo_files_strs.append(tmp_file_str)
+                pseudo_files.append(line)
+            else:
+                # real files on disk
 
+                file_identity = info["file_identity"]
 
-    all_strs = sorted(real_files_strs) + sorted(pseudo_files_strs)
+                color_it = False
+                for uid_type in pid_data["Uid"]:
 
-    return "\n".join(all_strs)
+                    user_identity = {
+                        "Uid":uid_type,
+                        "Gid_set":pid_data["Gid"],
+                    }
 
+                    if not file_mode.can_access_file(
+                        user_identity,
+                        file_identity,
+                        file_perm
+                    ):
+                        color_it = True
 
+                line = symlink
+                if color_it:
+                    line = self.get_colored(line)
 
-def get_str_rep(collected_data_dict, column, pid, args):
-    """
-    Get the string representation of a table element
-    """
+                if self.m_verbose:
+                    line = "{:>5}: ".format(fd) + line
+                # TODO: also add ownership information
+                line = "{} (permissions: {})".format(line,
+                        perms_octal)
+                if flags:
+                    line = "{} (flags: {})".format(line, "|".join(flags))
+                real_files.append(line)
 
-    pid_data = collected_data_dict["proc_data"][pid]
-    uid_name = collected_data_dict["uid_name" ]
-    gid_name = collected_data_dict["gid_name" ]
+        all_strs = sorted(real_files) + sorted(pseudo_files)
 
-    if "Uid" not in pid_data.keys():
-        return ""
+        return "\n".join(all_strs)
 
-    all_uids_equal = len(set(pid_data["Uid"])) == 1
-    all_gids_equal = len(set(pid_data["Gid"])) == 1
+    def get_column_value(self, column, pid):
+        """
+        Get the string value for the given table ``column`` of the given
+        process with ``pid``.
+        """
 
+        pid_data = self.m_node_data["proc_data"][pid]
+        uid_name = self.m_node_data["uid_name"]
+        gid_name = self.m_node_data["gid_name"]
 
-    if column == "user":
-        user_set = set()
-        for item in set(pid_data["Uid"]):
-            user_set.add(uid_name[item] if not args.verbose else "{}({})".format(uid_name[item], item))
-        result = "|".join(str(x) for x in user_set)
-        if not all_uids_equal:
-            result.get_color_str(result)
+        if "Uid" not in pid_data.keys():
+            return ""
 
-    elif column == "groups":
-        groups_set = set(pid_data["Gid"]) | set(pid_data["Groups"])
-        groups_set_str = set()
+        # check whether a process runs with surprising saved/effective uid/gid
+        all_uids_equal = len(set(pid_data["Uid"])) == 1
+        all_gids_equal = len(set(pid_data["Gid"])) == 1
 
-        for item in groups_set:
-            groups_set_str.add(gid_name[item] if not args.verbose else "{}({})".format(gid_name[item], item))
-        result = "|".join(str(x) for x in groups_set_str)
-        if not all_gids_equal:
-            result.get_color_str(result)
+        if column == "user":
+            user_set = set()
 
-    elif column == "features":
-        result_list = []
-        if pid_data["Seccomp"]:
-            result_list.append("seccomp")
-        if "root" in pid_data and pid_data["root"] != "/":
-            result_list.append("chroot")
+            for item in set(pid_data["Uid"]):
+                if self.m_verbose:
+                    user_label = "{}({})".format(uid_name[item], item)
+                else:
+                    user_label = uid_name[item]
+                user_set.add(user_label)
 
-        if result_list:
-            result = get_color_str("|".join(result_list))
-        else:
+            result = "|".join(str(x) for x in user_set)
+            if not all_uids_equal:
+                result = self.get_colored(result)
+
+        elif column == "groups":
+            # merge the main gid and the auxiliary group ids
+            groups_set = set(pid_data["Gid"]) | set(pid_data["Groups"])
+            groups = set()
+
+            for item in groups_set:
+                if self.m_verbose:
+                    group_label = "{}({})".format(gid_name[item], item)
+                else:
+                    group_label = gid_name[item]
+                groups.add(group_label)
+            result = "|".join([str(x) for x in groups])
+            if not all_gids_equal:
+                result = self.get_colored(result)
+
+        elif column == "features":
+            features = []
+            if pid_data["Seccomp"]:
+                features.append("seccomp")
+            if pid_data.get("root", "/") != "/":
+                features.append("chroot")
+
             result = ""
+            if features:
+                result = self.get_colored("|".join(features))
 
-    elif column[0:3] == "Cap":
-        boring_cap_values = [0, 274877906943]
-        all_uids_are_root = all_uids_equal and pid_data["Uid"][0] == 0
-        no_uids_are_root = pid_data["Uid"].count(0) == 0
+        elif column.startswith("Cap"):
+            # handle any capability set
 
-        if all_uids_are_root:
-            result = ""
-        elif not args.verbose and pid_data[column] in boring_cap_values:
-            result = ""
-        else:
-            cap_trans = cap_translator.CapTranslator("cap_data.json")
-            tmp_cap_list = cap_trans.get_cap_strings(pid_data[column])
-            new_cap_list = []
-            for tmp_cap in tmp_cap_list:
+            # no capabilities and all capabilities are common cases
+            boring_caps = [0, 274877906943]
+            all_uids_are_root = all_uids_equal and pid_data["Uid"][0] == 0
+            no_uids_are_root = pid_data["Uid"].count(0) == 0
+            capabilities = pid_data[column]
+
+            if all_uids_are_root:
+                # is root anyways
+                result = ""
+            elif not self.m_verbose and capabilities in boring_caps:
+                # don't show the boring ones unless on verbose
+                result = ""
+            else:
+                # show actual capability labels
+                tmp_cap_list = self.m_cap_translator.get_cap_strings(capabilities)
+                new_cap_list = []
                 if no_uids_are_root:
-                    new_cap_list.append(get_color_str(tmp_cap))
-            result = "\n".join(new_cap_list)
+                    for tmp_cap in tmp_cap_list:
+                        new_cap_list.append(self.get_colored(tmp_cap))
+                result = "\n".join(new_cap_list)
 
+        elif column in ("executable", "parameters"):
+            # don't show excess length parameters, only a prefix
+            max_len = 40
+            cmdline = pid_data[column]
+            cmdline_chunks = [cmdline[i:i+max_len] for i in range(0, len(cmdline), max_len)]
+            result = "\n".join(cmdline_chunks)
 
+        elif column == "open file descriptors":
+            if "open_files" not in pid_data:
+                result = "RACE_CONDITION"
+            elif not self.m_show_fds:
+                result = len(pid_data["open_files"])
+            else:
+                result = self.get_list_of_open_file_descriptors(pid_data)
 
-    elif column == "executable" or column == "parameters":
-        max_len = 40
-        cmdline = pid_data[column]
-        cmdline_chunks = [cmdline[i:i+max_len] for i in range(0, len(cmdline), max_len)]
-        result = "\n".join(cmdline_chunks)
-
-    elif column == "open file descriptors":
-        if "open_files" not in pid_data:
-            result = "RACE_CONDITION"
-        elif not args.fd:
-            result = len(pid_data["open_files"].keys())
+        elif column in pid_data:
+            # take data as is
+            result = pid_data[column]
         else:
-            result = get_list_of_open_file_descriptors(collected_data_dict, pid, args)
+            raise Exception("Unexpected column " + column + " encountered")
 
-    elif column in pid_data:
-        result = pid_data[column]
-    else:
-        assert False
+        return result
 
+    def get_colored(self, a_string):
+        """
+        Simple wrapper to the coloring function, unless the output is piped into
+        another tool, like less or grep.
+        """
 
-    return result
-
-
-
-def get_color_str(a_string):
-    """
-    Simple wrapper to the coloring function, unless the output is piped into
-    another tool, like less or grep.
-    """
-
-    result = a_string
-    if sys.stdout.isatty():
-        result = termcolor.colored(a_string, "red")
-    return result
+        result = a_string
+        if self.m_have_tty:
+            result = termcolor.colored(a_string, "red")
+        return result
 
 
 
-def recursive_proc_tree(children, pid, indention_count, level, recursive):
-    """
-    Recursive function
-    """
+    def recursive_proc_tree(self, children, pid, level, recursive):
+        """
+        Constructs a list of tuples (pid, level) that describes the process
+        tree and which indentation level should be applied each entry.
+        """
 
-    self_row = (pid, level)
+        self_row = (pid, level)
+        children_rows = []
 
-    children_rows = []
-    # if current pid has children and unless the user does not explicitly want them printed
-    if recursive and pid in children.keys():
-        for child_pid in sorted(children[pid]):
-            children_rows += recursive_proc_tree(children, child_pid, indention_count, level+1, recursive)
+        # if current pid has children and unless the user does not explicitly
+        # want them printed
 
-    return [self_row] + children_rows
+        if recursive and pid in children.keys():
+            for child_pid in sorted(children[pid]):
+                children_rows += self.recursive_proc_tree(
+                    children,
+                    child_pid,
+                    level+1,
+                    recursive
+                )
+
+        return [self_row] + children_rows
 
 
 
-def generate_table(column_headers, proc_tree, str_table_data):
-    result_table = []
-    result_table.append(column_headers)
-    for proc_tuple in proc_tree:
-        (pid, level) = proc_tuple
-        line = []
+    def generate_table(self, column_headers, proc_tree, table_data):
+        """
+        Generates the actual table lines from the input parameters.
+
+        :param list column_headers: A list of the column header labels
+        :param list proc_tree: A list of (pid, indent_level) tuples,
+            describing the process tree.
+        :param dict table_data: A dictionary containing the table field values
+        of the form {
+            "column heading": { 4711:
+                <data>,
+            },
+        }
+        """
+        indent = self.m_indentation_width * " "
+        result_table = []
+        result_table.append(column_headers)
+
+        for pid, level in proc_tree:
+            line = []
+            for column in column_headers:
+                if column == "pid":
+                    tmp = ( level * indent ) + "+---" + str(pid)
+                else:
+                    tmp = table_data[column][pid]
+                line.append(tmp)
+
+            result_table.append(line)
+
+        return result_table
+
+    def print_process_tree(self):
+        """Prints a complete process tree according to currently active view
+        settings."""
+        import copy
+
+        self._assert_have_data()
+
+        num_procs = len(self.m_node_data['proc_data'])
+        print("There are {} processes running on {}.".format(
+            num_procs,
+            self.m_node_label
+        ))
+        print("")
+
+        all_pids = self.m_node_data["proc_data"].keys()
+        children = self.m_node_data["children"]
+        parents = self.m_node_data["parents"]
+
+        column_headers = copy.copy(self.m_column_headers)
+        table = {}
+        to_remove = set()
         for column in column_headers:
             if column == "pid":
-                tmp = ( level * (4 * " ") ) + "+---" + str(pid)
-            else:
-                tmp = str_table_data[column][pid]
-            line.append(tmp)
-        result_table.append(line)
-    return result_table
+                continue
 
-
-
-def print_process_tree(collected_data_dict, column_headers, args):
-
-    all_pids = collected_data_dict["proc_data"].keys()
-    children = collected_data_dict["children"]
-    parents  = collected_data_dict["parents"]
-
-    str_table_data = {}
-    to_remove = set()
-    for column in column_headers:
-        if column != "pid":
-
-            str_table_data[column] = {}
+            table[column] = {}
             for pid in all_pids:
-                str_table_data[column][pid] = get_str_rep(collected_data_dict, column, pid, args)
+                table[column][pid] = self.get_column_value(
+                    column, pid
+                )
 
-            column_values = list(str_table_data[column].values())
+            column_values = list(table[column].values())
             if len(set(column_values)) == 1 and column_values[0] == "":
                 to_remove.add(column)
 
-    # These values are generally uninteresting
-    to_remove.add("CapAmb")
-    to_remove.add("CapBnd")
+        # These values are generally uninteresting
+        to_remove.add("CapAmb")
+        to_remove.add("CapBnd")
 
-    if not args.params:
-        to_remove.add("parameters")
+        if not self.m_show_params:
+            to_remove.add("parameters")
 
+        # Remove empty columns since they only take up unnecessary space
+        for empty_column in to_remove:
+            column_headers.remove(empty_column)
 
-    # Remove empty columns since they only take up unnecessary space
-    for empty_column in to_remove:
-        column_headers.remove(empty_column)
+        level = 0
 
+        # proc_tree
+        # [ [1,0], [400,1], [945,1], [976,2], [1437, 3], ... ]
+        proc_tree = []
+        if self.m_pid_filter:
+            recursive = self.m_show_filter_children
+            for pid in self.m_pid_filter:
+                if self.m_show_filter_parents:
+                    pid = parents[pid]
 
-    indention_count  = 4
-    level = 0
+                if not pid in all_pids:
+                    raise sscanner.errors.ScannerError(
+                        "There is no process that has pid {} on this node.".format(
+                            pid
+                        )
+                    )
 
-    # proc_tree
-    # [ [1,0], [400,1], [945,1], [976,2], [1437, 3], ... ]
-    proc_tree = []
-    if not args.pid:
-        proc_tree += recursive_proc_tree(children, 1, indention_count, level, True)
-        if args.kthreads:
-            proc_tree += recursive_proc_tree(children, 2, indention_count, level, True)
-    else:
-        single_pid = int(args.pid)
-        if args.parent:
-            single_pid = parents[single_pid]
+                proc_tree += self.recursive_proc_tree(
+                    children,
+                    pid,
+                    level,
+                    recursive
+                )
+        else:
+            root_pids = [1]
+            if self.m_show_kthreads:
+                # for kernel threads PID2 is the root
+                root_pids.append(2)
 
-        if not single_pid in collected_data_dict["proc_data"]:
-            exit("There is no process that has pid {} on this node.\n".format(single_pid))
+            for pid in root_pids:
+                proc_tree += self.recursive_proc_tree(
+                    children,
+                    pid,
+                    level,
+                    True
+                )
 
-        recursive = args.children
-        proc_tree += recursive_proc_tree(children, single_pid, indention_count, level, recursive)
+        table = self.generate_table(column_headers, proc_tree, table)
 
+        table = terminaltables.AsciiTable(table)
 
+        # Do not use any borders at all
+        table.outer_border = False
+        table.inner_column_border = False
+        table.inner_heading_row_border = False
 
-    str_table = generate_table(column_headers, proc_tree, str_table_data)
+        print(table.table)
 
+    def print_filesystem_table(self):
 
-    table = terminaltables.AsciiTable(str_table)
+        table = self.get_filesystem_table()
+        width_column_dict = self.build_width_column_dict(table)
+        if self.m_have_tty:
+            term_width = self._get_term_size()[0]
+        else:
+            term_width = 0
+        self.print_table_width_column_dict(table, width_column_dict, term_width)
 
-    # Do not use any borders at all
-    table.outer_border             = False
-    table.inner_column_border      = False
-    table.inner_heading_row_border = False
+    def _get_term_size(self):
+        """Returns the size of the terminal as a pair of (cols, rows)."""
+        # starting with py3.3 there's also shutil.get_terminal_size()
+        res = subprocess.check_output(
+            ["stty", "size"], close_fds = True, shell = False
+        )
+        return tuple(reversed([ int(part) for part in res.decode().split()]))
 
-    print(table.table)
+    def _assert_have_data(self):
+        if not self.m_node_data:
+            raise Exception("no node data has been loaded")
 
+def main():
 
+    description = "Generate various views from collected node data."
+    parser = argparse.ArgumentParser(description=description)
+
+    description = "The input file containing the dumped node data to view."
+    parser.add_argument("-i", "--input", required=True, type=str, help=description)
+
+    description = "Print more detailed information."
+    parser.add_argument("-v", "--verbose", action="store_true", help=description)
+
+    Viewer.add_parser_arguments(parser)
+
+    args = parser.parse_args()
+
+    viewer = Viewer()
+    viewer.activate_settings(args)
+    viewer.load_data(args.input)
+    viewer.perform_action(args)
 
 if __name__ == "__main__":
-    main()
+    helper.executeMain(main)
+

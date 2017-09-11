@@ -79,7 +79,8 @@ class Dumper(object):
 
     def get_node_data(self):
         """Returns the currently collected node data. Only valid after a call
-        to collect()."""
+        to collect(). The returned data is a list of dictionaries describing
+        each individual node dump."""
         return self.m_nodes
 
     def collect(self, load_cached):

@@ -35,12 +35,6 @@ import sscanner.crowbar
 import sscanner.errors
 import sscanner.viewer
 
-# Foreign modules
-try:
-    import termcolor
-except ImportError as e:
-    scanner.helper.missingModule(ex = e)
-
 class Modes(object):
     """enum-like class for hold the different security scanner modes we
     support"""
@@ -114,33 +108,9 @@ class SecurityScanner(object):
         description = "Ignore and remove any cached files, forcing a fresh scan."
         dump_group.add_argument("--nocache", action="store_true", help=description)
 
-        # View
-        # TODO: share these definitions with the view module
         view_group = parser.add_argument_group('view arguments')
-
-        description = "Include complete command line arguments for each process."
-        view_group.add_argument("--params", action="store_true", help=description)
-
-        description = "Include kernel threads. Kernel threads are excluded by default."
-        view_group.add_argument("-k", "--kthreads", action="store_true", help=description)
-
-        description = "Only show data that belongs to the provided pid."
-        view_group.add_argument("-p", "--pid", type=str, help=description)
-
-        description = "Also print all the children of the process provided by -p/--pid."
-        view_group.add_argument("--children", action="store_true", help=description)
-
-        description = "Print the parent of the process provided by -p/--pid."
-        view_group.add_argument("--parent", action="store_true", help=description)
-
-        description = "Show all open file descriptors for every process."
-        view_group.add_argument("--fd", action="store_true", help=description)
-
-        description = "Show only the open file descriptors in a dedicated view and nothing else."
-        view_group.add_argument("--onlyfd", action="store_true", help=description)
-
-        description = "Show all files on the file system, including their permissions."
-        view_group.add_argument("--filesystem", action="store_true", help=description)
+        # definitions come from the viewer module itself
+        sscanner.viewer.Viewer.add_parser_arguments(view_group)
 
         self.m_parser = parser
 
@@ -202,33 +172,20 @@ class SecurityScanner(object):
         """Performs the view operation according to command line parameters.
         The node data needs to have been collected for this to work."""
 
-        view_args = argparse.Namespace()
-        view_args.verbose     = self.m_args.verbose
-        view_args.params      = self.m_args.params
-        view_args.kthreads    = self.m_args.kthreads
-        view_args.pid         = self.m_args.pid
-        view_args.children    = self.m_args.children
-        view_args.parent      = self.m_args.parent
-        view_args.fd          = self.m_args.fd
-        view_args.onlyfd      = self.m_args.onlyfd
-        view_args.filesystem  = self.m_args.filesystem
+        viewer = sscanner.viewer.Viewer()
+        viewer.activate_settings(self.m_args)
 
-        # TODO: don't let the viewer read in the dump once more, pass it
-        # directly in memory
         if self.m_args.mode in (Modes.local, Modes.ssh):
             self.m_args.all = True
 
-        if not self.m_args.all:
-            # only show data for the starting node
-            entry_node = self.m_node_data[0]
-            print("\n\nPreparing report for {} ...".format(entry_node["node"]))
-            view_args.input = entry_node["full_path"]
-            scanner.viewer.view_data(view_args)
-        else:
-            for config in self.m_node_data:
-                print("\n\nPreparing report for {} ...".format(config['node']))
-                view_args.input = config['full_path']
-                sscanner.viewer.view_data(view_args)
+        # iterate over only the single node or all nodes depending on mode and
+        # command line switches
+        nodes = self.m_node_data if self.m_args.all else [ self.m_node_data[0] ]
+
+        for config in self.m_node_data:
+            print("\n\nReport for {} ...".format(config['node']))
+            viewer.set_data(config['node'], config['data'])
+            viewer.perform_action(self.m_args)
 
     def _cleanupData(self):
         import shutil
