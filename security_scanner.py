@@ -121,12 +121,12 @@ class SecurityScanner(object):
 
             # crowbar module arguments
             crowbar = sscanner.crowbar.Crowbar()
-            crowbar.set_entry_node(self.m_args.entry)
-            crowbar.set_use_cache(not self.m_args.nocache)
-            crowbar.set_config_path(nwconfig_path)
+            crowbar.setEntryNode(self.m_args.entry)
+            crowbar.setUseCache(not self.m_args.nocache)
+            crowbar.setConfigPath(nwconfig_path)
 
-            nwconfig = crowbar.load_network_info()
-            dumper.set_network_config(crowbar.get_network_info())
+            nwconfig = crowbar.loadNetworkInfo()
+            dumper.set_network_config(crowbar.getNetworkInfo())
         elif self.m_args.mode == Modes.ssh:
             dumper = sscanner.dumper.SshDumper()
             dumper.set_network_config({self.m_args.entry: []})

@@ -53,24 +53,24 @@ class Crowbar(object):
         self.m_net_config = sscanner.network_config.NetworkConfig()
         self.m_info = {}
 
-    def set_use_cache(self, cache):
+    def setUseCache(self, cache):
 
         self.m_use_cache = cache
 
-    def set_config_path(self, path):
+    def setConfigPath(self, path):
         self.m_config_path = path
 
-    def set_entry_node(self, node):
+    def setEntryNode(self, node):
         """Set the hostname or IP of the crowbar entry node for scanning the
         network configuration."""
         self.m_entry_node = node
 
-    def get_network_info(self):
+    def getNetworkInfo(self):
         """Returns the currently loaded network info. Only valid if
-        load_network_info() was successfully called."""
+        loadNetworkInfo() was successfully called."""
         return self.m_info
 
-    def get_crowbar_config(self):
+    def getCrowbarConfig(self):
         """
         Creates a connection to the configured entry node and retrieves a
         machine listing from crowbar running there.
@@ -113,28 +113,28 @@ class Crowbar(object):
             self.m_entry_node: [str(item) for item in node_lines]
         }
 
-    def load_network_info(self):
+    def loadNetworkInfo(self):
         """Retrieve the crowbar network data for the configured entry node. If
         a config file exists on disk it will be used (if cache is enabled),
         otherwise data from the remote host will be collected and saved to
         disk.
 
         The obtained data will be saved in the object and can be obtained via
-        get_network_info().
+        getNetworkInfo().
         """
 
         if self._haveCache():
-            self._load_config()
+            self._loadConfig()
         else:
-            self._fetch_config()
+            self._fetchConfig()
 
-    def _load_config(self):
+    def _loadConfig(self):
         print("Using cached crowbar network data from", self.m_config_path)
         self.m_net_config.load(self.m_config_path)
         self.m_info = next(iter(self.m_net_config.getNetwork()))
 
-    def _fetch_config(self):
-        self.m_info = self.get_crowbar_config()
+    def _fetchConfig(self):
+        self.m_info = self.getCrowbarConfig()
         self.m_net_config.setNetwork(self.m_info)
         self.m_net_config.save(self.m_config_path)
         print("Wrote crowbar network data to {}\n".format(self.m_config_path))
@@ -163,10 +163,10 @@ def main():
     args = parser.parse_args()
 
     crowbar = Crowbar()
-    crowbar.set_entry_node(args.entry)
-    crowbar.set_config_path(args.config)
-    crowbar.set_use_cache(not args.nocache)
-    crowbar.load_network_info()
+    crowbar.setEntryNode(args.entry)
+    crowbar.setConfigPath(args.config)
+    crowbar.setUseCache(not args.nocache)
+    crowbar.loadNetworkInfo()
 
 if __name__ == "__main__":
     sscanner.helper.executeMain(main)
