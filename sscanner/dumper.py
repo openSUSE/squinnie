@@ -129,7 +129,7 @@ class Dumper(object):
 
             print("Loading cached dump from", dump_path)
             data = sscanner.helper.readPickle( path = dump_path )
-            config['data'] = data.values()[0]
+            config['data'] = next(iter(data.values()))
 
     def _setup_dump_nodes(self, node_list):
         """Stores a list in self.m_nodes containing dictionaries describing
