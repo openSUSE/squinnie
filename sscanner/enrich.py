@@ -56,19 +56,19 @@ class Enricher(object):
         self._assertData()
         return next(iter(self.m_node_data.values()))
 
-    def load_data(self, file_name):
+    def loadData(self, file_name):
         """Load data from the given node data dump file and store it in the
         object."""
 
         self.m_node_data = sscanner.helper.readPickle(path = file_name)
         assert len(self.m_node_data.keys()) == 1
 
-    def save_data(self, file_name):
+    def saveData(self, file_name):
         self._assertData()
 
         sscanner.helper.writePickle(self.m_node_data, path = file_name)
 
-    def is_enriched(self):
+    def isEnriched(self):
         """Returns whether the currently loaded node data already has been
         enriched by this class."""
         self._assertData()
@@ -89,7 +89,7 @@ class Enricher(object):
 
         self._assertData()
 
-        if self.is_enriched():
+        if self.isEnriched():
             return False
 
         # this is currently the only enrichment performed: recording the
@@ -125,11 +125,11 @@ def main():
     args = parser.parse_args()
 
     enricher = Enricher()
-    enricher.load_data(args.input)
+    enricher.loadData(args.input)
     if not enricher.enrich():
         print("Node data is already enriched. Nothing to do.")
         return
-    enricher.save_data(args.input)
+    enricher.saveData(args.input)
 
 if __name__ == "__main__":
     sscanner.helper.executeMain(main)

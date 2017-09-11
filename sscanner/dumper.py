@@ -92,7 +92,7 @@ class Dumper(object):
             enricher.enrich()
             dump_path = config['full_path']
             print("Saving data to {}".format(dump_path))
-            enricher.save_data(dump_path)
+            enricher.saveData(dump_path)
 
     def _get_filename(self, node_str):
         # apparently .p is commonly used for pickled data
