@@ -126,20 +126,20 @@ class SecurityScanner(object):
             crowbar.setConfigPath(nwconfig_path)
 
             nwconfig = crowbar.loadNetworkInfo()
-            dumper.set_network_config(crowbar.getNetworkInfo())
+            dumper.setNetworkConfig(crowbar.getNetworkInfo())
         elif self.m_args.mode == Modes.ssh:
             dumper = sscanner.dumper.SshDumper()
-            dumper.set_network_config({self.m_args.entry: []})
+            dumper.setNetworkConfig({self.m_args.entry: []})
         elif self.m_args.mode == Modes.local:
             dumper = sscanner.dumper.LocalDumper()
 
-        dumper.set_output_dir(self.m_args.directory)
-        dumper.set_use_cache(not self.m_args.nocache)
+        dumper.setOutputDir(self.m_args.directory)
+        dumper.setUseCache(not self.m_args.nocache)
         dumper.collect(load_cached = True)
 
-        self.m_node_data = dumper.get_node_data()
+        self.m_node_data = dumper.getNodeData()
         dumper.save()
-        dumper.print_cached_dumps()
+        dumper.printCachedDumps()
 
     def _viewData(self):
         """Performs the view operation according to command line parameters.

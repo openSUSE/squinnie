@@ -55,23 +55,23 @@ class Dumper(object):
         self.m_outdir = None
         self.m_use_cache = True
 
-    def set_use_cache(self, use):
+    def setUseCache(self, use):
         self.m_use_cache = use
 
-    def set_output_dir(self, path):
+    def setOutputDir(self, path):
         self.m_outdir = path
 
-    def print_cached_dumps(self):
+    def printCachedDumps(self):
         """Prints an informational line for each dump that was not freshly
         collected due to caching."""
         if not self.m_use_cache:
             return
 
-        for node in self.get_node_data():
+        for node in self.getNodeData():
             if node['cached']:
                 print("Not regenerating cached dump for", node['node'])
 
-    def get_node_data(self):
+    def getNodeData(self):
         """Returns the currently collected node data. Only valid after a call
         to collect(). The returned data is a list of dictionaries describing
         each individual node dump."""
@@ -94,19 +94,19 @@ class Dumper(object):
             print("Saving data to {}".format(dump_path))
             enricher.saveData(dump_path)
 
-    def _get_filename(self, node_str):
+    def _getFilename(self, node_str):
         # apparently .p is commonly used for pickled data
         file_extension = "p"
         return "{}.{}".format(node_str.replace(".", "-"), file_extension)
 
 
-    def _get_full_dump_path(self, dump):
+    def _getFullDumpPath(self, dump):
         return os.path.join(self.m_outdir, dump)
 
-    def _have_cached_dump(self, dump):
-        return os.path.isfile( self._get_full_dump_path(dump) )
+    def _haveCachedDump(self, dump):
+        return os.path.isfile( self._getFullDumpPath(dump) )
 
-    def _discard_cached_dumps(self):
+    def _discardCachedDumps(self):
         """Discards any cached dump files for the nodes currently setup in
         self.m_nodes"""
 
@@ -117,7 +117,7 @@ class Dumper(object):
                 os.remove(config['full_path'])
                 config['cached'] = False
 
-    def _load_cached_dumps(self):
+    def _loadCachedDumps(self):
         """Loads any dumps for nodes in self.m_nodes that are marked as cached
         from their respective dump file paths."""
 
@@ -131,7 +131,7 @@ class Dumper(object):
             data = sscanner.helper.readPickle( path = dump_path )
             config['data'] = next(iter(data.values()))
 
-    def _setup_dump_nodes(self, node_list):
+    def _setupDumpNodes(self, node_list):
         """Stores a list in self.m_nodes containing dictionaries describing
         the nodes and their respective dump paths for future operations.
         """
@@ -140,14 +140,14 @@ class Dumper(object):
 
         for node, parent in node_list:
 
-            dump = self._get_filename(node)
+            dump = self._getFilename(node)
 
             self.m_nodes.append( {
                 "node": node,
                 "path": dump,
-                "full_path": self._get_full_dump_path(dump),
+                "full_path": self._getFullDumpPath(dump),
                 "via": parent,
-                "cached": self._have_cached_dump(dump)
+                "cached": self._haveCachedDump(dump)
             } )
 
 class SshDumper(Dumper):
@@ -157,12 +157,12 @@ class SshDumper(Dumper):
         super(SshDumper, self).__init__(*args, **kwargs)
         self.m_network = None
 
-    def set_network_config(self, nc):
+    def setNetworkConfig(self, nc):
         """Set an already existing network configuration dictionary for futher
         use during collect()."""
         self.m_network = nc
 
-    def load_network_config(self, file_name):
+    def loadNetworkConfig(self, file_name):
         """Reads the target network configuration from the given JSON file and
         stores it in the object for further use during collect()."""
         self.m_network = sscanner.network_config.NetworkConfig().load(file_name)
@@ -171,7 +171,7 @@ class SshDumper(Dumper):
         """Collect data from the configured remote host, possibly further
         hosts depending on the active network configuration.
 
-        You can retrieve the collected data via get_node_data() after a
+        You can retrieve the collected data via getNodeData() after a
         successful call to this function.
 
         :param bool load_cached: if set then cached dumps that already exist
@@ -180,17 +180,17 @@ class SshDumper(Dumper):
         if not self.m_network or not self.m_outdir:
             raise ScannerError("Missing network and/or output directory")
 
-        node_list = self._get_network_nodes()
-        self._setup_dump_nodes(node_list)
+        node_list = self._getNetworkNodes()
+        self._setupDumpNodes(node_list)
 
         if not self.m_use_cache:
-            self._discard_cached_dumps()
+            self._discardCachedDumps()
 
-        self._receive_data()
+        self._receiveData()
         if load_cached:
-            self._load_cached_dumps()
+            self._loadCachedDumps()
 
-    def _get_network_nodes(self):
+    def _getNetworkNodes(self):
         """Flattens the nodes found in self.m_network and returns them as a
         list of (node, parent), where parent is an optional jump host to reach
         the node."""
@@ -215,7 +215,7 @@ class SshDumper(Dumper):
 
         return ret
 
-    def get_execnet_gateway(self, node, via):
+    def _getExecnetGateway(self, node, via):
         """Returns a configuration string for execnet's makegatway() function
         for dumping the given node."""
         data = {
@@ -231,7 +231,7 @@ class SshDumper(Dumper):
 
         return "//".join(parts)
 
-    def _receive_data(self):
+    def _receiveData(self):
 
         group = execnet.Group()
         data = {}
@@ -241,7 +241,7 @@ class SshDumper(Dumper):
                 continue
             node = config['node']
             print("Receiving data from {}".format(node))
-            gateway = self.get_execnet_gateway(node, config['via'])
+            gateway = self._getExecnetGateway(node, config['via'])
             group.makegateway(gateway)
 
             config['data'] = group[node].remote_exec(sscanner.slave).receive()
@@ -261,11 +261,11 @@ class LocalDumper(Dumper):
         if not self.m_outdir:
             raise ScannerError("Missing output directory")
 
-        node_list = self._get_local_node()
-        self._setup_dump_nodes(node_list)
+        node_list = self._getLocalNode()
+        self._setupDumpNodes(node_list)
 
         if not self.m_use_cache:
-            self._discard_cached_dumps()
+            self._discardCachedDumps()
         elif self.m_nodes[0]['cached']:
             # nothing to do
             return
@@ -280,17 +280,17 @@ class LocalDumper(Dumper):
             # for testing. For now we use sudo.
             #print("You're scanning as non-root, only partial data will be collected")
             #print("Run as root to get a full result. This mode is not fully supported.")
-            node_data = self._sudo_collect()
+            node_data = self._sudoCollect()
             self.m_nodes[0]['data'] = node_data
 
-    def _get_local_node(self):
+    def _getLocalNode(self):
         """Returns a node list containing just the localhost for local
         dumping."""
         import socket
         node = socket.gethostname()
         return [(node, None)]
 
-    def _sudo_collect(self):
+    def _sudoCollect(self):
         import subprocess
 
         # gzip has a bug in python2, it can't stream, because it tries
@@ -337,7 +337,7 @@ def main():
 
     import functools
 
-    def file_path(s, check = os.path.isfile):
+    def filePath(s, check = os.path.isfile):
         if not os.path.exists(s):
             raise argparse.ArgumentTypeError("The given path does not exist")
         elif not check(s):
@@ -351,10 +351,10 @@ def main():
     parser = argparse.ArgumentParser(prog=sys.argv[0], description=description)
 
     description = "The input JSON file your network is described with. Pass 'local' to perform a scan of the local machine"
-    parser.add_argument("-i", "--input", type=file_path, help=description)
+    parser.add_argument("-i", "--input", type=filePath, help=description)
 
     description = "The output path you want your data files to be dumped to."
-    parser.add_argument("-o", "--output", required=True, type=functools.partial(file_path, check = os.path.isdir), help=description)
+    parser.add_argument("-o", "--output", required=True, type=functools.partial(filePath, check = os.path.isdir), help=description)
 
     description = "Force overwriting files, even if cached files are already present."
     parser.add_argument("--nocache", action="store_true", help=description)
@@ -372,12 +372,12 @@ def main():
         dumper = LocalDumper()
     else:
         dumper = SshDumper()
-        dumper.load_network_config(args.input)
-    dumper.set_output_dir(args.output)
-    dumper.set_use_cache(not args.nocache)
+        dumper.loadNetworkConfig(args.input)
+    dumper.setOutputDir(args.output)
+    dumper.setUseCache(not args.nocache)
     dumper.collect(load_cached = False)
     dumper.save()
-    dumper.print_cached_dumps()
+    dumper.printCachedDumps()
 
 if __name__ == "__main__":
     sscanner.helper.executeMain(main)
