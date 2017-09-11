@@ -132,12 +132,4 @@ def main():
     enricher.save_data(args.input)
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception as e:
-        if isinstance(e, EOFError):
-            # on python2 no sensible error string is contained in EOFError
-            e = "Premature end of file"
-        print( termcolor.colored("Failed to process node data:", "red"), str(e) )
-        sys.exit(1)
-
+    sscanner.helper.executeMain(main)

@@ -33,6 +33,7 @@ import sscanner.helper
 import sscanner.slave
 import sscanner.enrich
 import sscanner.network_config
+from sscanner.errors import ScannerError
 
 # foreign modules
 try:
@@ -85,7 +86,7 @@ class Dumper(object):
 
     def collect(self, load_cached):
         if not self.m_network or not self.m_outdir:
-            raise Exception("Missing network and/or output directory")
+            raise ScannerError("Missing network and/or output directory")
 
         node_list = self._get_network_nodes()
         self._setup_dump_nodes(node_list)
@@ -102,7 +103,7 @@ class Dumper(object):
     def collect_local(self, load_cached):
 
         if not self.m_outdir:
-            raise Exception("Missing output directory")
+            raise ScannerError("Missing output directory")
 
         node_list = self._get_local_node()
         self._setup_dump_nodes(node_list)
@@ -352,9 +353,5 @@ def main():
     dumper.print_cached_dumps()
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception as e:
-        print(termcolor.colored("Error:", "red"), e)
-        raise
+    sscanner.helper.executeMain(main)
 

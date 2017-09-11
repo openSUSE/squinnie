@@ -27,6 +27,9 @@ import json
 import sys
 import os
 
+import sscanner.helper
+import sscanner.errors
+
 class CapTranslator(object):
 
     m_capfile = "cap_data.json"
@@ -55,9 +58,9 @@ class CapTranslator(object):
         capfile = os.path.join( datadir, self.file_name )
 
         if not os.path.exists(capfile):
-            raise Exception("Missing capability description file at {}".format(
-                capfile
-            ))
+            raise sscanner.errors.ScannerError(
+                "Missing capability description file at {}".format(capfile)
+            )
 
         with open(capfile, "r") as fi:
             return json.load(fi)
@@ -91,4 +94,4 @@ def main():
     print("")
 
 if __name__ == "__main__":
-    main()
+    sscanner.helper.executeMain(main)

@@ -134,8 +134,4 @@ def main():
     crowbar.dump_crowbar_to_file()
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception as e:
-        print(termcolor.colored("Error:", 'red'), str(e))
-        sys.exit(1)
+    sscanner.helper.executeMain(main)
