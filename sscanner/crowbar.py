@@ -33,6 +33,7 @@ import termcolor
 # Local modules
 import sscanner.helper
 import sscanner.network_config
+import sscanner.errors
 
 # PyPy modules
 try:
@@ -41,16 +42,33 @@ except ImportError:
     sscanner.helper.missingModule("execnet")
 
 class Crowbar(object):
+    """This class can collect the crowbar network configuration from a SUSE
+    cloud master node and store it as a network_config file."""
 
-    def __init__(self, args):
+    def __init__(self):
 
-        self.m_args = args
+        self.m_use_cache = True
+        self.m_config_path = None
+        self.m_entry_node = None
+        self.m_net_config = sscanner.network_config.NetworkConfig()
+        self.m_info = {}
 
-    def _haveCache(self):
+    def set_use_cache(self, cache):
 
-        use_cache = not self.m_args.nocache
+        self.m_use_cache = cache
 
-        return use_cache and os.path.isfile(self.m_args.output)
+    def set_config_path(self, path):
+        self.m_config_path = path
+
+    def set_entry_node(self, node):
+        """Set the hostname or IP of the crowbar entry node for scanning the
+        network configuration."""
+        self.m_entry_node = node
+
+    def get_network_info(self):
+        """Returns the currently loaded network info. Only valid if
+        load_network_info() was successfully called."""
+        return self.m_info
 
     def get_crowbar_config(self):
         """
@@ -62,76 +80,93 @@ class Crowbar(object):
         }
         """
 
-        entry_node = self.m_args.entry
-        if not entry_node:
-            raise Exception("entry_node is required")
+        if not self.m_entry_node:
+            raise sscanner.errors.ScannerError("entry node for scanning crowbar network is required")
 
         group = execnet.Group()
-        master = group.makegateway("id=master//python=python{}//ssh=root@{}".format(2, entry_node))
+        master = group.makegateway(
+            "id=master//python=python{}//ssh=root@{}".format(2, self.m_entry_node)
+        )
 
         cmd = "crowbar machines list"
-        exec_cmd = "import subprocess; channel.send(subprocess.check_output('{}'))".format(cmd)
+        exec_cmd = """
+            import subprocess
+            channel.send(subprocess.check_output('{}'))
+        """.format(cmd)
         try:
-            str_crowbar = master.remote_exec(exec_cmd).receive()
+            crowbar_output = master.remote_exec(exec_cmd).receive()
         except execnet.RemoteError as e:
-            raise Exception("Failed to run crowbar on {}:\n\n{}".format(
-                entry_node, e
+            raise sscanner.errors.ScannerError("Failed to run crowbar on {}:\n\n{}".format(
+                self.m_entry_node, e
             ))
 
-        all_nodes_strs = str_crowbar.split("\n")
+        node_lines = crowbar_output.splitlines()
 
-        # One newline too much leads to one empty string
-        all_nodes_strs = list(filter(None, all_nodes_strs))
+        # filter out empty lines
+        node_lines = list(filter(None, node_lines))
         try:
-            all_nodes_strs.remove(entry_node)
+            node_lines.remove(self.m_entry_node)
         except ValueError:
-            raise Exception("entry_node was not found in returned crowbar data")
+            raise sscanner.errors.ScannerError("entry node was not found in returned crowbar data")
 
         return {
-            entry_node: [str(item) for item in all_nodes_strs]
+            self.m_entry_node: [str(item) for item in node_lines]
         }
 
-    def dump_crowbar_to_file(self):
+    def load_network_info(self):
+        """Retrieve the crowbar network data for the configured entry node. If
+        a config file exists on disk it will be used (if cache is enabled),
+        otherwise data from the remote host will be collected and saved to
+        disk.
 
-        net_config = sscanner.network_config.NetworkConfig()
+        The obtained data will be saved in the object and can be obtained via
+        get_network_info().
+        """
 
-        # TODO: in the cached case we're not actually dumping something to
-        # file, but return and read from the file. So maybe we should split
-        # this function?
         if self._haveCache():
-            cache = self.m_args.output
-            print("Using cached crowbar network data from", cache)
-            net_config.load(cache)
-
-            return next(iter(net_config.getNetwork()))
+            self._load_config()
         else:
+            self._fetch_config()
 
-            entry_node = self.m_args.entry
+    def _load_config(self):
+        print("Using cached crowbar network data from", self.m_config_path)
+        self.m_net_config.load(self.m_config_path)
+        self.m_info = next(iter(self.m_net_config.getNetwork()))
 
-            outfile = self.m_args.output
-            net_config.setNetwork(self.get_crowbar_config())
-            net_config.save(outfile)
-            print("Wrote crowbar network data to {}\n".format(outfile))
+    def _fetch_config(self):
+        self.m_info = self.get_crowbar_config()
+        self.m_net_config.setNetwork(self.m_info)
+        self.m_net_config.save(self.m_config_path)
+        print("Wrote crowbar network data to {}\n".format(self.m_config_path))
 
-            return entry_node
+    def _haveCache(self):
+
+        if not self.m_use_cache:
+            return False
+
+        return self.m_config_path and os.path.isfile(self.m_config_path)
 
 def main():
     description = "Connect to a crowbar node via SSH and extract its network configuration as JSON."
     parser = argparse.ArgumentParser(prog=sys.argv[0], description=description)
 
     description = "The host on which crowbar is running."
-    parser.add_argument("-e", "--entry", required=True, type=str, help=description)
+    parser.add_argument("-e", "--entry", required=False, type=str, help=description)
 
-    description = "The output file you want your data to be dumped to."
-    parser.add_argument("-o", "--output", required=True, type=str, help=description)
+    description = "The config file you want your data to be loaded from(dumped to."
+    parser.add_argument("-c", "--config", required=True, type=str, help=description)
 
-    description = "Force overwriting the network file, even if it already exists."
-    parser.add_argument("--nocache", action="store_true", help=description)
+    description = "Force overwriting the network configuration file, even if it already exists."
+    parser.add_argument("--nocache", action="store_true", help=description,
+        default = False)
 
     args = parser.parse_args()
 
-    crowbar = Crowbar(args)
-    crowbar.dump_crowbar_to_file()
+    crowbar = Crowbar()
+    crowbar.set_entry_node(args.entry)
+    crowbar.set_config_path(args.config)
+    crowbar.set_use_cache(not args.nocache)
+    crowbar.load_network_info()
 
 if __name__ == "__main__":
     sscanner.helper.executeMain(main)
