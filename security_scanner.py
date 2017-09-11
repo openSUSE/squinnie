@@ -34,34 +34,7 @@ import sscanner.dumper
 import sscanner.crowbar
 import sscanner.errors
 import sscanner.viewer
-
-class Modes(object):
-    """enum-like class for hold the different security scanner modes we
-    support"""
-    local = 1
-    ssh = 2
-    susecloud = 3
-
-    all_modes = ["local", "ssh", "susecloud"]
-
-    @classmethod
-    def fillModes(cls):
-        num = 1
-        for mode in cls.all_modes:
-            setattr(cls, mode, num)
-            num += 1
-
-    @classmethod
-    def checkModeArg(cls, mode):
-
-        if not mode in cls.all_modes:
-            raise argparse.ArgumentTypeError(
-                "unsupported mode, choose one of {}".format(
-                    ', '.join(cls.all_modes)
-                )
-            )
-
-        return getattr(cls, mode)
+from sscanner.types import Modes
 
 class SecurityScanner(object):
     """main class that implements this command-line utility."""
@@ -204,8 +177,6 @@ class SecurityScanner(object):
         finally:
             if self.m_discard_data:
                 self._cleanupData()
-
-Modes.fillModes()
 
 if __name__ == "__main__":
 

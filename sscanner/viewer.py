@@ -35,6 +35,7 @@ import sscanner.helper as helper
 pickle = helper.importPickle()
 import sscanner.file_mode as file_mode
 import sscanner.errors
+from sscanner.types import ProcColumns
 
 # foreign modules
 try:
@@ -66,23 +67,6 @@ class Viewer(object):
             "cap_data.json"
         ])
         self.m_cap_translator = cap_translator.CapTranslator(cap_json)
-
-        # current default column headers
-        # TODO: should rather be a list of enum like values instead of strings
-        self.m_column_headers = [
-            "pid",
-            "executable",
-            "parameters",
-            "user",
-            "groups",
-            "open file descriptors",
-            "features",
-            "CapInh",
-            "CapPrm",
-            "CapEff",
-            "CapBnd",
-            "CapAmb",
-        ]
 
     def activate_settings(self, args):
         """Activates the settings found in the given argparse.Namespace
@@ -484,11 +468,13 @@ class Viewer(object):
         if "Uid" not in pid_data.keys():
             return ""
 
+        column_label = ProcColumns.getLabel(column)
+
         # check whether a process runs with surprising saved/effective uid/gid
         all_uids_equal = len(set(pid_data["Uid"])) == 1
         all_gids_equal = len(set(pid_data["Gid"])) == 1
 
-        if column == "user":
+        if column == ProcColumns.user:
             user_set = set()
 
             for item in set(pid_data["Uid"]):
@@ -502,7 +488,7 @@ class Viewer(object):
             if not all_uids_equal:
                 result = self.get_colored(result)
 
-        elif column == "groups":
+        elif column == ProcColumns.groups:
             # merge the main gid and the auxiliary group ids
             groups_set = set(pid_data["Gid"]) | set(pid_data["Groups"])
             groups = set()
@@ -517,7 +503,7 @@ class Viewer(object):
             if not all_gids_equal:
                 result = self.get_colored(result)
 
-        elif column == "features":
+        elif column == ProcColumns.features:
             features = []
             if pid_data["Seccomp"]:
                 features.append("seccomp")
@@ -528,14 +514,14 @@ class Viewer(object):
             if features:
                 result = self.get_colored("|".join(features))
 
-        elif column.startswith("Cap"):
+        elif ProcColumns.isCap(column):
             # handle any capability set
 
             # no capabilities and all capabilities are common cases
             boring_caps = [0, 274877906943]
             all_uids_are_root = all_uids_equal and pid_data["Uid"][0] == 0
             no_uids_are_root = pid_data["Uid"].count(0) == 0
-            capabilities = pid_data[column]
+            capabilities = pid_data[column_label]
 
             if all_uids_are_root:
                 # is root anyways
@@ -552,14 +538,14 @@ class Viewer(object):
                         new_cap_list.append(self.get_colored(tmp_cap))
                 result = "\n".join(new_cap_list)
 
-        elif column in ("executable", "parameters"):
+        elif column in (ProcColumns.executable, ProcColumns.parameters):
             # don't show excess length parameters, only a prefix
             max_len = 40
-            cmdline = pid_data[column]
+            cmdline = pid_data[column_label]
             cmdline_chunks = [cmdline[i:i+max_len] for i in range(0, len(cmdline), max_len)]
             result = "\n".join(cmdline_chunks)
 
-        elif column == "open file descriptors":
+        elif column == ProcColumns.open_fds:
             if "open_files" not in pid_data:
                 result = "RACE_CONDITION"
             elif not self.m_show_fds:
@@ -569,9 +555,9 @@ class Viewer(object):
 
         elif column in pid_data:
             # take data as is
-            result = pid_data[column]
+            result = pid_data[column_label]
         else:
-            raise Exception("Unexpected column " + column + " encountered")
+            raise Exception("Unexpected column " + column_label + " encountered")
 
         return result
 
@@ -629,12 +615,14 @@ class Viewer(object):
         """
         indent = self.m_indentation_width * " "
         result_table = []
-        result_table.append(column_headers)
+        result_table.append([
+            ProcColumns.getLabel(col) for col in column_headers
+        ])
 
         for pid, level in proc_tree:
             line = []
             for column in column_headers:
-                if column == "pid":
+                if column == ProcColumns.pid:
                     tmp = ( level * indent ) + "+---" + str(pid)
                 else:
                     tmp = table_data[column][pid]
@@ -647,8 +635,6 @@ class Viewer(object):
     def print_process_tree(self):
         """Prints a complete process tree according to currently active view
         settings."""
-        import copy
-
         self._assert_have_data()
 
         num_procs = len(self.m_node_data['proc_data'])
@@ -662,29 +648,27 @@ class Viewer(object):
         children = self.m_node_data["children"]
         parents = self.m_node_data["parents"]
 
-        column_headers = copy.copy(self.m_column_headers)
+        column_headers = ProcColumns.getAll()
         table = {}
         to_remove = set()
         for column in column_headers:
-            if column == "pid":
+            if column == ProcColumns.pid:
                 continue
 
             table[column] = {}
             for pid in all_pids:
-                table[column][pid] = self.get_column_value(
-                    column, pid
-                )
+                table[column][pid] = self.get_column_value(column, pid)
 
             column_values = list(table[column].values())
             if len(set(column_values)) == 1 and column_values[0] == "":
                 to_remove.add(column)
 
         # These values are generally uninteresting
-        to_remove.add("CapAmb")
-        to_remove.add("CapBnd")
+        to_remove.add(ProcColumns.cap_ambient)
+        to_remove.add(ProcColumns.cap_bnd)
 
         if not self.m_show_params:
-            to_remove.add("parameters")
+            to_remove.add(ProcColumns.parameters)
 
         # Remove empty columns since they only take up unnecessary space
         for empty_column in to_remove:
