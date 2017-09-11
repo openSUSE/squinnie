@@ -36,22 +36,22 @@ class CapTranslator(object):
 
     def __init__(self, file_name = None):
         self.file_name = file_name if file_name else self.m_capfile
-        self.cap_data  = self.get_cap_data()
+        self.cap_data  = self.getCapData()
 
-    def nth_bit_set(self, val, n):
+    def isBitSet(self, val, n):
         return 0 != val & (1 << n)
 
-    def get_cap_strings(self, cap_integer):
+    def getCapStrings(self, cap_integer):
 
         result = []
 
         for cap_name, index in self.cap_data.items():
-            if self.nth_bit_set(cap_integer, index):
+            if self.isBitSet(cap_integer, index):
                 result.append(cap_name)
 
         return result
 
-    def get_cap_data(self):
+    def getCapData(self):
 
         thisdir = os.path.dirname(__file__)
         datadir = os.path.join( thisdir, os.path.pardir, "etc" )
@@ -87,9 +87,9 @@ def main():
 
     translator = CapTranslator()
 
-    cap_data = translator.get_cap_data()
+    cap_data = translator.getCapData()
     print("\nThe given bit vector maps to the following capabilities:\n")
-    for cap in translator.get_cap_strings(args.bitvector):
+    for cap in translator.getCapStrings(args.bitvector):
         print("- {}".format(cap))
     print("")
 

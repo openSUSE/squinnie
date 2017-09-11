@@ -281,7 +281,7 @@ class Viewer(object):
             else:
                 group = gid_name[props["st_gid"]]
 
-            caps = self.m_cap_translator.get_cap_strings(props["caps"])
+            caps = self.m_cap_translator.getCapStrings(props["caps"])
             cap_str = "|".join(caps)
 
             ret.append(
@@ -531,7 +531,7 @@ class Viewer(object):
                 result = ""
             else:
                 # show actual capability labels
-                tmp_cap_list = self.m_cap_translator.get_cap_strings(capabilities)
+                tmp_cap_list = self.m_cap_translator.getCapStrings(capabilities)
                 new_cap_list = []
                 if no_uids_are_root:
                     for tmp_cap in tmp_cap_list:
