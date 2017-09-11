@@ -262,22 +262,20 @@ class Viewer(object):
         if not cur_node and not cur_path:
             cur_node = self.m_node_data['filesystem']
             cur_path = '/'
+            # iterate just over the root node for the start
+            items = ("/", cur_node),
         elif not cur_node or not cur_path:
             raise Exception("Need either both or none of `cur_node` and `cur_path`")
+        else:
+            # iterate over all sub-items
+            items = sorted(cur_node.items())
 
         uid_name = self.m_node_data["uid_name"]
         gid_name = self.m_node_data["gid_name"]
 
-        # for the root node, TODO: get rid of this, root node info is also
-        # interesting
-        subitems = cur_node.get('subitems', None)
-        if subitems:
-            # descend into the sub-nodes
-            return self.get_filesystem_table(cur_path, subitems)
-
         ret = []
 
-        for name, info in sorted(cur_node.items()):
+        for name, info in items:
             base_path_file = os.path.join(cur_path, name)
             props = info["properties"]
 
