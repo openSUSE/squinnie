@@ -138,11 +138,9 @@ class SecurityScanner(object):
     def _collectDumps(self):
         """Collects the node dumps according to the selected mode and cached
         data use. The result is stored in self.m_node_data"""
-        dumper = sscanner.dumper.Dumper()
-        dumper.set_output_dir(self.m_args.directory)
-        dumper.set_use_cache(not self.m_args.nocache)
 
         if self.m_args.mode == Modes.susecloud:
+            dumper = sscanner.dumper.SshDumper()
             nwconfig_path = self.m_args.network
 
             if not os.path.isabs(nwconfig_path):
@@ -156,12 +154,15 @@ class SecurityScanner(object):
 
             nwconfig = crowbar.load_network_info()
             dumper.set_network_config(crowbar.get_network_info())
-            dumper.collect(load_cached = True)
         elif self.m_args.mode == Modes.ssh:
+            dumper = sscanner.dumper.SshDumper()
             dumper.set_network_config({self.m_args.entry: []})
-            dumper.collect(load_cached = True)
         elif self.m_args.mode == Modes.local:
-            dumper.collect_local(load_cached = True)
+            dumper = sscanner.dumper.LocalDumper()
+
+        dumper.set_output_dir(self.m_args.directory)
+        dumper.set_use_cache(not self.m_args.nocache)
+        dumper.collect(load_cached = True)
 
         self.m_node_data = dumper.get_node_data()
         dumper.save()

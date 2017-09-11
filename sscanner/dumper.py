@@ -44,11 +44,14 @@ except ImportError as e:
 
 class Dumper(object):
     """This class is able to collect the node data from local or remote hosts
-    and stores and loads the data from dump files on disk as required."""
+    and stores and loads the data from dump files on disk as required. It
+    needs to be specialized to actually work.
+
+    By contract a collect() method needs to be implemented like done in
+    SshDumper and LocalDumper."""
 
     def __init__(self):
 
-        self.m_network = None
         self.m_outdir = None
         self.m_use_cache = True
 
@@ -68,107 +71,11 @@ class Dumper(object):
             if node['cached']:
                 print("Not regenerating cached dump for", node['node'])
 
-    def load_network_config(self, file_name):
-        """Reads the target network configuration from the given JSON file and
-        stores it in the object for further use during collect()."""
-        self.m_network = sscanner.network_config.NetworkConfig().load(file_name)
-
-    def set_network_config(self, nc):
-        """Set an already existing network configuration dictionary for futher
-        use during collect()."""
-        self.m_network = nc
-
     def get_node_data(self):
         """Returns the currently collected node data. Only valid after a call
         to collect(). The returned data is a list of dictionaries describing
         each individual node dump."""
         return self.m_nodes
-
-    def collect(self, load_cached):
-        if not self.m_network or not self.m_outdir:
-            raise ScannerError("Missing network and/or output directory")
-
-        node_list = self._get_network_nodes()
-        self._setup_dump_nodes(node_list)
-
-        if not self.m_use_cache:
-            self._discard_cached_dumps()
-
-        self._receive_data()
-        if load_cached:
-            self._load_cached_dumps()
-
-    # TODO: separating the local and remote scan into different class
-    # specializations would be way cleaner
-    def collect_local(self, load_cached):
-
-        if not self.m_outdir:
-            raise ScannerError("Missing output directory")
-
-        node_list = self._get_local_node()
-        self._setup_dump_nodes(node_list)
-
-        if not self.m_use_cache:
-            self._discard_cached_dumps()
-        elif self.m_nodes[0]['cached']:
-            # nothing to do
-            return
-
-        have_root_privs = os.geteuid() == 0
-
-        if have_root_privs:
-            node_data = sscanner.slave.collect()
-            self.m_nodes[0]['data'] = node_data
-        else:
-            # might be a future command line option to allow this, is helpful
-            # for testing. For now we use sudo.
-            #print("You're scanning as non-root, only partial data will be collected")
-            #print("Run as root to get a full result. This mode is not fully supported.")
-            node_data = self._sudo_collect()
-            self.m_nodes[0]['data'] = node_data
-
-    def _sudo_collect(self):
-        import subprocess
-
-        # gzip has a bug in python2, it can't stream, because it tries
-        # to seek *sigh*
-        use_pipe = sscanner.helper.isPython3()
-
-        if not use_pipe:
-            import tempfile
-            tmpfile = tempfile.TemporaryFile(mode = 'wb+')
-
-        slave_proc = subprocess.Popen(
-            [
-                "sudo",
-                # use the same python interpreter as we're currently
-                # running
-                sys.executable,
-                os.path.join(
-                    os.path.dirname(__file__),
-                    "slave.py"
-                )
-            ],
-            stdout = subprocess.PIPE if use_pipe else tmpfile,
-            close_fds = True
-        )
-
-        if use_pipe:
-            try:
-                node_data = sscanner.helper.readPickle(fileobj = slave_proc.stdout)
-            finally:
-                if slave_proc.wait() != 0:
-                    raise Exception("Failed to run slave.py")
-        else:
-            try:
-                if slave_proc.wait() != 0:
-                    raise Exception("Failed to run slave.py")
-                tmpfile.seek(0)
-                node_data = sscanner.helper.readPickle(fileobj = tmpfile)
-            finally:
-                tmpfile.close()
-
-        return node_data
 
     def save(self):
         """Save collected node dumps in their respective dump files, if
@@ -186,38 +93,6 @@ class Dumper(object):
             dump_path = config['full_path']
             print("Saving data to {}".format(dump_path))
             enricher.save_data(dump_path)
-
-    def _get_network_nodes(self):
-        """Flattens the nodes found in self.m_network and returns them as a
-        list of (node, parent), where parent is an optional jump host to reach
-        the node."""
-
-        ret = []
-
-        def gather_nodes(lst, data, parent = None):
-
-            if type(data) in (OrderedDict,dict):
-                for key, val in data.items():
-                    lst.append((key,None))
-                    gather_nodes(lst, val, key)
-            elif type(data) is list:
-                ret.extend( [ (node, parent) for node in data ] )
-            else:
-                raise Exception("Bad network description data, unexpected type "
-                    + str(type(data)))
-
-            return ret
-
-        gather_nodes(ret, self.m_network)
-
-        return ret
-
-    def _get_local_node(self):
-        """Returns a node list containing just the localhost for local
-        dumping."""
-        import socket
-        node = socket.gethostname()
-        return [(node, None)]
 
     def _get_filename(self, node_str):
         # apparently .p is commonly used for pickled data
@@ -275,6 +150,71 @@ class Dumper(object):
                 "cached": self._have_cached_dump(dump)
             } )
 
+class SshDumper(Dumper):
+    """A specialized dumper that collects data from a remote host."""
+
+    def __init__(self, *args, **kwargs):
+        super(SshDumper, self).__init__(*args, **kwargs)
+        self.m_network = None
+
+    def set_network_config(self, nc):
+        """Set an already existing network configuration dictionary for futher
+        use during collect()."""
+        self.m_network = nc
+
+    def load_network_config(self, file_name):
+        """Reads the target network configuration from the given JSON file and
+        stores it in the object for further use during collect()."""
+        self.m_network = sscanner.network_config.NetworkConfig().load(file_name)
+
+    def collect(self, load_cached):
+        """Collect data from the configured remote host, possibly further
+        hosts depending on the active network configuration.
+
+        You can retrieve the collected data via get_node_data() after a
+        successful call to this function.
+
+        :param bool load_cached: if set then cached dumps that already exist
+        on disk will also be loaded
+        """
+        if not self.m_network or not self.m_outdir:
+            raise ScannerError("Missing network and/or output directory")
+
+        node_list = self._get_network_nodes()
+        self._setup_dump_nodes(node_list)
+
+        if not self.m_use_cache:
+            self._discard_cached_dumps()
+
+        self._receive_data()
+        if load_cached:
+            self._load_cached_dumps()
+
+    def _get_network_nodes(self):
+        """Flattens the nodes found in self.m_network and returns them as a
+        list of (node, parent), where parent is an optional jump host to reach
+        the node."""
+
+        ret = []
+
+        def gather_nodes(lst, data, parent = None):
+
+            if type(data) in (OrderedDict,dict):
+                for key, val in data.items():
+                    lst.append((key,None))
+                    gather_nodes(lst, val, key)
+            elif type(data) is list:
+                ret.extend( [ (node, parent) for node in data ] )
+            else:
+                raise Exception("Bad network description data, unexpected type "
+                    + str(type(data)))
+
+            return ret
+
+        gather_nodes(ret, self.m_network)
+
+        return ret
+
     def get_execnet_gateway(self, node, via):
         """Returns a configuration string for execnet's makegatway() function
         for dumping the given node."""
@@ -305,6 +245,93 @@ class Dumper(object):
             group.makegateway(gateway)
 
             config['data'] = group[node].remote_exec(sscanner.slave).receive()
+
+
+class LocalDumper(Dumper):
+    """A specialized dumper that collects data from the local host."""
+
+    def __init__(self, *args, **kwargs):
+        super(LocalDumper, self).__init__(*args, **kwargs)
+
+    def collect(self, load_cached):
+        """See SshDumper.collect(), only this variant will only collect from
+        the localhost, possibly involving a call to 'sudo' if root permissions
+        are missing."""
+
+        if not self.m_outdir:
+            raise ScannerError("Missing output directory")
+
+        node_list = self._get_local_node()
+        self._setup_dump_nodes(node_list)
+
+        if not self.m_use_cache:
+            self._discard_cached_dumps()
+        elif self.m_nodes[0]['cached']:
+            # nothing to do
+            return
+
+        have_root_privs = os.geteuid() == 0
+
+        if have_root_privs:
+            node_data = sscanner.slave.collect()
+            self.m_nodes[0]['data'] = node_data
+        else:
+            # might be a future command line option to allow this, is helpful
+            # for testing. For now we use sudo.
+            #print("You're scanning as non-root, only partial data will be collected")
+            #print("Run as root to get a full result. This mode is not fully supported.")
+            node_data = self._sudo_collect()
+            self.m_nodes[0]['data'] = node_data
+
+    def _get_local_node(self):
+        """Returns a node list containing just the localhost for local
+        dumping."""
+        import socket
+        node = socket.gethostname()
+        return [(node, None)]
+
+    def _sudo_collect(self):
+        import subprocess
+
+        # gzip has a bug in python2, it can't stream, because it tries
+        # to seek *sigh*
+        use_pipe = sscanner.helper.isPython3()
+
+        if not use_pipe:
+            import tempfile
+            tmpfile = tempfile.TemporaryFile(mode = 'wb+')
+
+        slave_proc = subprocess.Popen(
+            [
+                "sudo",
+                # use the same python interpreter as we're currently
+                # running
+                sys.executable,
+                os.path.join(
+                    os.path.dirname(__file__),
+                    "slave.py"
+                )
+            ],
+            stdout = subprocess.PIPE if use_pipe else tmpfile,
+            close_fds = True
+        )
+
+        if use_pipe:
+            try:
+                node_data = sscanner.helper.readPickle(fileobj = slave_proc.stdout)
+            finally:
+                if slave_proc.wait() != 0:
+                    raise Exception("Failed to run slave.py")
+        else:
+            try:
+                if slave_proc.wait() != 0:
+                    raise Exception("Failed to run slave.py")
+                tmpfile.seek(0)
+                node_data = sscanner.helper.readPickle(fileobj = tmpfile)
+            finally:
+                tmpfile.close()
+
+        return node_data
 
 def main():
 
@@ -341,14 +368,14 @@ def main():
     elif not args.input and not args.local:
         raise Exception("Please specify either -i or -l")
 
-    dumper = Dumper()
+    if args.local:
+        dumper = LocalDumper()
+    else:
+        dumper = SshDumper()
+        dumper.load_network_config(args.input)
     dumper.set_output_dir(args.output)
     dumper.set_use_cache(not args.nocache)
-    if args.local:
-        dumper.collect_local(load_cached = False)
-    else:
-        dumper.load_network_config(args.input)
-        dumper.collect(load_cached = False)
+    dumper.collect(load_cached = False)
     dumper.save()
     dumper.print_cached_dumps()
 
