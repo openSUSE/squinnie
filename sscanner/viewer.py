@@ -68,34 +68,34 @@ class Viewer(object):
         ])
         self.m_cap_translator = cap_translator.CapTranslator(cap_json)
 
-    def activate_settings(self, args):
+    def activateSettings(self, args):
         """Activates the settings found in the given argparse.Namespace
         object."""
-        self.set_verbose(args.verbose)
-        self.set_show_fds(args.fd)
-        self.set_show_params(args.params)
-        self.set_show_kthreads(args.kthreads)
-        self.set_show_filter_children(args.children)
-        self.set_show_filter_parents(args.parent)
+        self.setVerbose(args.verbose)
+        self.setShowFds(args.fd)
+        self.setShowParams(args.params)
+        self.setShowKthreads(args.kthreads)
+        self.setShowFilterChildren(args.children)
+        self.setShowFilterParents(args.parent)
 
-    def perform_action(self, args):
+    def performAction(self, args):
         """Performs the action specified in the given argparse.Namespace
         object."""
         if args.pid:
-            self.add_pid_filter(args.pid)
+            self.addPidFilter(args.pid)
 
         if args.onlyfd:
             # file descriptor view
-            self.print_file_descriptors()
+            self.printFileDescriptors()
         elif args.filesystem:
             # file-system view
-            self.print_filesystem_table()
+            self.printFilesystemTable()
         else:
             # process tree view
-            self.print_process_tree()
+            self.printProcessTree()
 
     @classmethod
-    def add_parser_arguments(cls, parser):
+    def addParserArguments(cls, parser):
         """Adds the viewer specific command line arguments to the given
         argparse.ArgumentParser object."""
         # this is for reuse in the main security_scanner script.
@@ -125,7 +125,7 @@ class Viewer(object):
         parser.add_argument("--filesystem", action="store_true", help=description)
 
 
-    def load_data(self, node_dump):
+    def loadData(self, node_dump):
         """Load node data to operate on from the given file."""
 
         try:
@@ -142,42 +142,42 @@ class Viewer(object):
         self.m_node_label = next(iter(self.m_node_data.keys()))
         self.m_node_data = next(iter(self.m_node_data.values()))
 
-    def set_data(self, label, node_data):
+    def setData(self, label, node_data):
         """Use the given node data structure to operate on."""
         self.m_node_label = label
         self.m_node_data = node_data
 
-    def set_verbose(self, verbose):
+    def setVerbose(self, verbose):
         self.m_verbose = verbose
 
-    def set_show_fds(self, show):
+    def setShowFds(self, show):
         """Also show per process file descriptor info."""
         self.m_show_fds = show
 
-    def set_show_params(self, show):
+    def setShowParams(self, show):
         """Also show process parameters in an extra column."""
         self.m_show_params = show
 
-    def add_pid_filter(self, pid):
+    def addPidFilter(self, pid):
         """Don't show all PIDs but just the given PID in the table.
         Accumulates."""
         self.m_pid_filter.append(pid)
 
-    def set_show_filter_parents(self, show):
+    def setShowFilterParents(self, show):
         """If a PID filter is in effect, also show the parents of selected
         PIDs."""
         self.m_show_filter_parents = show
 
-    def set_show_filter_children(self, show):
+    def setShowFilterChildren(self, show):
         """If a PID filter is in effect, also show the children of selected
         PIDs."""
         self.m_show_filter_children = show
 
-    def set_show_kthreads(self, show):
+    def setShowKthreads(self, show):
         """Also include kernel thread PIDs in the table."""
         self.m_show_kthreads = show
 
-    def print_file_descriptors(self):
+    def printFileDescriptors(self):
         """Prints all file descriptors of all processes found in the current
         data set."""
 
@@ -190,13 +190,13 @@ class Viewer(object):
             # Hide the process if it has no open files
             # But always show all processes on -v
             if open_file_count > 0 or self.m_verbose:
-                list_str = self.get_list_of_open_file_descriptors(info)
+                list_str = self.getListOfOpenFileDescriptors(info)
                 print("{} (pid: {})".format(info["executable"], pid))
                 print("----")
                 print(list_str)
                 print("")
 
-    def get_file_properties(self, filename):
+    def getFileProperties(self, filename):
         """Returns the properties of a given file path in the file system. Or
         an empty dictionary on failure."""
         tokens = filename[1:].split(os.path.sep)
@@ -215,7 +215,7 @@ class Viewer(object):
 
         return {}
 
-    def build_width_column_dict(self, table):
+    def buildWidthColumnDict(self, table):
         """Builds a dictionary containing the maximum width for each column in
         the given table list."""
         width_column_dict = {}
@@ -224,7 +224,7 @@ class Viewer(object):
 
         return width_column_dict
 
-    def print_table_width_column_dict(self, table, width_column_dict, max_width):
+    def printTableWidthColumnDict(self, table, width_column_dict, max_width):
         for row in table:
             to_print = " ".join(row[i].ljust(width_column_dict[i]) for i in range(len(table[0])))
             if max_width:
@@ -232,7 +232,7 @@ class Viewer(object):
             else:
                 print(to_print)
 
-    def get_filesystem_table(self, cur_path = None, cur_node = None):
+    def getFilesystemTable(self, cur_path = None, cur_node = None):
         """
         Recursively constructs and returns list of strings that describes the
         complete file system structure rooted at cur_path/cur_node.
@@ -291,11 +291,11 @@ class Viewer(object):
             subitems = info.get("subitems", None)
             if subitems:
                 # descend into the next node, depth-first
-                ret += self.get_filesystem_table(base_path_file, subitems)
+                ret += self.getFilesystemTable(base_path_file, subitems)
 
         return ret
 
-    def inode_to_identifier(self, _type, inode):
+    def inodeToIdentifier(self, _type, inode):
         """
         Returns a human readable string describing the given node number.
 
@@ -326,7 +326,7 @@ class Viewer(object):
                     inode_entry = "<anonymous>"
                 else: # named or abstract unix domain socket
                     # TODO: this lookup doesn't work for abstract sockets
-                    props = self.get_file_properties(inode_entry)
+                    props = self.getFileProperties(inode_entry)
                     # TODO: this else branch makes no sense
                     if props:
                         st_mode = props['st_mode']
@@ -352,7 +352,7 @@ class Viewer(object):
         else:
             return "<port not found, inode: {:>15}>".format(inode)
 
-    def get_pseudo_file_desc(self, pseudo_label):
+    def getPseudoFileDesc(self, pseudo_label):
         """
         Returns a descriptive, formatted string for the given ``pseudo_label``
         which is the symlink content for pseudo files in /proc/<pid>/fd.
@@ -370,7 +370,7 @@ class Viewer(object):
             result = "{} : {:>10}".format(_type, value)
         elif _type == "socket":
             result = "{} : {:>10}".format(
-                _type, self.inode_to_identifier(_type, int(value))
+                _type, self.inodeToIdentifier(_type, int(value))
             )
         elif _type == "anon_inode":
             result = "{} : {}".format(_type, value)
@@ -378,7 +378,7 @@ class Viewer(object):
             raise Exception("Unexpected pseudo file type " + _type)
         return result
 
-    def get_list_of_open_file_descriptors(self, pid_data):
+    def getListOfOpenFileDescriptors(self, pid_data):
         """
         Get all open file descriptors as a list of strings.
 
@@ -408,7 +408,7 @@ class Viewer(object):
             if is_pseudo_file:
 
                 type, inode = symlink.split(':', 1)
-                line = self.get_pseudo_file_desc(symlink)
+                line = self.getPseudoFileDesc(symlink)
 
                 if self.m_verbose:
                     line = "{:>5}: ".format(fd) + line
@@ -440,7 +440,7 @@ class Viewer(object):
 
                 line = symlink
                 if color_it:
-                    line = self.get_colored(line)
+                    line = self.getColored(line)
 
                 if self.m_verbose:
                     line = "{:>5}: ".format(fd) + line
@@ -455,7 +455,7 @@ class Viewer(object):
 
         return "\n".join(all_strs)
 
-    def get_column_value(self, column, pid):
+    def getColumnValue(self, column, pid):
         """
         Get the string value for the given table ``column`` of the given
         process with ``pid``.
@@ -486,7 +486,7 @@ class Viewer(object):
 
             result = "|".join(str(x) for x in user_set)
             if not all_uids_equal:
-                result = self.get_colored(result)
+                result = self.getColored(result)
 
         elif column == ProcColumns.groups:
             # merge the main gid and the auxiliary group ids
@@ -501,7 +501,7 @@ class Viewer(object):
                 groups.add(group_label)
             result = "|".join([str(x) for x in groups])
             if not all_gids_equal:
-                result = self.get_colored(result)
+                result = self.getColored(result)
 
         elif column == ProcColumns.features:
             features = []
@@ -512,7 +512,7 @@ class Viewer(object):
 
             result = ""
             if features:
-                result = self.get_colored("|".join(features))
+                result = self.getColored("|".join(features))
 
         elif ProcColumns.isCap(column):
             # handle any capability set
@@ -535,7 +535,7 @@ class Viewer(object):
                 new_cap_list = []
                 if no_uids_are_root:
                     for tmp_cap in tmp_cap_list:
-                        new_cap_list.append(self.get_colored(tmp_cap))
+                        new_cap_list.append(self.getColored(tmp_cap))
                 result = "\n".join(new_cap_list)
 
         elif column in (ProcColumns.executable, ProcColumns.parameters):
@@ -551,7 +551,7 @@ class Viewer(object):
             elif not self.m_show_fds:
                 result = len(pid_data["open_files"])
             else:
-                result = self.get_list_of_open_file_descriptors(pid_data)
+                result = self.getListOfOpenFileDescriptors(pid_data)
 
         elif column in pid_data:
             # take data as is
@@ -561,7 +561,7 @@ class Viewer(object):
 
         return result
 
-    def get_colored(self, a_string):
+    def getColored(self, a_string):
         """
         Simple wrapper to the coloring function, unless the output is piped into
         another tool, like less or grep.
@@ -572,9 +572,7 @@ class Viewer(object):
             result = termcolor.colored(a_string, "red")
         return result
 
-
-
-    def recursive_proc_tree(self, children, pid, level, recursive):
+    def recursiveProcTree(self, children, pid, level, recursive):
         """
         Constructs a list of tuples (pid, level) that describes the process
         tree and which indentation level should be applied each entry.
@@ -588,7 +586,7 @@ class Viewer(object):
 
         if recursive and pid in children.keys():
             for child_pid in sorted(children[pid]):
-                children_rows += self.recursive_proc_tree(
+                children_rows += self.recursiveProcTree(
                     children,
                     child_pid,
                     level+1,
@@ -597,9 +595,7 @@ class Viewer(object):
 
         return [self_row] + children_rows
 
-
-
-    def generate_table(self, column_headers, proc_tree, table_data):
+    def generateTable(self, column_headers, proc_tree, table_data):
         """
         Generates the actual table lines from the input parameters.
 
@@ -632,10 +628,10 @@ class Viewer(object):
 
         return result_table
 
-    def print_process_tree(self):
+    def printProcessTree(self):
         """Prints a complete process tree according to currently active view
         settings."""
-        self._assert_have_data()
+        self._assertHaveData()
 
         num_procs = len(self.m_node_data['proc_data'])
         print("There are {} processes running on {}.".format(
@@ -657,7 +653,7 @@ class Viewer(object):
 
             table[column] = {}
             for pid in all_pids:
-                table[column][pid] = self.get_column_value(column, pid)
+                table[column][pid] = self.getColumnValue(column, pid)
 
             column_values = list(table[column].values())
             if len(set(column_values)) == 1 and column_values[0] == "":
@@ -692,7 +688,7 @@ class Viewer(object):
                         )
                     )
 
-                proc_tree += self.recursive_proc_tree(
+                proc_tree += self.recursiveProcTree(
                     children,
                     pid,
                     level,
@@ -705,14 +701,14 @@ class Viewer(object):
                 root_pids.append(2)
 
             for pid in root_pids:
-                proc_tree += self.recursive_proc_tree(
+                proc_tree += self.recursiveProcTree(
                     children,
                     pid,
                     level,
                     True
                 )
 
-        table = self.generate_table(column_headers, proc_tree, table)
+        table = self.generateTable(column_headers, proc_tree, table)
 
         table = terminaltables.AsciiTable(table)
 
@@ -723,17 +719,17 @@ class Viewer(object):
 
         print(table.table)
 
-    def print_filesystem_table(self):
+    def printFilesystemTable(self):
 
-        table = self.get_filesystem_table()
-        width_column_dict = self.build_width_column_dict(table)
+        table = self.getFilesystemTable()
+        width_column_dict = self.buildWidthColumnDict(table)
         if self.m_have_tty:
-            term_width = self._get_term_size()[0]
+            term_width = self._getTermSize()[0]
         else:
             term_width = 0
-        self.print_table_width_column_dict(table, width_column_dict, term_width)
+        self.printTableWidthColumnDict(table, width_column_dict, term_width)
 
-    def _get_term_size(self):
+    def _getTermSize(self):
         """Returns the size of the terminal as a pair of (cols, rows)."""
         # starting with py3.3 there's also shutil.get_terminal_size()
         res = subprocess.check_output(
@@ -741,7 +737,7 @@ class Viewer(object):
         )
         return tuple(reversed([ int(part) for part in res.decode().split()]))
 
-    def _assert_have_data(self):
+    def _assertHaveData(self):
         if not self.m_node_data:
             raise Exception("no node data has been loaded")
 
@@ -756,14 +752,14 @@ def main():
     description = "Print more detailed information."
     parser.add_argument("-v", "--verbose", action="store_true", help=description)
 
-    Viewer.add_parser_arguments(parser)
+    Viewer.addParserArguments(parser)
 
     args = parser.parse_args()
 
     viewer = Viewer()
-    viewer.activate_settings(args)
-    viewer.load_data(args.input)
-    viewer.perform_action(args)
+    viewer.activateSettings(args)
+    viewer.loadData(args.input)
+    viewer.performAction(args)
 
 if __name__ == "__main__":
     helper.executeMain(main)

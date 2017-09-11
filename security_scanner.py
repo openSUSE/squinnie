@@ -83,7 +83,7 @@ class SecurityScanner(object):
 
         view_group = parser.add_argument_group('view arguments')
         # definitions come from the viewer module itself
-        sscanner.viewer.Viewer.add_parser_arguments(view_group)
+        sscanner.viewer.Viewer.addParserArguments(view_group)
 
         self.m_parser = parser
 
@@ -146,7 +146,7 @@ class SecurityScanner(object):
         The node data needs to have been collected for this to work."""
 
         viewer = sscanner.viewer.Viewer()
-        viewer.activate_settings(self.m_args)
+        viewer.activateSettings(self.m_args)
 
         if self.m_args.mode in (Modes.local, Modes.ssh):
             self.m_args.all = True
@@ -157,8 +157,8 @@ class SecurityScanner(object):
 
         for config in self.m_node_data:
             print("\n\nReport for {} ...".format(config['node']))
-            viewer.set_data(config['node'], config['data'])
-            viewer.perform_action(self.m_args)
+            viewer.setData(config['node'], config['data'])
+            viewer.performAction(self.m_args)
 
     def _cleanupData(self):
         import shutil
