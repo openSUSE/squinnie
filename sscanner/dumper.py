@@ -267,6 +267,8 @@ class LocalDumper(Dumper):
         if not self.m_use_cache:
             self._discardCachedDumps()
         elif self.m_nodes[0]['cached']:
+            if load_cached:
+                self._loadCachedDumps()
             # nothing to do
             return
 
