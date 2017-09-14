@@ -435,8 +435,14 @@ def main():
         # constant missing in py3 on _pickle
         protocol = 4
     import gzip
-    zip_out_file = gzip.GzipFile(fileobj = out_file)
-    pickle.dump(result, zip_out_file, protocol = protocol)
+    zip_out_file = gzip.GzipFile(fileobj=out_file, compresslevel=5)
+
+    import cStringIO
+
+    stream = cStringIO.StringIO()
+    pickle.dump(result, stream, protocol=protocol)
+
+    zip_out_file.write(stream.getvalue())
 
 
 if __name__ == '__channelexec__':
