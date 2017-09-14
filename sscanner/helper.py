@@ -89,6 +89,7 @@ def writePickle(item, path = None, fileobj = None):
         if path:
             fileobj.close()
 
+
 def readPickle(path = None, fileobj = None):
     """
     Return data from a pickle file.
@@ -112,7 +113,11 @@ def readPickle(path = None, fileobj = None):
 
     try:
         with gzip.GzipFile(fileobj = fileobj, mode = 'rb') as zifi:
-            ret = pickle.load(zifi)
+
+            import cStringIO
+            data = cStringIO.StringIO(zifi.read())
+
+            ret = pickle.load(data)
     finally:
         if path:
             fileobj.close()

@@ -381,6 +381,7 @@ def main():
     dumper.save()
     dumper.printCachedDumps()
 
+
 if __name__ == "__main__":
     sscanner.helper.executeMain(main)
 
