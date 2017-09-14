@@ -437,9 +437,9 @@ def main():
     pickle.dump(result, zip_out_file, protocol = protocol)
 
 if __name__ == '__channelexec__':
-        scanner = SlaveScanner()
-        result = scanner.collect()
-        channel.send( result )
+    scanner = SlaveScanner()
+    result = scanner.collect()
+    channel.send( result )
 elif __name__ == "__main__":
     main()
 
