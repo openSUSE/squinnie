@@ -25,29 +25,29 @@ from __future__ import print_function
 from __future__ import with_statement
 import argparse
 import sys
-import os
 
-# local modules
+# local moduless
 import sscanner.helper
-pickle = sscanner.helper.importPickle()
 
 try:
     import termcolor
 except ImportError:
     sscanner.helper.missingModule("termcolor")
 
+
 class Enricher(object):
     """This class cares for transforming "enriching" the raw data as it is
     collected on a remote or local node into a form that is more suitable for
     our processing."""
 
-    def __init__(self, node_data = None):
+    def __init__(self, node_data=None):
         """``node_data`` may contain an already loaded node data
         dictionary."""
 
         self.m_node_data = node_data
 
     def _assertData(self):
+        """Check if the class has data available."""
         if not self.m_node_data:
             raise Exception("No data to save")
 
@@ -73,7 +73,7 @@ class Enricher(object):
         enriched by this class."""
         self._assertData()
 
-        enriched_keys = ["children","uid_name","gid_name"]
+        enriched_keys = ["children", "uid_name", "gid_name"]
 
         node_dict = self.getDict()
 
@@ -87,6 +87,7 @@ class Enricher(object):
         """Performs the node data enrichment, if it is not already
         enriched."""
 
+        # check if there's any data to process
         self._assertData()
 
         if self.isEnriched():
@@ -115,6 +116,7 @@ class Enricher(object):
 
         node_dict["children"] = children
 
+
 def main():
     description = "Enrich the data dump previously collected from a node."
     parser = argparse.ArgumentParser(prog=sys.argv[0], description=description)
@@ -130,6 +132,3 @@ def main():
         print("Node data is already enriched. Nothing to do.")
         return
     enricher.saveData(args.input)
-
-if __name__ == "__main__":
-    sscanner.helper.executeMain(main)
