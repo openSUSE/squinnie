@@ -220,9 +220,9 @@ class SshDumper(Dumper):
         """Returns a configuration string for execnet's makegatway() function
         for dumping the given node."""
         data = {
-            "ssh"   :"root@{}".format(node),
-            "id"    : "{}".format(node),
-            "python":"python{}".format(2)
+            "ssh": "root@{}".format(node) if "@" not in str else node,
+            "id": "{}".format(node),
+            "python": "python{}".format(2)
         }
 
         if via:
