@@ -397,9 +397,10 @@ class Viewer(object):
             symlink = info["symlink"]
 
             flags = file_mode.getFdFlagLabels(info["file_flags"])
+            #TODO: This should be in the DAW
             file_perm = {
-                "Uid"  : (info["file_perm"] & stat.S_IRWXU) >> 6,
-                "Gid"  : (info["file_perm"] & stat.S_IRWXG) >> 3,
+                "Uid": (info["file_perm"] & stat.S_IRWXU) >> 6,
+                "Gid": (info["file_perm"] & stat.S_IRWXG) >> 3,
                 "other": (info["file_perm"] & stat.S_IRWXO) >> 0,
             }
             perms_octal = ''.join(
