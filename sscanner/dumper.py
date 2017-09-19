@@ -33,6 +33,7 @@ import sscanner.helper
 import sscanner.probe
 import sscanner.enrich
 import sscanner.network_config
+import sscanner.DumpIO
 from sscanner.errors import ScannerError
 
 # foreign modules
@@ -81,6 +82,7 @@ class Dumper(object):
     def save(self):
         """Save collected node dumps in their respective dump files, if
         they're not cached."""
+
         for config in self.m_nodes:
             if config['cached']:
                 continue
@@ -93,7 +95,10 @@ class Dumper(object):
             enricher.enrich()
             dump_path = config['full_path']
             print("Saving data to {}".format(dump_path))
-            enricher.saveData(dump_path)
+            # enricher.saveData(dump_path)
+
+            dio = sscanner.DumpIO.DumpIO(dump_path)
+            dio.saveFullDump(node_data_dict)
 
     def _getFilename(self, node_str):
         # apparently .p is commonly used for pickled data
@@ -205,10 +210,9 @@ class SshDumper(Dumper):
                     lst.append((key,None))
                     gather_nodes(lst, val, key)
             elif type(data) is list:
-                ret.extend( [ (node, parent) for node in data ] )
+                ret.extend([(node, parent) for node in data])
             else:
-                raise Exception("Bad network description data, unexpected type "
-                    + str(type(data)))
+                raise Exception("Bad network description data, unexpected type " + str(type(data)))
 
             return ret
 
@@ -220,9 +224,9 @@ class SshDumper(Dumper):
         """Returns a configuration string for execnet's makegatway() function
         for dumping the given node."""
         data = {
-            "ssh"   :"root@{}".format(node),
-            "id"    : "{}".format(node),
-            "python":"python{}".format(2)
+            "ssh": "root@{}".format(node),
+            "id": "{}".format(node),
+            "python": "python{}".format(2)
         }
 
         if via:
@@ -302,7 +306,7 @@ class LocalDumper(Dumper):
 
         if not use_pipe:
             import tempfile
-            tmpfile = tempfile.TemporaryFile(mode = 'wb+')
+            tmpfile = tempfile.TemporaryFile(mode='wb+')
 
         slave_proc = subprocess.Popen(
             [
@@ -336,8 +340,8 @@ class LocalDumper(Dumper):
 
         return node_data
 
-def main():
 
+def main():
     import functools
 
     def filePath(s, check = os.path.isfile):
@@ -353,11 +357,13 @@ def main():
     description = "Dump one file per node described in the network configuration"
     parser = argparse.ArgumentParser(prog=sys.argv[0], description=description)
 
-    description = "The input JSON file your network is described with. Pass 'local' to perform a scan of the local machine"
+    description = "The input JSON file your network is described with. Pass 'local' to perform a scan of the local" \
+                  " machine"
     parser.add_argument("-i", "--input", type=filePath, help=description)
 
     description = "The output path you want your data files to be dumped to."
-    parser.add_argument("-o", "--output", required=True, type=functools.partial(filePath, check = os.path.isdir), help=description)
+    parser.add_argument("-o", "--output", required=True, type=functools.partial(filePath, check = os.path.isdir),
+                        help=description)
 
     description = "Force overwriting files, even if cached files are already present."
     parser.add_argument("--nocache", action="store_true", help=description)

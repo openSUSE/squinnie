@@ -21,6 +21,9 @@
 # MA 02110-1301 USA.
 
 import os
+import pprint
+from warnings import warn
+
 
 class DumpIO(object):
     """This class manages saving and loading whole dumps and parts to and from the filesystem."""
@@ -47,3 +50,22 @@ class DumpIO(object):
         :param data: The dumped data.
         """
         pass
+    
+    def loadFullDump(self):
+        """
+        This method loads a full dump from the hard disk. This method is only for legacy code support and should not be
+        used for any other purpose.
+        :return: The raw dump data.
+        """
+        warn("DumpIO.loadFullDump is only for legacy purposes and should not be used.")
+        pass
+
+
+    @staticmethod
+    def _debugPrint(data):
+        """
+        Pretty-prints the given data to stdout.
+        :param data: The data to print.
+        """
+        pp = pprint.PrettyPrinter(indent=2, depth=2)
+        pp.pprint(data)
