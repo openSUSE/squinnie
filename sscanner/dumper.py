@@ -30,7 +30,7 @@ import os
 
 # local modules
 import sscanner.helper
-import sscanner.slave
+import sscanner.probe
 import sscanner.enrich
 import sscanner.network_config
 from sscanner.errors import ScannerError
@@ -244,7 +244,7 @@ class SshDumper(Dumper):
             gateway = self._getExecnetGateway(node, config['via'])
             group.makegateway(gateway)
 
-            config['data'] = group[node].remote_exec(sscanner.slave).receive()
+            config['data'] = group[node].remote_exec(sscanner.probe).receive()
 
 
 class LocalDumper(Dumper):
@@ -275,7 +275,7 @@ class LocalDumper(Dumper):
         have_root_privs = os.geteuid() == 0
 
         if have_root_privs:
-            node_data = sscanner.slave.collect()
+            node_data = sscanner.probe.collect()
             self.m_nodes[0]['data'] = node_data
         else:
             # might be a future command line option to allow this, is helpful
@@ -311,7 +311,7 @@ class LocalDumper(Dumper):
                 sys.executable,
                 os.path.join(
                     os.path.dirname(__file__),
-                    "slave.py"
+                    "probe.py"
                 )
             ],
             stdout = subprocess.PIPE if use_pipe else tmpfile,
@@ -323,11 +323,11 @@ class LocalDumper(Dumper):
                 node_data = sscanner.helper.readPickle(fileobj = slave_proc.stdout)
             finally:
                 if slave_proc.wait() != 0:
-                    raise Exception("Failed to run slave.py")
+                    raise Exception("Failed to run probe.py")
         else:
             try:
                 if slave_proc.wait() != 0:
-                    raise Exception("Failed to run slave.py")
+                    raise Exception("Failed to run probe.py")
                 tmpfile.seek(0)
                 node_data = sscanner.helper.readPickle(fileobj = tmpfile)
             finally:
@@ -380,6 +380,7 @@ def main():
     dumper.collect(load_cached = False)
     dumper.save()
     dumper.printCachedDumps()
+
 
 if __name__ == "__main__":
     sscanner.helper.executeMain(main)

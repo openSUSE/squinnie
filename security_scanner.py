@@ -36,6 +36,7 @@ import sscanner.errors
 import sscanner.viewer
 from sscanner.types import Modes
 
+
 class SecurityScanner(object):
     """main class that implements this command-line utility."""
 
@@ -52,7 +53,8 @@ class SecurityScanner(object):
         # General
         general_group = parser.add_argument_group('general arguments')
 
-        description = "The directory all files are cached in. If not specified, a temporary directory will be used to save files during the execution of the script and then deleted at the end."
+        description = "The directory all files are cached in. If not specified, a temporary directory will be used to" \
+                      " save files during the execution of the script and then deleted at the end."
         general_group.add_argument("-d", "--directory", type=str, help=description)
 
         description = "Print more detailed information."
@@ -61,7 +63,8 @@ class SecurityScanner(object):
         # description = "List all nodes in the network."
         # general_group.add_argument("-l", "--list", action="store_true", help=description)
 
-        description = "When using a mode that scans multiple hosts, print information from all nodes. By default, only the entry node is printed."
+        description = "When using a mode that scans multiple hosts, print information from all nodes. By default," \
+                      " only the entry node is printed."
         general_group.add_argument("-a", "--all", action="store_true", help=description)
 
         # Dump
@@ -70,10 +73,12 @@ class SecurityScanner(object):
         description = "The mode the scanner should be operating under. 'local' by default"
         dump_group.add_argument("-m", "--mode", type=Modes.checkModeArg, help=description, default="local")
 
-        description = "The first hop scan host. The only target host for mode == 'ssh', the crowbar host for mode == 'susecloud'"
+        description = "The first hop scan host. The only target host for mode == 'ssh', the crowbar host for mode ==" \
+                      " 'susecloud'"
         dump_group.add_argument("-e", "--entry", type=str, help=description)
 
-        description = "Path to the JSON network configuration file for scanning (for mode =='crowbar'). Will be generated here if not already existing."
+        description = "Path to the JSON network configuration file for scanning (for mode =='crowbar'). Will be" \
+                      " generated here if not already existing."
         dump_group.add_argument("-n", "--network", type=str, help=description,
                 default = "etc/network.json"
         )
@@ -178,8 +183,8 @@ class SecurityScanner(object):
             if self.m_discard_data:
                 self._cleanupData()
 
-if __name__ == "__main__":
 
+if __name__ == "__main__":
     scanner = SecurityScanner()
     sscanner.helper.executeMain(scanner.run)
 

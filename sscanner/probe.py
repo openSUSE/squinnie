@@ -44,6 +44,7 @@ import os, sys
 import stat
 import errno
 
+
 def isPython2():
     return sys.version_info.major == 2
 
@@ -334,7 +335,7 @@ class SlaveScanner(object):
 
             return ret
 
-        for path, dirs, files in os.walk("/", topdown=True, onerror = walkErr):
+        for path, dirs, files in os.walk("/", topdown=True, onerror=walkErr):
 
             if path == "/":
                 # remove excluded directories, only top-level dirs are
@@ -381,6 +382,7 @@ class SlaveScanner(object):
         # we're currently returning a single large dictionary containing all
         # collected information
         return result
+
 
 def main():
     import argparse
@@ -433,8 +435,15 @@ def main():
         # constant missing in py3 on _pickle
         protocol = 4
     import gzip
-    zip_out_file = gzip.GzipFile(fileobj = out_file)
-    pickle.dump(result, zip_out_file, protocol = protocol)
+    zip_out_file = gzip.GzipFile(fileobj=out_file, compresslevel=5)
+
+    import cStringIO
+
+    stream = cStringIO.StringIO()
+    pickle.dump(result, stream, protocol=protocol)
+
+    zip_out_file.write(stream.getvalue())
+
 
 if __name__ == '__channelexec__':
     scanner = SlaveScanner()
