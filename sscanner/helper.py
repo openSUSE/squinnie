@@ -4,9 +4,21 @@
 # security scanner - scan a system's security related information
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
-# Author:     Matthias Gerstner
+# Authors: Matthias Gerstner, Sebastian Kaim
 #
-# see LICENSE file for detailed licensing information
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# version 2 as published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+# MA 02110-1301 USA.
 
 from __future__ import print_function
 import sys
@@ -27,10 +39,10 @@ def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
 
-def missingModule(which = None, ex = None):
+def missingModule(which=None, ex=None):
     """Prints an error message about a missing module and exits."""
 
-    if which == None:
+    if which is None:
         which = ex.message.split()[-1]
 
     eprint("The module {} could not be found. Please use your system's package manager or pip to install it.".format(which))
@@ -66,12 +78,13 @@ def importPickle():
     return pickle
 
 
-def writePickle(item, path = None, fileobj = None):
+def writePickle(item, path=None, fileobj=None):
     """
     Write the given python object ``item`` to the given path of file object.
 
     Provide either ``path`` or ``fileobj``, not both.
 
+    :param item: The data to write.
     :param str path: File system path where to write the pickle to. Will be
     overwritten if it already exists.
     :param file fileobj: A file like object that is already open where the
@@ -89,14 +102,14 @@ def writePickle(item, path = None, fileobj = None):
         raise Exception("no file/path passed")
 
     try:
-        with gzip.GzipFile(fileobj = fileobj, mode = 'wb') as zifi:
-            pickle.dump(item, zifi, protocol = pickle.HIGHEST_PROTOCOL)
+        with gzip.GzipFile(fileobj=fileobj, mode='wb') as zifi:
+            pickle.dump(item, zifi, protocol=pickle.HIGHEST_PROTOCOL)
     finally:
         if path:
             fileobj.close()
 
 
-def readPickle(path = None, fileobj = None):
+def readPickle(path=None, fileobj=None):
     """
     Return data from a pickle file.
 
@@ -118,7 +131,7 @@ def readPickle(path = None, fileobj = None):
         raise Exception("no file/path passed")
 
     try:
-        with gzip.GzipFile(fileobj = fileobj, mode = 'rb') as zifi:
+        with gzip.GzipFile(fileobj=fileobj, mode='rb') as zifi:
 
             import cStringIO
             data = cStringIO.StringIO(zifi.read())
@@ -139,17 +152,17 @@ def executeMain(call):
         import termcolor
         from . import errors
     except ImportError as e:
-        missingModule(ex = e)
+        missingModule(ex=e)
 
     try:
         call()
         return
     except errors.ScannerError as e:
-        print(termcolor.colored("Error:", color = "red"), e)
+        print(termcolor.colored("Error:", color="red"), e)
     except EnvironmentError as e:
-        print(termcolor.colored("Failed:", color = "red"), e)
+        print(termcolor.colored("Failed:", color="red"), e)
     except Exception as e:
-        print(termcolor.colored("Unexpected error:", color = "red"))
+        print(termcolor.colored("Unexpected error:", color="red"))
         raise
 
     sys.exit(1)
