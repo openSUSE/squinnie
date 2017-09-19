@@ -42,6 +42,7 @@ try:
 except ImportError as e:
     sscanner.helper.missingModule(ex = e)
 
+
 class Dumper(object):
     """This class is able to collect the node data from local or remote hosts
     and stores and loads the data from dump files on disk as required. It
@@ -99,7 +100,6 @@ class Dumper(object):
         file_extension = "p"
         return "{}.{}".format(node_str.replace(".", "-"), file_extension)
 
-
     def _getFullDumpPath(self, dump):
         return os.path.join(self.m_outdir, dump)
 
@@ -148,7 +148,8 @@ class Dumper(object):
                 "full_path": self._getFullDumpPath(dump),
                 "via": parent,
                 "cached": self._haveCachedDump(dump)
-            } )
+            })
+
 
 class SshDumper(Dumper):
     """A specialized dumper that collects data from a remote host."""
@@ -278,7 +279,7 @@ class LocalDumper(Dumper):
             node_data = sscanner.probe.collect()
             self.m_nodes[0]['data'] = node_data
         else:
-            # might be a future command line option to allow this, is helpful
+            # might be a future command line option to allow this, it is helpful
             # for testing. For now we use sudo.
             #print("You're scanning as non-root, only partial data will be collected")
             #print("Run as root to get a full result. This mode is not fully supported.")
