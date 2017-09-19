@@ -47,6 +47,7 @@ class Enricher(object):
         self.m_node_data = node_data
 
     def _assertData(self):
+        """Check if the class has data available."""
         if not self.m_node_data:
             raise Exception("No data to save")
 
@@ -72,7 +73,7 @@ class Enricher(object):
         enriched by this class."""
         self._assertData()
 
-        enriched_keys = ["children","uid_name","gid_name"]
+        enriched_keys = ["children", "uid_name", "gid_name"]
 
         node_dict = self.getDict()
 
@@ -86,6 +87,7 @@ class Enricher(object):
         """Performs the node data enrichment, if it is not already
         enriched."""
 
+        # check if there's any data to process
         self._assertData()
 
         if self.isEnriched():
@@ -113,6 +115,7 @@ class Enricher(object):
                 childs.append(p)
 
         node_dict["children"] = children
+
 
 def main():
     description = "Enrich the data dump previously collected from a node."
