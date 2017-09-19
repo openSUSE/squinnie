@@ -26,23 +26,24 @@ from __future__ import with_statement
 import sys
 import os
 import argparse
-import re
+import stat
 import subprocess
-
 # Local modules.
 import sscanner.cap_translator as cap_translator
 import sscanner.helper as helper
-pickle = helper.importPickle()
 import sscanner.file_mode as file_mode
 import sscanner.errors
 from sscanner.types import ProcColumns
+
+pickle = helper.importPickle()
 
 # foreign modules
 try:
     import terminaltables
     import termcolor
 except ImportError as e:
-    helper.missingModule(ex = e)
+    helper.missingModule(ex=e)
+
 
 class Viewer(object):
     """This class implements the various view operations on node data."""
@@ -215,7 +216,8 @@ class Viewer(object):
 
         return {}
 
-    def buildWidthColumnDict(self, table):
+    @staticmethod
+    def buildWidthColumnDict(table):
         """Builds a dictionary containing the maximum width for each column in
         the given table list."""
         width_column_dict = {}
@@ -224,7 +226,8 @@ class Viewer(object):
 
         return width_column_dict
 
-    def printTableWidthColumnDict(self, table, width_column_dict, max_width):
+    @staticmethod
+    def printTableWidthColumnDict(table, width_column_dict, max_width):
         for row in table:
             to_print = " ".join(row[i].ljust(width_column_dict[i]) for i in range(len(table[0])))
             if max_width:
@@ -394,7 +397,11 @@ class Viewer(object):
             symlink = info["symlink"]
 
             flags = file_mode.getFdFlagLabels(info["file_flags"])
-            file_perm = info["file_perm"]
+            file_perm = {
+                "Uid"  : (info["file_perm"] & stat.S_IRWXU) >> 6,
+                "Gid"  : (info["file_perm"] & stat.S_IRWXG) >> 3,
+                "other": (info["file_perm"] & stat.S_IRWXO) >> 0,
+            }
             perms_octal = ''.join(
                 [ str(file_perm[key]) for key in ('Uid', 'Gid', 'other') ]
             )

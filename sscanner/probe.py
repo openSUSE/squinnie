@@ -40,8 +40,8 @@ proc`.
 # Standard library modules.
 from __future__ import print_function
 from __future__ import with_statement
-import os, sys
-import stat
+import os
+import sys
 import errno
 
 
@@ -236,7 +236,7 @@ class SlaveScanner(object):
                 os_stat = os.stat(file_path_name)
                 fd_identity_uid = os_stat.st_uid
                 fd_identity_gid = os_stat.st_gid
-                fd_perm_all     = os_stat.st_mode
+                fd_perm_all = os_stat.st_mode
             except EnvironmentError as e:
                 # probably the file was closed in the meantime
                 continue
@@ -255,13 +255,12 @@ class SlaveScanner(object):
                         "Uid": fd_identity_uid,
                         "Gid": fd_identity_gid,
                     },
-                    "file_perm": {
-                        # TODO: don't restructure these bits, transfer the
-                        # plain st_mode instead
-                        "Uid"  : (fd_perm_all & stat.S_IRWXU) >> 6,
-                        "Gid"  : (fd_perm_all & stat.S_IRWXG) >> 3,
-                        "other": (fd_perm_all & stat.S_IRWXO) >> 0,
-                    },
+                    "file_perm": fd_perm_all,
+                    # "file_perm": {
+                    #     "Uid"  : (fd_perm_all & stat.S_IRWXU) >> 6,
+                    #     "Gid"  : (fd_perm_all & stat.S_IRWXG) >> 3,
+                    #     "other": (fd_perm_all & stat.S_IRWXO) >> 0,
+                    # },
                     # the flags are represented in octal
                     "file_flags": int(fields["flags"], 8),
                     "symlink": target,
