@@ -9,19 +9,23 @@
 # see LICENSE file for detailed licensing information
 
 from __future__ import print_function
-import os, sys
+import sys
 
 # a place for assorted code shared between functions
+
 
 def isPython2():
     return sys.version_info.major == 2
 
+
 def isPython3():
     return not isPython2()
+
 
 def eprint(*args, **kwargs):
     """Wrapper around print() function that writes to stderr by default."""
     print(*args, file=sys.stderr, **kwargs)
+
 
 def missingModule(which = None, ex = None):
     """Prints an error message about a missing module and exits."""
@@ -31,6 +35,7 @@ def missingModule(which = None, ex = None):
 
     eprint("The module {} could not be found. Please use your system's package manager or pip to install it.".format(which))
     sys.exit(1)
+
 
 def importPickle():
     """
@@ -59,6 +64,7 @@ def importPickle():
             pickle.HIGHEST_PROTOCOL = 4
 
     return pickle
+
 
 def writePickle(item, path = None, fileobj = None):
     """
@@ -123,6 +129,7 @@ def readPickle(path = None, fileobj = None):
             fileobj.close()
 
     return ret
+
 
 def executeMain(call):
     """Runs the given function call wrapped in try/except clauses that provide

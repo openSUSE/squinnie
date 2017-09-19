@@ -25,23 +25,22 @@ from __future__ import print_function
 from __future__ import with_statement
 import argparse
 import sys
-import os
 
-# local modules
+# local moduless
 import sscanner.helper
-pickle = sscanner.helper.importPickle()
 
 try:
     import termcolor
 except ImportError:
     sscanner.helper.missingModule("termcolor")
 
+
 class Enricher(object):
     """This class cares for transforming "enriching" the raw data as it is
     collected on a remote or local node into a form that is more suitable for
     our processing."""
 
-    def __init__(self, node_data = None):
+    def __init__(self, node_data=None):
         """``node_data`` may contain an already loaded node data
         dictionary."""
 
@@ -130,6 +129,3 @@ def main():
         print("Node data is already enriched. Nothing to do.")
         return
     enricher.saveData(args.input)
-
-if __name__ == "__main__":
-    sscanner.helper.executeMain(main)
