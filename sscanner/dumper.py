@@ -4,7 +4,7 @@
 # security scanner - scan a system's security related information
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
-# Author:     Benjamin Deuter
+# Author: Benjamin Deuter, Sebatian Kaim
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -33,7 +33,7 @@ import sscanner.helper
 import sscanner.probe
 import sscanner.enrich
 import sscanner.network_config
-import sscanner.dio
+from sscanner.dio import DumpIO
 from sscanner.errors import ScannerError
 
 # foreign modules
@@ -96,7 +96,7 @@ class Dumper(object):
             dump_path = config['full_path']
             # enricher.saveData(dump_path)
 
-            dio = sscanner.dio.DumpIO(config["node"])
+            dio = DumpIO(config["node"], path=self.m_outdir)
             dio.saveFullDump(node_data_dict[config["node"]])
 
     def _getFilename(self, node_str):
@@ -107,8 +107,9 @@ class Dumper(object):
     def _getFullDumpPath(self, dump):
         return os.path.join(self.m_outdir, dump)
 
-    def _haveCachedDump(self, dump):
-        return os.path.isfile( self._getFullDumpPath(dump) )
+    def _haveCachedDump(self, key):
+        dio = DumpIO(key, path=self.m_outdir)
+        return dio.hasCache()
 
     def _discardCachedDumps(self):
         """Discards any cached dump files for the nodes currently setup in
@@ -133,8 +134,9 @@ class Dumper(object):
 
             print("Loading cached dump from", dump_path)
 
-            data = sscanner.helper.readPickle( path = dump_path )
-            config['data'] = next(iter(data.values()))
+            dmp = DumpIO(config['node'], path=self.m_outdir)
+            # data = sscanner.helper.readPickle( path = dump_path )
+            config['data'] = dmp.loadFullDump()
 
     def _setupDumpNodes(self, node_list):
         """Stores a list in self.m_nodes containing dictionaries describing
@@ -147,12 +149,12 @@ class Dumper(object):
 
             dump = self._getFilename(node)
 
-            self.m_nodes.append( {
+            self.m_nodes.append({
                 "node": node,
                 "path": dump,
                 "full_path": self._getFullDumpPath(dump),
                 "via": parent,
-                "cached": self._haveCachedDump(dump)
+                "cached": self._haveCachedDump(node)
             })
 
 

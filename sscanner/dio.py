@@ -106,14 +106,22 @@ class DumpIO(object):
         if not os.path.exists(file):
             raise LookupError
 
-        print("Loading data from {}", file)
+        print("Loading data from {}".format(file))
         return helper.readPickle(file)
 
     def getAllCachedCategories(self):
         """Returns a list of all categories saved on disk"""
         path = self._getDumpDir()
+
+        if not os.path.isdir(path):
+            return {}
+
         return [f.replace(self.FILE_EXTENSION, '')
                 for f in os.listdir(path) if os.path.isfile(os.path.join(path, f)) and f.endswith(self.FILE_EXTENSION)]
+
+    def hasCache(self):
+        # TODO: Check if all data is available which is needed
+        return len(self.getAllCachedCategories()) > 0
 
     @staticmethod
     def _debugPrint(data, indent=2, depth=2):
