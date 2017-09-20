@@ -33,7 +33,7 @@ import sscanner.helper
 import sscanner.probe
 import sscanner.enrich
 import sscanner.network_config
-import sscanner.io
+import sscanner.dio
 from sscanner.errors import ScannerError
 
 # foreign modules
@@ -96,7 +96,7 @@ class Dumper(object):
             dump_path = config['full_path']
             # enricher.saveData(dump_path)
 
-            dio = sscanner.io.DumpIO(config["node"])
+            dio = sscanner.dio.DumpIO(config["node"])
             dio.saveFullDump(node_data_dict[config["node"]])
 
     def _getFilename(self, node_str):

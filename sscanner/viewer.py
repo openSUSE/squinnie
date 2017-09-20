@@ -34,7 +34,7 @@ import sscanner.helper as helper
 import sscanner.file_mode as file_mode
 import sscanner.errors
 from sscanner.types import ProcColumns
-from sscanner.io import DumpIO
+from sscanner.dio import DumpIO
 
 pickle = helper.importPickle()
 
