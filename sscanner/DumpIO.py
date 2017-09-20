@@ -22,6 +22,7 @@
 
 import os
 import pprint
+import threading
 from sscanner import helper
 
 
@@ -61,6 +62,7 @@ class DumpIO(object):
             self.writeCategory(category, data[category])
 
     def writeCategory(self, category, data):
+        """This method writes a dump category to a file."""
         file_basename = helper.makeValidDirname(category)
         if file_basename != category:
             helper.eprint("Warning: Category %s has an invalid name, it will be written as %s instead."
@@ -79,7 +81,39 @@ class DumpIO(object):
         used for any other purpose.
         :return: The raw dump data.
         """
-        pass
+        data = {}
+        threads = []
+
+        def fetcher(category):
+            data[category] = self.loadCategory(category)
+
+        for c in self.getAllCachedCategories():
+            t = threading.Thread(target=fetcher, args=[c])
+            threads.append(t)
+            t.start()
+
+        for t in threads:
+            t.join()
+
+        return data
+
+    def loadCategory(self, category):
+        """This method loads a specific category file from a dump."""
+        file_basename = helper.makeValidDirname(category)
+
+        file = os.path.join(self._getDumpDir(), file_basename + self.FILE_EXTENSION)
+
+        if not os.path.exists(file):
+            raise LookupError
+
+        print("Loading data from {}", file)
+        return helper.readPickle(file)
+
+    def getAllCachedCategories(self):
+        """Returns a list of all categories saved on disk"""
+        path = self._getDumpDir()
+        return [f.replace(self.FILE_EXTENSION, '')
+                for f in os.listdir(path) if os.path.isfile(os.path.join(path, f)) and f.endswith(self.FILE_EXTENSION)]
 
     @staticmethod
     def _debugPrint(data, indent=2, depth=2):
