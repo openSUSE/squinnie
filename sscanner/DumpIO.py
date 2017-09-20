@@ -22,11 +22,12 @@
 
 import os
 import pprint
-from warnings import warn
+from sscanner import helper
 
 
 class DumpIO(object):
     """This class manages saving and loading whole dumps and parts to and from the filesystem."""
+    FILE_EXTENSION = ".p.gz"
 
     def __init__(self, target, path="/tmp/security-scanner"):
         """
@@ -37,35 +38,54 @@ class DumpIO(object):
         self.m_target_name = target
         self.m_path_prefix = path
 
-    def _getDumpFolder(self):
+    def _getDumpDir(self):
         """
         Generates the path of the dump folder.
         :return: The path of the dump folder without trailing slash.
         """
-        return os.path.join(self.m_path_prefix, self.m_target_name)
+        return os.path.join(self.m_path_prefix, helper.makeValidDirname(self.m_target_name))
+
+    def _createdDumpDirIfItDoesNotExist(self):
+        """Creates the dump directory if it does not exist"""
+        ddir = self._getDumpDir()
+
+        if not os.path.exists(ddir):
+            os.makedirs(ddir)
 
     def saveFullDump(self, data):
         """
         Saves all dump data to the specified directory.
         :param data: The dumped data.
         """
-        pass
-    
+        for category in data:
+            self.writeCategory(category, data[category])
+
+    def writeCategory(self, category, data):
+        file_basename = helper.makeValidDirname(category)
+        if file_basename != category:
+            helper.eprint("Warning: Category %s has an invalid name, it will be written as %s instead."
+                          .format(category, file_basename))
+
+        self._createdDumpDirIfItDoesNotExist()
+        file = os.path.join(self._getDumpDir(), file_basename + self.FILE_EXTENSION)
+        print("Saving data to {}".format(file))
+
+        helper.writePickle(data, file)
+        # self._debugPrint(data[category])
+
     def loadFullDump(self):
         """
         This method loads a full dump from the hard disk. This method is only for legacy code support and should not be
         used for any other purpose.
         :return: The raw dump data.
         """
-        warn("DumpIO.loadFullDump is only for legacy purposes and should not be used.")
         pass
 
-
     @staticmethod
-    def _debugPrint(data):
+    def _debugPrint(data, indent=2, depth=2):
         """
         Pretty-prints the given data to stdout.
         :param data: The data to print.
         """
-        pp = pprint.PrettyPrinter(indent=2, depth=2)
+        pp = pprint.PrettyPrinter(indent=indent, depth=depth)
         pp.pprint(data)

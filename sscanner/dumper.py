@@ -94,11 +94,10 @@ class Dumper(object):
             print("Enriching node data")
             enricher.enrich()
             dump_path = config['full_path']
-            print("Saving data to {}".format(dump_path))
             # enricher.saveData(dump_path)
 
-            dio = sscanner.DumpIO.DumpIO(dump_path)
-            dio.saveFullDump(node_data_dict)
+            dio = sscanner.DumpIO.DumpIO(config["node"])
+            dio.saveFullDump(node_data_dict[config["node"]])
 
     def _getFilename(self, node_str):
         # apparently .p is commonly used for pickled data
