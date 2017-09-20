@@ -23,6 +23,7 @@
 import os
 import pprint
 import threading
+import shutil
 from sscanner import helper
 
 
@@ -122,6 +123,11 @@ class DumpIO(object):
     def hasCache(self):
         # TODO: Check if all data is available which is needed
         return len(self.getAllCachedCategories()) > 0
+
+    def clearCache(self):
+        path = self._getDumpDir()
+        print("Discarding cached data for %s" % path)
+        shutil.rmtree(path)
 
     @staticmethod
     def _debugPrint(data, indent=2, depth=2):
