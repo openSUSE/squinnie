@@ -34,6 +34,7 @@ import sscanner.helper as helper
 import sscanner.file_mode as file_mode
 import sscanner.errors
 from sscanner.types import ProcColumns
+from sscanner.io import DumpIO
 
 pickle = helper.importPickle()
 
@@ -125,19 +126,20 @@ class Viewer(object):
         description = "View all files on the file system, including their permissions."
         parser.add_argument("--filesystem", action="store_true", help=description)
 
-
-    def loadData(self, node_dump):
+    def loadData(self, path, name):
         """Load node data to operate on from the given file."""
 
-        try:
-            self.m_node_data = helper.readPickle(path = node_dump)
-        except Exception as e:
-            if isinstance(e, EOFError):
-                # on python2 no sensible error string is contained in EOFError
-                e = "Premature end of file"
-            raise sscanner.errors.ScannerError(
-                "Failed to load node data from {}: {}".format(node_dump, str(e))
-            )
+        # try:
+        #     self.m_node_data = helper.readPickle(path = node_dump)
+        # except Exception as e:
+        #     if isinstance(e, EOFError):
+        #         # on python2 no sensible error string is contained in EOFError
+        #         e = "Premature end of file"
+        #     raise sscanner.errors.ScannerError(
+        #         "Failed to load node data from {}: {}".format(node_dump, str(e))
+        #     )
+        dmp = DumpIO(path=path, name=name)
+        self.m_node_data = dmp.loadFullDump()
 
         assert len(self.m_node_data.keys()) == 1
         self.m_node_label = next(iter(self.m_node_data.keys()))
@@ -749,25 +751,27 @@ class Viewer(object):
         if not self.m_node_data:
             raise Exception("no node data has been loaded")
 
+
 def main():
+    # description = "Generate various views from collected node data."
+    # parser = argparse.ArgumentParser(description=description)
+    #
+    # description = "The input file containing the dumped node data to view."
+    # parser.add_argument("-i", "--input", required=True, type=str, help=description)
+    #
+    # description = "Print more detailed information."
+    # parser.add_argument("-v", "--verbose", action="store_true", help=description)
+    #
+    # Viewer.addParserArguments(parser)
+    #
+    # args = parser.parse_args()
+    #
+    # viewer = Viewer()
+    # viewer.activateSettings(args)
+    # viewer.loadData(args.input)
+    # viewer.performAction(args)
+    print ("This file should not be used as main anymore. Please call the security scanner file instead")
 
-    description = "Generate various views from collected node data."
-    parser = argparse.ArgumentParser(description=description)
-
-    description = "The input file containing the dumped node data to view."
-    parser.add_argument("-i", "--input", required=True, type=str, help=description)
-
-    description = "Print more detailed information."
-    parser.add_argument("-v", "--verbose", action="store_true", help=description)
-
-    Viewer.addParserArguments(parser)
-
-    args = parser.parse_args()
-
-    viewer = Viewer()
-    viewer.activateSettings(args)
-    viewer.loadData(args.input)
-    viewer.performAction(args)
 
 if __name__ == "__main__":
     helper.executeMain(main)
