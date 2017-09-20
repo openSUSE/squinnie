@@ -22,6 +22,7 @@
 
 from __future__ import print_function
 import sys
+import re
 
 # a place for assorted code shared between functions
 
@@ -167,3 +168,10 @@ def executeMain(call):
 
     sys.exit(1)
 
+
+def makeValidDirname(s):
+    """
+    This function makes a valid file- or directory name from a string by removing leading and trailing spaces,
+    converting other spaces to underscores and removing anything that is not an alphanumeric, dash or underscore.
+    """
+    return re.sub(r'(?u)[^-\w.]', '', s.strip().replace(' ', '_'))
