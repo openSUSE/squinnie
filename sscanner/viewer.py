@@ -35,6 +35,7 @@ import sscanner.file_mode as file_mode
 import sscanner.errors
 from sscanner.types import ProcColumns
 from sscanner.dio import DumpIO
+from sscanner.daw import factory
 
 pickle = helper.importPickle()
 
@@ -49,7 +50,7 @@ except ImportError as e:
 class Viewer(object):
     """This class implements the various view operations on node data."""
 
-    def __init__(self):
+    def __init__(self, daw_factory):
 
         self.m_node_data = None
         self.m_verbose = False
@@ -69,6 +70,8 @@ class Viewer(object):
             "cap_data.json"
         ])
         self.m_cap_translator = cap_translator.CapTranslator(cap_json)
+
+        self.m_daw_factory = daw_factory
 
     def activateSettings(self, args):
         """Activates the settings found in the given argparse.Namespace

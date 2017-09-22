@@ -1,3 +1,6 @@
+#!/usr/bin/env python2
+# vim: ts=4 et sw=4 sts=4 :
+
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
 # Author: Sebastian Kaim
@@ -15,9 +18,28 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA 02110-1301 USA.
-"""
-This module abstracts the access to the raw data (it's Data Access Wrapper)
-"""
 
-from proc import ProcessData
-from factory import Factory
+
+class ProcessData(object):
+
+    def __init__(self, dumpIO):
+        """
+        :param dumpIO: An instance of sscanner.dio.DumpIO for loading the data
+        """
+        self.m_dumpIO = dumpIO
+        self.m_data = {}
+
+    def _loadData(self):
+        """
+        Loads the data from the dio class.
+        :return:
+        """
+        self.m_data = self.m_dumpIO.loadCategory()
+
+        if not self.m_data:
+            raise Exception("Failed to load data!")
+
+    def _loadDataIfRequired(self):
+        """Loads the data from the dio class if it was not already loaded."""
+        if not self.m_data:
+            self._loadData()

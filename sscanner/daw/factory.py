@@ -1,3 +1,5 @@
+# vim: ts=4 et sw=4 sts=4 :
+
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
 # Author: Sebastian Kaim
@@ -16,8 +18,18 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA 02110-1301 USA.
 """
-This module abstracts the access to the raw data (it's Data Access Wrapper)
+This file is a factory for all DAW classes.
 """
+from sscanner.daw import ProcessData
 
-from proc import ProcessData
-from factory import Factory
+
+class Factory(object):
+
+    def __init__(self, dumpIO):
+        """
+        :param dumpIO: An instance of sscanner.dio.DumpIO for loading the data
+        """
+        self.m_dumpIO = dumpIO
+
+    def getProcWrapper(self):
+        return ProcessData(self.m_dumpIO)
