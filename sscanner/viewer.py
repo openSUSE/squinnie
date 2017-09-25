@@ -4,7 +4,7 @@
 # security scanner - scan a system's security related information
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
-# Author:     Benjamin Deuter
+# Author: Benjamin Deuter, Sebastian Kaim
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -25,7 +25,6 @@ from __future__ import print_function
 from __future__ import with_statement
 import sys
 import os
-import argparse
 import stat
 import subprocess
 # Local modules.
@@ -128,25 +127,6 @@ class Viewer(object):
 
         description = "View all files on the file system, including their permissions."
         parser.add_argument("--filesystem", action="store_true", help=description)
-
-    def loadData(self, path, name):
-        """Load node data to operate on from the given file."""
-
-        # try:
-        #     self.m_node_data = helper.readPickle(path = node_dump)
-        # except Exception as e:
-        #     if isinstance(e, EOFError):
-        #         # on python2 no sensible error string is contained in EOFError
-        #         e = "Premature end of file"
-        #     raise sscanner.errors.ScannerError(
-        #         "Failed to load node data from {}: {}".format(node_dump, str(e))
-        #     )
-        dmp = DumpIO(path=path, name=name)
-        self.m_node_data = dmp.loadFullDump()
-
-        assert len(self.m_node_data.keys()) == 1
-        self.m_node_label = next(iter(self.m_node_data.keys()))
-        self.m_node_data = next(iter(self.m_node_data.values()))
 
     def setData(self, label, node_data):
         """Use the given node data structure to operate on."""
@@ -694,7 +674,7 @@ class Viewer(object):
                 if self.m_show_filter_parents:
                     pid = parents[pid]
 
-                if not pid in all_pids:
+                if pid not in all_pids:
                     raise sscanner.errors.ScannerError(
                         "There is no process that has pid {} on this node.".format(
                             pid
