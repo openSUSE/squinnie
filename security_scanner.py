@@ -4,7 +4,7 @@
 # security scanner - scan a system's security related information
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
-# Author:     Benjamin Deuter
+# Author: Benjamin Deuter, Sebastian Kaim
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -35,6 +35,8 @@ import sscanner.crowbar
 import sscanner.errors
 import sscanner.viewer
 from sscanner.types import Modes
+from sscanner.daw import Factory
+from sscanner.dio import DumpIO
 
 
 class SecurityScanner(object):
@@ -150,17 +152,19 @@ class SecurityScanner(object):
         """Performs the view operation according to command line parameters.
         The node data needs to have been collected for this to work."""
 
-        viewer = sscanner.viewer.Viewer()
-        viewer.activateSettings(self.m_args)
-
-        if self.m_args.mode in (Modes.local, Modes.ssh):
-            self.m_args.all = True
-
         # iterate over only the single node or all nodes depending on mode and
         # command line switches
         nodes = self.m_node_data if self.m_args.all else [ self.m_node_data[0] ]
 
+        if self.m_args.mode in (Modes.local, Modes.ssh):
+            self.m_args.all = True
+
         for config in self.m_node_data:
+            dio = DumpIO(config['node'], self.m_args.directory)
+
+            viewer = sscanner.viewer.Viewer(daw_factory=Factory(dio))
+            viewer.activateSettings(self.m_args)
+
             print("\n\nReport for {} ...".format(config['node']))
             viewer.setData(config['node'], config['data'])
             viewer.performAction(self.m_args)
@@ -187,4 +191,3 @@ class SecurityScanner(object):
 if __name__ == "__main__":
     scanner = SecurityScanner()
     sscanner.helper.executeMain(scanner.run)
-
