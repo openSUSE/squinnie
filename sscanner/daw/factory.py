@@ -20,7 +20,7 @@
 """
 This file is a factory for all DAW classes.
 """
-from sscanner.daw import ProcessData
+from sscanner.daw import ProcessData, Filesystem
 
 
 class Factory(object):
@@ -33,6 +33,9 @@ class Factory(object):
 
     def getProcWrapper(self):
         return ProcessData(self.m_dumpIO)
+
+    def getFsWrapper(self):
+        return Filesystem(self.m_dumpIO)
 
 
 class LazyLoader(object):

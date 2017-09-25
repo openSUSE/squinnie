@@ -1,3 +1,6 @@
+#!/usr/bin/env python2
+# vim: ts=4 et sw=4 sts=4 :
+
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
 # Author: Sebastian Kaim
@@ -15,10 +18,19 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA 02110-1301 USA.
-"""
-This module abstracts the access to the raw data (it's Data Access Wrapper)
-"""
+from factory import LazyLoader
 
-from proc import ProcessData
-from factory import Factory
-from fs import Filesystem
+class Filesystem(object):
+    """This class abstracts the filesystem data."""
+
+    def __init__(self, dumpIO):
+        """
+        :param dumpIO: An instance of sscanner.dio.DumpIO for loading the data
+        """
+        self.m_dumpIO = dumpIO
+        self.m_data_accessor = LazyLoader(category="filesystem", dumpIO=self.m_dumpIO)
+
+    def getAllFsData(self):
+        """Returns all raw filesystem data."""
+        # TODO: move FS data refining here
+        return self.m_data_accessor.getData()
