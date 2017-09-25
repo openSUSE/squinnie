@@ -55,9 +55,7 @@ class LazyLoader(object):
         Loads the data from the dio class.
         :return:
         """
-        self.m_data = self.m_dumpIO.loadCategory("proc_data")
-        self.m_children = self.m_dumpIO.loadCategory("children")
-        self.m_parents = self.m_dumpIO.loadCategory("parents")
+        self.m_data = self.m_dumpIO.loadCategory(self.m_category)
 
         if not self.m_data:
             raise Exception("Failed to load data!")
