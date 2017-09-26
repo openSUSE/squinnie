@@ -140,7 +140,7 @@ class SecurityScanner(object):
 
         dumper.setOutputDir(self.m_args.directory)
         dumper.setUseCache(not self.m_args.nocache)
-        dumper.collect(load_cached = True)
+        dumper.collect(load_cached=True)
 
         self.m_node_data = dumper.getNodeData()
         dumper.save()
@@ -152,7 +152,7 @@ class SecurityScanner(object):
 
         # iterate over only the single node or all nodes depending on mode and
         # command line switches
-        nodes = self.m_node_data if self.m_args.all else [ self.m_node_data[0] ]
+        # nodes = self.m_node_data if self.m_args.all else [ self.m_node_data[0] ]
 
         if self.m_args.mode in (Modes.local, Modes.ssh):
             self.m_args.all = True
@@ -164,7 +164,6 @@ class SecurityScanner(object):
             viewer.activateSettings(self.m_args)
 
             print("\n\nReport for {} ...".format(config['node']))
-            viewer.setData(config['node'], config['data'])
             viewer.performAction(self.m_args)
 
     def _cleanupData(self):

@@ -134,8 +134,9 @@ class Dumper(object):
             print("Loading cached dump from", dump_path)
 
             dmp = DumpIO(config['node'], path=self.m_outdir)
-            # data = sscanner.helper.readPickle( path = dump_path )
-            config['data'] = dmp.loadFullDump()
+
+            # no need to load the full dumps anymore since everything should use the daw
+            # config['data'] = dmp.loadFullDump()
 
     def _setupDumpNodes(self, node_list):
         """Stores a list in self.m_nodes containing dictionaries describing

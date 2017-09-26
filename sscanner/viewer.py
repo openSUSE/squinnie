@@ -53,7 +53,6 @@ class Viewer(object):
 
     def __init__(self, daw_factory, label):
 
-        self.m_node_data = None
         self.m_verbose = False
         self.m_have_tty = os.isatty(sys.stdout.fileno())
         self.m_show_fds = False
@@ -130,11 +129,6 @@ class Viewer(object):
 
         description = "View all files on the file system, including their permissions."
         parser.add_argument("--filesystem", action="store_true", help=description)
-
-    def setData(self, label, node_data):
-        """Use the given node data structure to operate on."""
-        self.m_node_label = label
-        self.m_node_data = node_data
 
     def addPidFilter(self, pid):
         """Don't show all PIDs but just the given PID in the table.
@@ -235,7 +229,7 @@ class Viewer(object):
         :param str cur_path: The current path string which needs to correspond
         to `cur_node`.
         :param dict cur_node: The current dictionary entry from
-        self.m_node_data['filesystem'] that corresponds to `cur_path`
+        from the filesystem that corresponds to `cur_path`
         """
 
         if not cur_node and not cur_path:
@@ -733,10 +727,6 @@ class Viewer(object):
             ["stty", "size"], close_fds = True, shell = False
         )
         return tuple(reversed([ int(part) for part in res.decode().split()]))
-
-    def _assertHaveData(self):
-        if not self.m_node_data:
-            raise Exception("no node data has been loaded")
 
 
 def main():
