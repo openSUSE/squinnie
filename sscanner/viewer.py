@@ -235,7 +235,6 @@ class Viewer(object):
         """
 
         if not cur_node and not cur_path:
-            # cur_node = self.m_node_data['filesystem']
             fshandler = self.m_daw_factory.getFsWrapper()
             cur_node = fshandler.getAllFsData()
             cur_path = '/'
@@ -247,8 +246,7 @@ class Viewer(object):
             # iterate over all sub-items
             items = sorted(cur_node.items())
 
-        uid_name = self.m_node_data["uid_name"]
-        gid_name = self.m_node_data["gid_name"]
+        account_wrapper = self.m_daw_factory.getAccountWrapper()
 
         ret = []
 
@@ -264,15 +262,8 @@ class Viewer(object):
             perm_str = file_mode.getModeString(props["st_mode"])
             file_type = file_mode.getTypeLabel(props["st_mode"])
 
-            if props["st_uid"] not in uid_name:
-                user  = "!USERERROR!"
-            else:
-                user  = uid_name[props["st_uid"]]
-
-            if props["st_gid"] not in gid_name:
-                group = "!GROUPERROR!"
-            else:
-                group = gid_name[props["st_gid"]]
+            user = account_wrapper.getNameForUid(props['st_uid'], default="(unknown)")
+            group = account_wrapper.getNameForGid(props['st_gid'], default="(unknown)")
 
             caps = self.m_cap_translator.getCapStrings(props["caps"])
             cap_str = "|".join(caps)
