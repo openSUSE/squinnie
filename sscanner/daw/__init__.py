@@ -21,4 +21,5 @@ This module abstracts the access to the raw data (it's Data Access Wrapper)
 
 from proc import ProcessData
 from fs import Filesystem
+from accounts import AccountWrapper
 from factory import Factory

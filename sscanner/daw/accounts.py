@@ -1,3 +1,4 @@
+#!/usr/bin/env python2
 # vim: ts=4 et sw=4 sts=4 :
 
 # Copyright (C) 2017 SUSE LINUX GmbH
@@ -17,30 +18,28 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA 02110-1301 USA.
-"""
-This file is a factory for all DAW classes.
-"""
-from sscanner.daw import ProcessData
-from sscanner.daw.fs import Filesystem
-from sscanner.daw import AccountWrapper
+from sscanner.daw.helper import LazyLoader
 
 
-class Factory(object):
+class AccountWrapper(object):
+    """
+    This class abstracts all data about users and groups. So far this data is unfortunately only the mapping of the
+    uid/gid to a name.
+    """
 
     def __init__(self, dumpIO):
         """
         :param dumpIO: An instance of sscanner.dio.DumpIO for loading the data
         """
         self.m_dumpIO = dumpIO
-        self.m_proc_data = ProcessData(self.m_dumpIO)
-        self.m_fs_wrapper = Filesystem(self.m_dumpIO)
-        self.m_account_wrapper = AccountWrapper(self.m_dumpIO)
+        self.m_data = {}
+        self.m_ll_users = LazyLoader("uid_name", self.m_dumpIO)
+        self.m_ll_groups = LazyLoader("gid_name", self.m_dumpIO)
 
-    def getProcWrapper(self):
-        return self.m_proc_data
+    def getNameForUid(self, uid):
+        """Returns the name of the user for a specific uid."""
+        return self.m_ll_users.getData()[uid]
 
-    def getFsWrapper(self):
-        return self.m_fs_wrapper
-
-    def getAccountWrapper(self):
-        return self.m_account_wrapper
+    def getNameForGid(self, gid):
+        """Returns the name of the group for a specific group id."""
+        return self.m_ll_groups.getData()[gid]
