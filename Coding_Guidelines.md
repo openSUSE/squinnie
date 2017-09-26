@@ -12,4 +12,4 @@ Class methods MUST be named in lowerCamelCase. Example: `def processUsageData(se
 
 ## File names
 
-Files names (except for meta files like this one) should not contain spaces. Ideally the should only contain alphanumeric characters and `-_.`.
+Files names should not contain spaces. Ideally the should only contain alphanumeric characters and `-_.`.
