@@ -381,20 +381,18 @@ class Viewer(object):
             symlink = info["symlink"]
 
             flags = file_mode.getFdFlagLabels(info["file_flags"])
-            #TODO: This should be in the DAW
+            # TODO: This should be in the DAW
             file_perm = {
                 "Uid": (info["file_perm"] & stat.S_IRWXU) >> 6,
                 "Gid": (info["file_perm"] & stat.S_IRWXG) >> 3,
                 "other": (info["file_perm"] & stat.S_IRWXO) >> 0,
             }
             perms_octal = ''.join(
-                [ str(file_perm[key]) for key in ('Uid', 'Gid', 'other') ]
+                [str(file_perm[key]) for key in ('Uid', 'Gid', 'other')]
             )
 
-            # TODO: this is a bug, the symlink may contain a colon even if it
-            # is a real file. Only if it is a broken symlink we can assume
-            # this.
-            is_pseudo_file = ":" in symlink
+            # since all paths a absolute, real paths start with /
+            is_pseudo_file = not symlink.startswith('/')
 
             # pseudo files: sockets, pipes, ...
             if is_pseudo_file:
