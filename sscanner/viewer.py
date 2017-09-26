@@ -49,7 +49,7 @@ except ImportError as e:
 class Viewer(object):
     """This class implements the various view operations on node data."""
 
-    def __init__(self, daw_factory):
+    def __init__(self, daw_factory, label):
 
         self.m_node_data = None
         self.m_verbose = False
@@ -61,6 +61,7 @@ class Viewer(object):
         self.m_show_filter_children = False
         self.m_show_kthreads = False
         self.m_indentation_width = 4
+        self.m_node_label = label
 
         cap_json = os.path.sep.join([
             os.path.abspath( os.path.dirname(__file__) ),
@@ -232,7 +233,9 @@ class Viewer(object):
         """
 
         if not cur_node and not cur_path:
-            cur_node = self.m_node_data['filesystem']
+            # cur_node = self.m_node_data['filesystem']
+            fshandler = self.m_daw_factory.getFsWrapper()
+            cur_node = fshandler.getAllFsData()
             cur_path = '/'
             # iterate just over the root node for the start
             items = ("/", cur_node),

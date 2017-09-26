@@ -81,9 +81,7 @@ class SecurityScanner(object):
 
         description = "Path to the JSON network configuration file for scanning (for mode =='crowbar'). Will be" \
                       " generated here if not already existing."
-        dump_group.add_argument("-n", "--network", type=str, help=description,
-                default = "etc/network.json"
-        )
+        dump_group.add_argument("-n", "--network", type=str, help=description, default="etc/network.json")
 
         description = "Ignore and remove any cached files, forcing a fresh scan."
         dump_group.add_argument("--nocache", action="store_true", help=description)
@@ -162,7 +160,7 @@ class SecurityScanner(object):
         for config in self.m_node_data:
             dio = DumpIO(config['node'], self.m_args.directory)
 
-            viewer = sscanner.viewer.Viewer(daw_factory=Factory(dio))
+            viewer = sscanner.viewer.Viewer(daw_factory=Factory(dio), label=config['node'])
             viewer.activateSettings(self.m_args)
 
             print("\n\nReport for {} ...".format(config['node']))
