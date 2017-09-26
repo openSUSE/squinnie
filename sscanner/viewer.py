@@ -188,8 +188,12 @@ class Viewer(object):
     def getFileProperties(self, filename):
         """Returns the properties of a given file path in the file system. Or
         an empty dictionary on failure."""
+        # Todo: move this lookup in the fs class
+
+        fs_wrapper = self.m_daw_factory.getFsWrapper()
+
         tokens = filename[1:].split(os.path.sep)
-        filesystem = self.m_node_data['filesystem']['subitems']
+        filesystem = fs_wrapper.getAllFsData()['subitems']
         try:
             while True:
                 t = tokens.pop(0)
