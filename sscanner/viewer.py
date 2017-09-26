@@ -134,6 +134,11 @@ class Viewer(object):
         self.m_node_label = label
         self.m_node_data = node_data
 
+    def addPidFilter(self, pid):
+        """Don't show all PIDs but just the given PID in the table.
+        Accumulates."""
+        self.m_pid_filter.append(pid)
+
     def setVerbose(self, verbose):
         self.m_verbose = verbose
 
@@ -144,11 +149,6 @@ class Viewer(object):
     def setShowParams(self, show):
         """Also show process parameters in an extra column."""
         self.m_show_params = show
-
-    def addPidFilter(self, pid):
-        """Don't show all PIDs but just the given PID in the table.
-        Accumulates."""
-        self.m_pid_filter.append(pid)
 
     def setShowFilterParents(self, show):
         """If a PID filter is in effect, also show the parents of selected
@@ -627,18 +627,20 @@ class Viewer(object):
     def printProcessTree(self):
         """Prints a complete process tree according to currently active view
         settings."""
-        self._assertHaveData()
+        # self._assertHaveData()
 
-        num_procs = len(self.m_node_data['proc_data'])
+        proc_wrapper = self.m_daw_factory.getProcWrapper()
+
+        num_procs = proc_wrapper.getProcessCount()
         print("There are {} processes running on {}.".format(
             num_procs,
             self.m_node_label
         ))
         print("")
 
-        all_pids = self.m_node_data["proc_data"].keys()
-        children = self.m_node_data["children"]
-        parents = self.m_node_data["parents"]
+        all_pids = proc_wrapper.getAllPids()
+        children = proc_wrapper.getChildren()
+        parents = proc_wrapper.getParents()
 
         column_headers = ProcColumns.getAll()
         table = {}

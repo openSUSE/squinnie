@@ -18,6 +18,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA 02110-1301 USA.
+from sscanner.daw.helper import LazyLoader
 
 
 class ProcessData(object):
@@ -28,18 +29,26 @@ class ProcessData(object):
         """
         self.m_dumpIO = dumpIO
         self.m_data = {}
+        self.m_ll_proc = LazyLoader("proc_data", self.m_dumpIO)
+        self.m_ll_children = LazyLoader("children", self.m_dumpIO)
+        self.m_ll_parents = LazyLoader("parents", self.m_dumpIO)
 
-    def _loadData(self):
-        """
-        Loads the data from the dio class.
-        :return:
-        """
-        self.m_data = self.m_dumpIO.loadCategory()
+    def getProcData(self):
+        """Return general process data."""
+        return self.m_ll_proc.getData()
 
-        if not self.m_data:
-            raise Exception("Failed to load data!")
+    def getParents(self):
+        """Return the parents of each process"""
+        return self.m_ll_parents.getData()
 
-    def _loadDataIfRequired(self):
-        """Loads the data from the dio class if it was not already loaded."""
-        if not self.m_data:
-            self._loadData()
+    def getChildren(self):
+        """Return the children of each process"""
+        return self.m_ll_children.getData()
+
+    def getProcessCount(self):
+        """Returns the number of recorded processes for the scanned host"""
+        return len(self.getProcData())
+
+    def getAllPids(self):
+        """Returns all process ids found on the scanned host"""
+        return self.getProcData().keys()
