@@ -33,15 +33,14 @@ class AccountWrapper(object):
         """
         self.m_dumpIO = dumpIO
         self.m_data = {}
-        self.m_ll_users = LazyLoader("uid_name", self.m_dumpIO)
-        self.m_ll_groups = LazyLoader("gid_name", self.m_dumpIO)
+        self.m_ll_data = LazyLoader("userdata", self.m_dumpIO)
 
     def getNameForUid(self, uid, default=None):
         """Returns the name of the user for a specific uid."""
-        data = self.m_ll_users.getData()
+        data = self.m_ll_data.getData()['uids']
         return data[uid] if uid in data else default
 
     def getNameForGid(self, gid, default=None):
         """Returns the name of the group for a specific group id."""
-        data = self.m_ll_groups.getData()
+        data = self.m_ll_data.getData()['gids']
         return data[gid] if gid in data else default

@@ -366,10 +366,13 @@ class SlaveScanner(object):
 
         self.collectProcessInfo()
         result["proc_data"] = self.m_proc_info["status"]
-        result["parents"  ] = self.m_proc_info["parents"]
+        result["parents"] = self.m_proc_info["parents"]
         self.collectUserGroupMappings()
-        result["uid_name" ] = self.m_uid_map
-        result["gid_name" ] = self.m_gid_map
+
+        result['userdata'] = {
+            "uids": self.m_uid_map,
+            "gids": self.m_gid_map
+        }
 
         result["networking"] = {}
         for prot in ("tcp", "tcp6", "udp", "udp6", "unix"):
