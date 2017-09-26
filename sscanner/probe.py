@@ -4,7 +4,7 @@
 # security scanner - scan a system's security related information
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
-# Author:     Benjamin Deuter
+# Author: Benjamin Deuter, Sebastian Kaim
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -47,6 +47,7 @@ import errno
 
 def isPython2():
     return sys.version_info.major == 2
+
 
 class SlaveScanner(object):
 
@@ -112,8 +113,8 @@ class SlaveScanner(object):
         """Collects protocol state information for ``protocol`` in
         self.m_protocols[``protocol``]."""
 
-        with open("/proc/net/{}".format(protocol),"r") as f:
-            table = [ line.strip() for line in f.readlines() ]
+        with open("/proc/net/{}".format(protocol), "r") as f:
+            table = [line.strip() for line in f.readlines()]
         # discard the column header
         table.pop(0)
 
@@ -370,9 +371,10 @@ class SlaveScanner(object):
         result["uid_name" ] = self.m_uid_map
         result["gid_name" ] = self.m_gid_map
 
+        result["networking"] = {}
         for prot in ("tcp", "tcp6", "udp", "udp6", "unix"):
             self.collectProtocolInfo(prot)
-            result[prot] = self.m_protocols[prot]
+            result["networking"][prot] = self.m_protocols[prot]
 
         if self.m_collect_files:
             self.collectFilesystem()

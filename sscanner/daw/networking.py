@@ -1,3 +1,4 @@
+#!/usr/bin/env python2
 # vim: ts=4 et sw=4 sts=4 :
 
 # Copyright (C) 2017 SUSE LINUX GmbH
@@ -17,35 +18,31 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA 02110-1301 USA.
-"""
-This file is a factory for all DAW classes.
-"""
-from sscanner.daw import ProcessData
-from sscanner.daw.fs import Filesystem
-from sscanner.daw import AccountWrapper
-from sscanner.daw import NetworkingWrapper
+from sscanner.daw.helper import LazyLoader
 
 
-class Factory(object):
+class NetworkingWrapper(object):
+    """
+    This class abstracts all info about network connections including unix sockets.
+    """
+
+    PROTOCOLS = ["tcp", "tcp6", "udp", "udp6", "unix"]
 
     def __init__(self, dumpIO):
         """
         :param dumpIO: An instance of sscanner.dio.DumpIO for loading the data
         """
         self.m_dumpIO = dumpIO
-        self.m_proc_data = ProcessData(self.m_dumpIO)
-        self.m_fs_wrapper = Filesystem(self.m_dumpIO)
-        self.m_account_wrapper = AccountWrapper(self.m_dumpIO)
-        self.m_networking_wrapper = NetworkingWrapper(self.m_dumpIO)
+        self.m_ll_protos = LazyLoader("networking", self.m_dumpIO)
 
-    def getProcWrapper(self):
-        return self.m_proc_data
+    def getProtocols(self):
+        """Returns a list of all currently possible protocols."""
+        return self.PROTOCOLS
 
-    def getFsWrapper(self):
-        return self.m_fs_wrapper
+    def getProtocolData(self, protocol):
+        """Returns the data for a specific protocol."""
+        return self.m_ll_protos.getData()[protocol]
 
-    def getAccountWrapper(self):
-        return self.m_account_wrapper
-
-    def getNetworkingWrapper(self):
-        return self.m_networking_wrapper
+    def getDataForAllProtocols(self):
+        """Returns the data for all protocols"""
+        return self.m_ll_protos.getData()

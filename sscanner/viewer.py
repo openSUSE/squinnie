@@ -294,9 +294,11 @@ class Viewer(object):
         if _type != "socket":
             raise Exception("Can only translate socket inodes for now")
 
+        networking_wrapper = self.m_daw_factory.getNetworkingWrapper()
+
         result = []
-        for transport_protocol in ["tcp", "tcp6", "udp", "udp6", "unix"]:
-            transport_dict = self.m_node_data.get(transport_protocol, {})
+        for transport_protocol in networking_wrapper.getProtocols():
+            transport_dict = networking_wrapper.getProtocolData(transport_protocol)
             if not transport_dict:
                 continue
             inode_entry = transport_dict.get(str(inode), -1)
@@ -305,8 +307,9 @@ class Viewer(object):
                 continue
 
             # a named unix domain socket
+            # TODO: move this processing to the networking wrapper
             if transport_protocol == "unix":
-                if inode_entry == "": # unnamed unix domain socket
+                if inode_entry == "":  # unnamed unix domain socket
                     inode_entry = "<anonymous>"
                 else: # named or abstract unix domain socket
                     # TODO: this lookup doesn't work for abstract sockets
