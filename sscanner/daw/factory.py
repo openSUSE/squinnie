@@ -31,9 +31,11 @@ class Factory(object):
         :param dumpIO: An instance of sscanner.dio.DumpIO for loading the data
         """
         self.m_dumpIO = dumpIO
+        self.m_proc_data = ProcessData(self.m_dumpIO)
+        self.m_fs_wrapper = Filesystem(self.m_dumpIO)
 
     def getProcWrapper(self):
-        return ProcessData(self.m_dumpIO)
+        return self.m_proc_data
 
     def getFsWrapper(self):
-        return Filesystem(self.m_dumpIO)
+        return self.m_fs_wrapper
