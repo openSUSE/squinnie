@@ -1,4 +1,3 @@
-#!/usr/bin/env python2
 # vim: ts=4 et sw=4 sts=4 :
 
 # Copyright (C) 2017 SUSE LINUX GmbH
@@ -18,20 +17,36 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA 02110-1301 USA.
-from helper import LazyLoader
 
 
-class Filesystem(object):
-    """This class abstracts the filesystem data."""
+class LazyLoader(object):
+    """Lazily loads a category when required."""
 
-    def __init__(self, dumpIO):
+    def __init__(self, category, dumpIO):
         """
+        :param category: The name of the category.
         :param dumpIO: An instance of sscanner.dio.DumpIO for loading the data
         """
         self.m_dumpIO = dumpIO
-        self.m_data_accessor = LazyLoader(category="filesystem", dumpIO=self.m_dumpIO)
+        self.m_category = category
+        self.m_data = {}
 
-    def getAllFsData(self):
-        """Returns all raw filesystem data."""
-        # TODO: move FS data refining here
-        return self.m_data_accessor.getData()
+    def _loadData(self):
+        """
+        Loads the data from the dio class.
+        :return:
+        """
+        self.m_data = self.m_dumpIO.loadCategory(self.m_category)
+
+        if not self.m_data:
+            raise Exception("Failed to load data!")
+
+    def _loadDataIfRequired(self):
+        """Loads the data from the dio class if it was not already loaded."""
+        if not self.m_data:
+            self._loadData()
+
+    def getData(self):
+        """Return the contained data, load if necessary."""
+        self._loadDataIfRequired()
+        return self.m_data

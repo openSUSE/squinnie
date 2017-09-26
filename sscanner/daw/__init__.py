@@ -20,5 +20,5 @@ This module abstracts the access to the raw data (it's Data Access Wrapper)
 """
 
 from proc import ProcessData
-from factory import Factory
 from fs import Filesystem
+from factory import Factory
