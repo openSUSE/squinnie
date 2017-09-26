@@ -451,9 +451,10 @@ class Viewer(object):
         process with ``pid``.
         """
 
-        pid_data = self.m_node_data["proc_data"][pid]
-        uid_name = self.m_node_data["uid_name"]
-        gid_name = self.m_node_data["gid_name"]
+        proc_wrapper = self.m_daw_factory.getProcWrapper()
+        account_wrapper = self.m_daw_factory.getAccountWrapper()
+
+        pid_data = proc_wrapper.getProcessInfo(pid)
 
         if "Uid" not in pid_data.keys():
             return ""
@@ -467,11 +468,11 @@ class Viewer(object):
         if column == ProcColumns.user:
             user_set = set()
 
-            for item in set(pid_data["Uid"]):
+            for userid in set(pid_data["Uid"]):
                 if self.m_verbose:
-                    user_label = "{}({})".format(uid_name[item], item)
+                    user_label = "{}({})".format(account_wrapper.getNameForUid(userid), userid)
                 else:
-                    user_label = uid_name[item]
+                    user_label = account_wrapper.getNameForUid(userid)
                 user_set.add(user_label)
 
             result = "|".join(str(x) for x in user_set)
@@ -483,11 +484,11 @@ class Viewer(object):
             groups_set = set(pid_data["Gid"]) | set(pid_data["Groups"])
             groups = set()
 
-            for item in groups_set:
+            for groupid in groups_set:
                 if self.m_verbose:
-                    group_label = "{}({})".format(gid_name[item], item)
+                    group_label = "{}({})".format(account_wrapper.getNameForGid(groupid), groupid)
                 else:
-                    group_label = gid_name[item]
+                    group_label = account_wrapper.getNameForGid(groupid)
                 groups.add(group_label)
             result = "|".join([str(x) for x in groups])
             if not all_gids_equal:
