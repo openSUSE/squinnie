@@ -52,3 +52,7 @@ class ProcessData(object):
     def getAllPids(self):
         """Returns all process ids found on the scanned host"""
         return self.getProcData().keys()
+
+    def getProcessInfo(self, pid):
+        """Get the data for a specific process"""
+        return self.getProcData()[pid]

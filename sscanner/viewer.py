@@ -27,6 +27,7 @@ import sys
 import os
 import stat
 import subprocess
+from collections import OrderedDict
 # Local modules.
 import sscanner.cap_translator as cap_translator
 import sscanner.helper as helper
@@ -35,6 +36,7 @@ import sscanner.errors
 from sscanner.types import ProcColumns
 from sscanner.dio import DumpIO
 from sscanner.daw import factory
+
 
 pickle = helper.importPickle()
 
@@ -168,10 +170,10 @@ class Viewer(object):
         """Prints all file descriptors of all processes found in the current
         data set."""
 
-        all_pids = self.m_node_data["proc_data"].keys()
+        proc_wrapper = self.m_daw_factory.getProcWrapper()
 
-        for pid in sorted(all_pids):
-            info = self.m_node_data["proc_data"][pid]
+        all_pids = proc_wrapper.getAllPids()
+        for pid, info in OrderedDict(proc_wrapper.getProcData()).items():
             open_file_count = len(info["open_files"])
 
             # Hide the process if it has no open files
