@@ -72,14 +72,14 @@ class SlaveScanner(object):
             cmdline_items = [str(item) for item in cmdline_str.split("\x00")]
             executable = cmdline_items[0]
             parameters = " ".join(cmdline_items[1:])
-        return (executable, parameters)
+        return executable, parameters
 
     def getAllPids(self):
         """Returns a list of all process PIDs currently seen in /proc."""
         result = []
 
         for entry in os.listdir("/proc"):
-            path = os.path.join( "/proc", entry )
+            path = os.path.join("/proc", entry)
 
             if not entry.isdigit():
                 # not a PID dir
@@ -125,10 +125,10 @@ class SlaveScanner(object):
             # IP based protocols
             if protocol != "unix":
                 parts = line.split()
-                l_host,l_port = parts[1].split(':')
-                r_host,r_port = parts[2].split(':')
+                l_host, l_port = parts[1].split(':')
+                r_host, r_port = parts[2].split(':')
                 inode = parts[9]
-                info[inode] = [[l_host,l_port], [r_host,r_port]]
+                info[inode] = [[l_host, l_port], [r_host, r_port]]
             else:
                 parts = line.split()
                 if len(parts) == 7:
@@ -392,7 +392,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description = """
+        description="""
             Standalone script for collecting system status information like
             process tree and file system data.
 
@@ -403,14 +403,14 @@ def main():
 
     parser.add_argument(
         "-o", "--output",
-        help = "Where to write the pickled, collected data to. Pass '-' to write to stdout (default).",
-        default = '-'
+        help="Where to write the pickled, collected data to. Pass '-' to write to stdout (default).",
+        default='-'
     )
 
     parser.add_argument(
-        "--no-files", action = 'store_true',
-        default = False,
-        help = "Don't collect file system information. This will save a lot of time and space."
+        "--no-files", action='store_true',
+        default=False,
+        help="Don't collect file system information. This will save a lot of time and space."
     )
 
     args = parser.parse_args()
@@ -427,8 +427,9 @@ def main():
     if os.isatty(out_file.fileno()):
         exit("Refusing to output binary data to stdout connected to a terminal")
 
-    scanner = SlaveScanner(collect_files = not args.no_files)
+    scanner = SlaveScanner(collect_files=not args.no_files)
     result = scanner.collect()
+
     if isPython2():
         # for running locally via sudo: simply output the raw data structure
         # on stdout
@@ -452,7 +453,7 @@ def main():
 if __name__ == '__channelexec__':
     scanner = SlaveScanner()
     result = scanner.collect()
-    channel.send( result )
+    channel.send(result)
 elif __name__ == "__main__":
     main()
 
