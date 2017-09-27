@@ -143,21 +143,21 @@ class SlaveScanner(object):
         Collect information about all running processes in the
         self.m_proc_info dictionary.
         """
-        cap_lambda     = lambda a: int(a, base = 16)
+        cap_lambda = lambda a: int(a, base=16)
         gid_uid_lambda = lambda a: tuple(int(i) for i in a.split("\t"))
-        groups_lambda  = lambda a: [int(i) for i in a.split()]
+        groups_lambda = lambda a: [int(i) for i in a.split()]
         seccomp_lambda = lambda a: int(a) == 1
 
         field_transforms = {
-            "CapInh" : cap_lambda,
-            "CapPrm" : cap_lambda,
-            "CapEff" : cap_lambda,
-            "CapBnd" : cap_lambda,
-            "CapAmb" : cap_lambda,
-            "Gid"    : gid_uid_lambda,
-            "Groups" : groups_lambda,
+            "CapInh": cap_lambda,
+            "CapPrm": cap_lambda,
+            "CapEff": cap_lambda,
+            "CapBnd": cap_lambda,
+            "CapAmb": cap_lambda,
+            "Gid": gid_uid_lambda,
+            "Groups": groups_lambda,
             "Seccomp": seccomp_lambda,
-            "Uid"    : gid_uid_lambda,
+            "Uid": gid_uid_lambda,
         }
 
         # PID -> dict() mapping, containing per process data
