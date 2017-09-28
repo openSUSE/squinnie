@@ -274,7 +274,7 @@ class SlaveScanner(object):
 
         return result
 
-    def getProperties(self, filename, os_stat = None):
+    def getProperties(self, filename, type, os_stat=None):
         """Gets the properties from the file object found in ``filename``"""
         properties = {}
 
@@ -286,13 +286,14 @@ class SlaveScanner(object):
             if not os_stat:
                 os_stat = os.lstat(filename)
             properties["st_mode"] = os_stat.st_mode
-            properties["st_uid" ] = os_stat.st_uid
-            properties["st_gid" ] = os_stat.st_gid
+            properties["st_uid"] = os_stat.st_uid
+            properties["st_gid"] = os_stat.st_gid
+            properties["type"] = type
         except EnvironmentError as e:
             print("Failed to lstat {}: {}".format(
                     filename, e
                 ),
-                file = sys.stderr
+                file=sys.stderr
             )
             return None
 
@@ -349,7 +350,7 @@ class SlaveScanner(object):
 
             path_dict = {
                 "subitems": dict.fromkeys(files),
-                "properties": self.getProperties(path)
+                "properties": self.getProperties(path, type='d')
             }
             parent["subitems"][this_dir] = path_dict
 
@@ -357,7 +358,7 @@ class SlaveScanner(object):
                 file_path = os.path.join(path, name)
 
                 path_dict["subitems"][name] = {
-                    "properties": self.getProperties(file_path)
+                    "properties": self.getProperties(file_path, type='f')
                 }
 
     def collect(self):
