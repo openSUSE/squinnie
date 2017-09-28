@@ -68,6 +68,7 @@ class DumpIO(object):
 
         # TODO: This should probably be split better
         if category == "filesystem":
+            print("Inserting data into fs")
             fsdb = FsDatabase(self._getDumpDir())
             fsdb.insertRawData(data)
             return

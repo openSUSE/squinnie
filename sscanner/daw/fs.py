@@ -21,6 +21,7 @@
 from helper import LazyLoader
 import sqlite3
 import os.path
+import sscanner.dio
 
 
 class Filesystem(object):
@@ -61,12 +62,14 @@ class FsDatabase(object):
             "gid" INTEGER,
             "caps" INTEGER,
             "mode" INTEGER,
-            "name" TEXT
+            "type" TEXT,
+            "name" TEXT,
+            "path" TEXT
         )
         """
 
         self.m_db.execute('DROP TABLE IF EXISTS "inodes"')
-        self.m_db.execute(sql=sql)
+        self.m_db.execute(sql)
 
     def insertRawData(self, fsdata):
         """Inserts the raw data into a new database."""
@@ -76,6 +79,7 @@ class FsDatabase(object):
         INSERT INTO inodes (parent, uid, gid, caps, mode, name)
         VALUES (?, ?, ?. ?, ?, ?)"""
 
+        sscanner.dio.DumpIO._debugPrint(fsdata)
         # cursor =
         pass
 

@@ -308,10 +308,10 @@ class SlaveScanner(object):
         # paths to exclude from the collection
         exclude = ["/.snapshots", "/proc", "/mounts", "/suse"]
 
-        self.m_filesystem = {
-            "subitems": {},
-            "properties": {}
-        }
+        self.m_filesystem = {}
+        #     "subitems": {},
+        #     "properties": {}
+        # }
 
         def walkErr(ex):
             """Is called from os.walk() when errors occur."""
@@ -338,28 +338,37 @@ class SlaveScanner(object):
 
         for path, dirs, files in os.walk("/", topdown=True, onerror=walkErr):
 
-            if path == "/":
+            # if path == "/":
                 # remove excluded directories, only top-level dirs are
                 # considered ATM
-                dirs[:] = [d for d in dirs if os.path.join(path, d) not in exclude]
-                self.m_filesystem["properties"] = self.getProperties(path)
+                # dirs[:] = [d for d in dirs if os.path.join(path, d) not in exclude]
+                # self.m_filesystem["properties"] = self.getProperties(path, type='d')
+                # continue
+
+            # this_dir = os.path.basename(path)
+            # parent = getParentDict(path)
+
+            # path_dict = self.getProperties(path, type='d')
+
+            cont = True
+            for excluded in exclude:
+                if path.startswith(excluded):
+                    cont = False
+                    break
+            if not cont:
                 continue
-
-            this_dir = os.path.basename(path)
-            parent = getParentDict(path)
-
-            path_dict = {
-                "subitems": dict.fromkeys(files),
-                "properties": self.getProperties(path, type='d')
-            }
-            parent["subitems"][this_dir] = path_dict
 
             for name in files:
                 file_path = os.path.join(path, name)
 
-                path_dict["subitems"][name] = {
-                    "properties": self.getProperties(file_path, type='f')
-                }
+                file_data = self.getProperties(file_path, type='f')
+                self.m_filesystem[file_path] = file_data
+
+            for name in dirs:
+                dir_path = os.path.join(path, name)
+
+                dir_data = self.getProperties(dir_path, type='d')
+                self.m_filesystem[dir_path] = dir_data
 
     def collect(self):
 
