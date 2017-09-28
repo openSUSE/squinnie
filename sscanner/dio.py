@@ -25,6 +25,7 @@ import pprint
 import threading
 import shutil
 from sscanner import helper
+from sscanner.daw.fs import FsDatabase
 
 
 class DumpIO(object):
@@ -64,6 +65,13 @@ class DumpIO(object):
 
     def writeCategory(self, category, data):
         """This method writes a dump category to a file."""
+
+        # TODO: This should probably be split better
+        if category == "filesystem":
+            fsdb = FsDatabase(self._getDumpDir())
+            fsdb.insertRawData(data)
+            return
+
         file_basename = helper.makeValidDirname(category)
         if file_basename != category:
             helper.eprint("Warning: Category %s has an invalid name, it will be written as %s instead."

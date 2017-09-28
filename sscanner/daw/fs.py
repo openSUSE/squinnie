@@ -19,6 +19,8 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA 02110-1301 USA.
 from helper import LazyLoader
+import sqlite3
+import os.path
 
 
 class Filesystem(object):
@@ -35,3 +37,48 @@ class Filesystem(object):
         """Returns all raw filesystem data."""
         # TODO: move FS data refining here
         return self.m_data_accessor.getData()
+
+
+class FsDatabase(object):
+    """This class manages the filesystem database"""
+    DB_NAME = 'filesystem.db'
+
+    def __init__(self, path):
+        self.m_path = path
+        self.m_db = sqlite3.connect(self.getDbPath())
+
+    def getDbPath(self):
+        """Returns the path of the database."""
+        return os.path.join(self.m_path, self.DB_NAME)
+
+    def createTable(self):
+        """Creates the database table, dropping it beforehand if it exists."""
+        sql = """
+        CREATE TABLE "inodes" (
+            "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+            "parent" INTEGER,
+            "uid" INTEGER,
+            "gid" INTEGER,
+            "caps" INTEGER,
+            "mode" INTEGER,
+            "name" TEXT
+        )
+        """
+
+        self.m_db.execute('DROP TABLE IF EXISTS "inodes"')
+        self.m_db.execute(sql=sql)
+
+    def insertRawData(self, fsdata):
+        """Inserts the raw data into a new database."""
+        self.createTable()
+
+        sql = """
+        INSERT INTO inodes (parent, uid, gid, caps, mode, name)
+        VALUES (?, ?, ?. ?, ?, ?)"""
+
+        # cursor =
+        pass
+
+    def close(self):
+        self.m_db.close()
+
