@@ -32,12 +32,12 @@ class Filesystem(object):
         :param dumpIO: An instance of sscanner.dio.DumpIO for loading the data
         """
         self.m_dumpIO = dumpIO
-        self.m_data_accessor = LazyLoader(category="filesystem", dumpIO=self.m_dumpIO)
+        self.m_accessor = FsDatabase(self.m_dumpIO.getDumpDir())
 
     def getAllFsData(self):
         """Returns all raw filesystem data."""
         # TODO: move FS data refining here
-        return self.m_data_accessor.getData()
+        return self.m_accessor.getFullDump()
 
 
 class FsDatabase(object):
@@ -47,11 +47,15 @@ class FsDatabase(object):
     def __init__(self, path):
         self.m_path = path
         self.m_db = sqlite3.connect(self.getDbPath())
-        self.m_db.text_factory = str # to fix string handling in python2
+        self.m_db.text_factory = str  # to fix string handling in python2
 
     def getDbPath(self):
         """Returns the path of the database."""
         return os.path.join(self.m_path, self.DB_NAME)
+
+    def getFullDump(self):
+        # TODO
+        pass
 
     def createTable(self):
         """Creates the database table, dropping it beforehand if it exists."""
