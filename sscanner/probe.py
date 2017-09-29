@@ -336,20 +336,12 @@ class SlaveScanner(object):
 
             return ret
 
+        # first, add the metadata for /
+        self.m_filesystem["/"] = self.getProperties("/", type='d')
+
         for path, dirs, files in os.walk("/", topdown=True, onerror=walkErr):
 
-            # if path == "/":
-                # remove excluded directories, only top-level dirs are
-                # considered ATM
-                # dirs[:] = [d for d in dirs if os.path.join(path, d) not in exclude]
-                # self.m_filesystem["properties"] = self.getProperties(path, type='d')
-                # continue
-
-            # this_dir = os.path.basename(path)
-            # parent = getParentDict(path)
-
-            # path_dict = self.getProperties(path, type='d')
-
+            # check if our path starts with something that should be excluded
             cont = True
             for excluded in exclude:
                 if path.startswith(excluded):
@@ -358,12 +350,14 @@ class SlaveScanner(object):
             if not cont:
                 continue
 
+            # create an index for every file ...
             for name in files:
                 file_path = os.path.join(path, name)
 
                 file_data = self.getProperties(file_path, type='f')
                 self.m_filesystem[file_path] = file_data
 
+            # and every directory
             for name in dirs:
                 dir_path = os.path.join(path, name)
 

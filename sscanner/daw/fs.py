@@ -79,7 +79,7 @@ class FsDatabase(object):
         INSERT INTO inodes (parent, uid, gid, caps, mode, name)
         VALUES (?, ?, ?. ?, ?, ?)"""
 
-        sscanner.dio.DumpIO._debugPrint(fsdata)
+        keys = sorted(fsdata.keys())
         # cursor =
         pass
 
