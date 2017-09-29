@@ -182,25 +182,9 @@ class Viewer(object):
     def getFileProperties(self, filename):
         """Returns the properties of a given file path in the file system. Or
         an empty dictionary on failure."""
-        # Todo: move this lookup in the fs class
-
         fs_wrapper = self.m_daw_factory.getFsWrapper()
 
-        tokens = filename[1:].split(os.path.sep)
-        filesystem = fs_wrapper.getAllFsData()['subitems']
-        try:
-            while True:
-                t = tokens.pop(0)
-                if tokens:
-                    filesystem = filesystem[t]["subitems"]
-                else:
-                    # last node, get the property
-                    return filesystem[t]["properties"]
-        except KeyError:
-            # file not found
-            pass
-
-        return {}
+        return fs_wrapper.getFileProperties(filename)
 
     @staticmethod
     def buildWidthColumnDict(table):

@@ -39,6 +39,11 @@ class Filesystem(object):
         # TODO: move FS data refining here
         return self.m_accessor.getFullDump()
 
+    def getFileProperties(self, path):
+        """Returns the properties of a specific file on the filesystem."""
+        data = self.m_accessor.getFileProperties(os.path.dirname(path), os.path.basename(path))
+        return FsDatabase.dbTupleToArray(data)
+
 
 class FsDatabase(object):
     """This class manages the filesystem database"""
@@ -56,6 +61,10 @@ class FsDatabase(object):
     def getFullDump(self):
         # TODO
         pass
+
+    def getFileProperties(self, path, name):
+        data = self.m_db.execute('SELECT * FROM inodes WHERE name=? AND path=?', (name, path))
+        return data.fetchone()
 
     def createTable(self):
         """Creates the database table, dropping it beforehand if it exists."""
@@ -115,3 +124,16 @@ class FsDatabase(object):
     def close(self):
         self.m_db.close()
 
+    @staticmethod
+    def dbTupleToArray(db_tuple):
+        if db_tuple is None:
+            return None
+
+        properties = {
+            "caps": db_tuple[4],
+            "st_mode": db_tuple[5],
+            "st_uid": db_tuple[2],
+            "st_gid": db_tuple[3],
+            "type": db_tuple[6]
+        }
+        return properties
