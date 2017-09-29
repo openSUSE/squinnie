@@ -87,20 +87,20 @@ class FsDatabase(object):
 
     def _processDirectory(self, name, path, data, parentId, cursor):
         """Inserts a directory from the raw dump in the db."""
-        dirSqlData = self._createDataArrayFromProperties(data['properties'], name, path, parentId)
-        cursor.execute(self._getInsertSql(), dirSqlData)
-        dirId = cursor.lastrowid
-        dirPath = os.path.join(path, name)
+        dir_sql_data = self._createDataArrayFromProperties(data['properties'], name, path, parentId)
+        cursor.execute(self._getInsertSql(), dir_sql_data)
+        dir_id = cursor.lastrowid
+        dir_path = os.path.join(path, name)
 
-        fileData = []
+        file_data = []
 
         for name, item in data['subitems'].iteritems():
             if item['properties']['type'] == 'd':
-                self._processDirectory(name, dirPath, item, dirId, cursor)
+                self._processDirectory(name, dir_path, item, dir_id, cursor)
             else:
-                fileData.append(self._createDataArrayFromProperties(item['properties'], name, dirPath, dirId))
+                file_data.append(self._createDataArrayFromProperties(item['properties'], name, dir_path, dir_id))
 
-        cursor.executemany(self._getInsertSql(), tuple(fileData))
+        cursor.executemany(self._getInsertSql(), tuple(file_data))
 
     @staticmethod
     def _createDataArrayFromProperties(props, name, path, parent):
