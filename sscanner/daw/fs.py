@@ -88,8 +88,6 @@ class FsDatabase(object):
     def _processDirectory(self, name, path, data, parentId, cursor):
         """Inserts a directory from the raw dump in the db."""
         dirSqlData = self._createDataArrayFromProperties(data['properties'], name, path, parentId)
-        sscanner.dio.DumpIO._debugPrint(self._getInsertSql(), depth=6)
-        sscanner.dio.DumpIO._debugPrint(dirSqlData, depth=6)
         cursor.execute(self._getInsertSql(), dirSqlData)
         dirId = cursor.lastrowid
         dirPath = os.path.join(path, name)
