@@ -47,6 +47,7 @@ class FsDatabase(object):
     def __init__(self, path):
         self.m_path = path
         self.m_db = sqlite3.connect(self.getDbPath())
+        self.m_db.text_factory = str # to fix string handling in python2
 
     def getDbPath(self):
         """Returns the path of the database."""
@@ -75,13 +76,39 @@ class FsDatabase(object):
         """Inserts the raw data into a new database."""
         self.createTable()
 
-        sql = """
-        INSERT INTO inodes (parent, uid, gid, caps, mode, name)
-        VALUES (?, ?, ?. ?, ?, ?)"""
+        # sscanner.dio.DumpIO._debugPrint(fsdata, depth=6)
+        cursor = self.m_db.cursor()
+        self._processDirectory('/', '/', fsdata, 1, cursor)
+        self.m_db.commit()
 
-        keys = sorted(fsdata.keys())
-        # cursor =
-        pass
+    def _processDirectory(self, name, path, data, parentId, cursor):
+        """Inserts a directory from the raw dump in the db."""
+        dirSqlData = self._createDataArrayFromProperties(data['properties'], name, path, parentId)
+        sscanner.dio.DumpIO._debugPrint(self._getInsertSql(), depth=6)
+        sscanner.dio.DumpIO._debugPrint(dirSqlData, depth=6)
+        cursor.execute(self._getInsertSql(), dirSqlData)
+        dirId = cursor.lastrowid
+        dirPath = os.path.join(path, name)
+
+        fileData = []
+
+        for name, item in data['subitems'].iteritems():
+            if item['properties']['type'] == 'd':
+                self._processDirectory(name, dirPath, item, dirId, cursor)
+            else:
+                fileData.append(self._createDataArrayFromProperties(item['properties'], name, dirPath, dirId))
+
+        cursor.executemany(self._getInsertSql(), tuple(fileData))
+
+    @staticmethod
+    def _createDataArrayFromProperties(props, name, path, parent):
+        """Creates an array to use with insert from a properties dict as delivered by the probe and additional info."""
+        return parent, props['st_uid'], props['st_gid'], props['caps'], props['st_mode'], props['type'], name, path
+
+    @staticmethod
+    def _getInsertSql():
+        """Returns the SQL statement for inserting into the db."""
+        return "INSERT INTO inodes (parent, uid, gid, caps, mode, type, name, path) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
 
     def close(self):
         self.m_db.close()
