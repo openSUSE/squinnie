@@ -41,7 +41,7 @@ class DumpIO(object):
         self.m_target_name = target
         self.m_path_prefix = path
 
-    def _getDumpDir(self):
+    def getDumpDir(self):
         """
         Generates the path of the dump folder.
         :return: The path of the dump folder without trailing slash.
@@ -50,7 +50,7 @@ class DumpIO(object):
 
     def _createdDumpDirIfItDoesNotExist(self):
         """Creates the dump directory if it does not exist"""
-        ddir = self._getDumpDir()
+        ddir = self.getDumpDir()
 
         if not os.path.exists(ddir):
             os.makedirs(ddir)
@@ -69,7 +69,7 @@ class DumpIO(object):
         # TODO: This should probably be split better
         if category == "filesystem":
             print("Inserting data into fs")
-            fsdb = FsDatabase(self._getDumpDir())
+            fsdb = FsDatabase(self.getDumpDir())
             fsdb.insertRawData(data)
             return
 
@@ -79,7 +79,7 @@ class DumpIO(object):
                           .format(category, file_basename))
 
         self._createdDumpDirIfItDoesNotExist()
-        file = os.path.join(self._getDumpDir(), file_basename + self.FILE_EXTENSION)
+        file = os.path.join(self.getDumpDir(), file_basename + self.FILE_EXTENSION)
         print("Saving data to {}".format(file))
 
         helper.writePickle(data, file)
@@ -111,7 +111,7 @@ class DumpIO(object):
         """This method loads a specific category file from a dump."""
         file_basename = helper.makeValidDirname(category)
 
-        file = os.path.join(self._getDumpDir(), file_basename + self.FILE_EXTENSION)
+        file = os.path.join(self.getDumpDir(), file_basename + self.FILE_EXTENSION)
 
         if not os.path.exists(file):
             raise LookupError
@@ -121,7 +121,7 @@ class DumpIO(object):
 
     def getAllCachedCategories(self):
         """Returns a list of all categories saved on disk"""
-        path = self._getDumpDir()
+        path = self.getDumpDir()
 
         if not os.path.isdir(path):
             return {}
@@ -134,7 +134,7 @@ class DumpIO(object):
         return len(self.getAllCachedCategories()) > 0
 
     def clearCache(self):
-        path = self._getDumpDir()
+        path = self.getDumpDir()
         print("Discarding cached data for %s" % path)
         shutil.rmtree(path)
 
