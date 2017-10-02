@@ -113,7 +113,7 @@ class FsDatabase(object):
 
     @staticmethod
     def _createDataArrayFromProperties(props, name, path, parent):
-        """Creates an array to use with insert from a properties dict as delivered by the probe and additional info."""
+        """Creates a tuple use with insert from a properties dict as delivered by the probe and additional info."""
         return parent, props['st_uid'], props['st_gid'], props['caps'], props['st_mode'], props['type'], name, path
 
     @staticmethod
