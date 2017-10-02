@@ -59,8 +59,14 @@ class FsDatabase(object):
         return os.path.join(self.m_path, self.DB_NAME)
 
     def getFullDump(self):
-        # TODO
-        pass
+        """Fetches the whole filesystem. Probably not a performant idea."""
+        return self.findData()
+
+    def findData(self, where="1=1"):
+        """Fetches the data from the filesystem given a where SQL substring. Do note that the given string will not be
+        escaped!"""
+        cursor = self.m_db.execute("SELECT * FROM inodes WHERE %s" % where)
+        return cursor.fetchall()
 
     def getFileProperties(self, path, name):
         data = self.m_db.execute('SELECT * FROM inodes WHERE name=? AND path=?', (name, path))

@@ -216,48 +216,30 @@ class Viewer(object):
         from the filesystem that corresponds to `cur_path`
         """
 
-        if not cur_node and not cur_path:
-            fshandler = self.m_daw_factory.getFsWrapper()
-            cur_node = fshandler.getAllFsData()
-            cur_path = '/'
-            # iterate just over the root node for the start
-            items = ("/", cur_node),
-        elif not cur_node or not cur_path:
-            raise Exception("Need either both or none of `cur_node` and `cur_path`")
-        else:
-            # iterate over all sub-items
-            items = sorted(cur_node.items())
+        fshandler = self.m_daw_factory.getFsWrapper()
+        data = fshandler.getAllFsData()
 
         account_wrapper = self.m_daw_factory.getAccountWrapper()
 
         ret = []
 
-        for name, info in items:
-            base_path_file = os.path.join(cur_path, name)
-            props = info["properties"]
+        for item in data:
+            name = item[7]
+            base_path_file = os.path.join(item[8], name)
 
-            if not props:
-                # some file we couldn't get properties for
-                ret.append(["???", base_path_file, "???", "?", "?", "?"])
-                continue
+            mode = item[5]
+            perm_str = file_mode.getModeString(mode)
+            file_type = file_mode.getTypeLabel(mode)
 
-            perm_str = file_mode.getModeString(props["st_mode"])
-            file_type = file_mode.getTypeLabel(props["st_mode"])
+            user = account_wrapper.getNameForUid(item[2], default="(unknown)")
+            group = account_wrapper.getNameForGid(item[3], default="(unknown)")
 
-            user = account_wrapper.getNameForUid(props['st_uid'], default="(unknown)")
-            group = account_wrapper.getNameForGid(props['st_gid'], default="(unknown)")
-
-            caps = self.m_cap_translator.getCapStrings(props["caps"])
+            caps = self.m_cap_translator.getCapStrings(item[4])
             cap_str = "|".join(caps)
 
             ret.append(
                 [perm_str, base_path_file, file_type, user, group, cap_str]
             )
-
-            subitems = info.get("subitems", None)
-            if subitems:
-                # descend into the next node, depth-first
-                ret += self.getFilesystemTable(base_path_file, subitems)
 
         return ret
 
