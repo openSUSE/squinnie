@@ -30,13 +30,14 @@ import os
 import sscanner.helper
 import sscanner.errors
 
+
 class CapTranslator(object):
 
     m_capfile = "cap_data.json"
 
     def __init__(self, file_name = None):
         self.file_name = file_name if file_name else self.m_capfile
-        self.cap_data  = self.getCapData()
+        self.cap_data = self.getCapData()
 
     def isBitSet(self, val, n):
         return 0 != val & (1 << n)
@@ -65,12 +66,13 @@ class CapTranslator(object):
         with open(capfile, "r") as fi:
             return json.load(fi)
 
+
 def main():
     import argparse
 
     parser = argparse.ArgumentParser(
         "cap_translator",
-        description = "translate a capability bit vector into human readable strings"
+        description="translate a capability bit vector into human readable strings"
     )
 
     def hexint(val):
@@ -79,8 +81,8 @@ def main():
 
     parser.add_argument(
         "bitvector",
-        help = "the hexadecimal capability bit vector to translate",
-        type = hexint,
+        help="the hexadecimal capability bit vector to translate",
+        type=hexint,
     )
 
     args = parser.parse_args()
@@ -92,6 +94,7 @@ def main():
     for cap in translator.getCapStrings(args.bitvector):
         print("- {}".format(cap))
     print("")
+
 
 if __name__ == "__main__":
     sscanner.helper.executeMain(main)
