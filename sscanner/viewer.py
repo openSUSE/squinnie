@@ -130,6 +130,23 @@ class Viewer(object):
         description = "View all files on the file system, including their permissions."
         parser.add_argument("--filesystem", action="store_true", help=description)
 
+        # TODO
+        description = "Only show files with special bits set (sticky, suid or sgid)."
+        parser.add_argument("--special-bits", "-s", action="store_true", help=description)
+
+        # TODO
+        description = "Only show files with capabilities."
+        parser.add_argument("--capabilities", "-c", action="store_true", help=description)
+
+        # TODO
+        description = "Only show files which violate the given umask."
+        parser.add_argument("--umask", action="store_true", help=description)
+
+        # TODO
+        description = "Add an extra output column with a verbose representation of the suid bit (S_ISUID), the gid " \
+                      "bit (S_ISGID) and the sticky bit (S_ISVTX). This is to allow easier combination with grep."
+        parser.add_argument("--verbose-special-bits", action="store_true", help=description)
+
     def addPidFilter(self, pid):
         """Don't show all PIDs but just the given PID in the table.
         Accumulates."""
