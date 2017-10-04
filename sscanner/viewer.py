@@ -222,7 +222,7 @@ class Viewer(object):
             else:
                 print(to_print)
 
-    def getFilesystemTable(self, cur_path = None, cur_node = None):
+    def getFilesystemTable(self):
         """
         Recursively constructs and returns list of strings that describes the
         complete file system structure rooted at cur_path/cur_node.
