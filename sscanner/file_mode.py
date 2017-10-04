@@ -61,7 +61,7 @@ else:
     # Copied from Python 3.3
     def getModeString(mode):
         """Convert a file's mode to a string of the form '-rwxrwxrwx'."""
-        if not isinstance(mode, int): # Broken symlinks have no permissions
+        if not isinstance(mode, int):  # Broken symlinks have no permissions
             return "!PERMERROR"
 
         perm = []
@@ -74,10 +74,11 @@ else:
                 perm.append("-")
         return "".join(perm)
 
+
 def getTypeLabel(mode):
     """Returns a label for the file type found in ``mode``."""
 
-    if mode == None:
+    if mode is None:
         return "!MODEERROR!"
 
     if stat.S_ISDIR(mode):
@@ -95,6 +96,7 @@ def getTypeLabel(mode):
     elif stat.S_ISBLK(mode):
         return "block special device file"
 
+
 def permReadable(file_perm):
     """
     Get access permission as integer
@@ -102,6 +104,7 @@ def permReadable(file_perm):
     """
 
     return (file_perm & 4) != 0
+
 
 def canAccessFile(user_perms, file_perms, file_mode):
     """Returns a boolean whether a user owning ``user_perms`` can
@@ -128,6 +131,7 @@ def canAccessFile(user_perms, file_perms, file_mode):
             return True
 
     return False
+
 
 def getFdFlagLabels(flags):
     """Returns a list of labels corresponding to the file descriptors
