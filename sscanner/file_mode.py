@@ -97,6 +97,30 @@ def getTypeLabel(mode):
         return "block special device file"
 
 
+def getTypeChar(mode):
+    """Returns a char for the file type found in ``mode``. The characters are from ``man 1p ls``."""
+
+    if mode is None:
+        return "?"
+
+    if stat.S_ISDIR(mode):
+        return "d"
+    elif stat.S_ISREG(mode):
+        return "-"
+    elif stat.S_ISLNK(mode):
+        return "l"
+    elif stat.S_ISFIFO(mode):
+        return "p"
+    elif stat.S_ISSOCK(mode):
+        return "s"  # this is unfortunately not described in the man page, but used by ls
+    elif stat.S_ISCHR(mode):
+        return "c"
+    elif stat.S_ISBLK(mode):
+        return "b"
+
+    return "?"
+
+
 def permReadable(file_perm):
     """
     Get access permission as integer
