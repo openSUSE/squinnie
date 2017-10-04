@@ -21,6 +21,7 @@
 from helper import LazyLoader
 import sqlite3
 import os.path
+import stat
 import sscanner.dio
 from sscanner.file_mode import getTypeChar
 
@@ -145,3 +146,25 @@ class FsDatabase(object):
             "type": db_tuple[6]
         }
         return properties
+
+
+class FsQuery(object):
+    """This class represents a query to the FS database."""
+
+    def __init__(self):
+        # this is a list of possible ways to qualify a file for printing
+        self.m_or_list = []
+
+        # this is a list of all qualifiers a file needs to match _in addition to_ an item from the or list
+        self.m_and_list = []
+
+    def getSqlClause(self):
+        """Returns the query as SQL clause (without where)."""
+        or_list = "(" + (" OR ".join(self.m_or_list)) + ")"
+
+        and_list = (self.m_and_list + [or_list]) if len(self.m_or_list) > 0 else self.m_and_list
+        return " AND ".join(and_list)
+
+    def filterForSpecialBits(self):
+        """Adds a filter for SUID, SGID or SVTX bits."""
+        self.m_or_list.append('(mode & %s) != 0' % hex(stat.S_ISUID | stat.S_ISGID | stat.S_ISVTX))
