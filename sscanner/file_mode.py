@@ -29,6 +29,7 @@ import stat
 _filemode_table = stat._filemode_table if \
     hasattr(stat, '_filemode_table') else (
     ((stat.S_IFLNK,         "l"),
+     (stat.S_IFSOCK,        "s"),
      (stat.S_IFREG,         "-"),
      (stat.S_IFBLK,         "b"),
      (stat.S_IFDIR,         "d"),
