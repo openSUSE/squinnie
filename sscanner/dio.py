@@ -71,6 +71,7 @@ class DumpIO(object):
             print("Inserting data into fs")
             fsdb = FsDatabase(self.getDumpDir())
             fsdb.insertRawData(data)
+            fsdb.close()
             return
 
         file_basename = helper.makeValidDirname(category)
