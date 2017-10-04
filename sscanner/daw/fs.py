@@ -22,6 +22,7 @@ from helper import LazyLoader
 import sqlite3
 import os.path
 import sscanner.dio
+from sscanner.file_mode import getTypeChar
 
 
 class Filesystem(object):
@@ -120,7 +121,8 @@ class FsDatabase(object):
     @staticmethod
     def _createDataArrayFromProperties(props, name, path, parent):
         """Creates a tuple use with insert from a properties dict as delivered by the probe and additional info."""
-        return parent, props['st_uid'], props['st_gid'], props['caps'], props['st_mode'], props['type'], name, path
+        mode = props['st_mode']
+        return parent, props['st_uid'], props['st_gid'], props['caps'], mode, getTypeChar(mode), name, path
 
     @staticmethod
     def _getInsertSql():
