@@ -22,6 +22,7 @@ from helper import LazyLoader
 import sqlite3
 import os.path
 import stat
+import json
 from sscanner.file_mode import getTypeChar
 
 
@@ -189,3 +190,8 @@ class FsQuery(object):
     def filterForGid(self, gid):
         """Only shows files for a specific uid."""
         self.addAndClause("gid = %i" % gid)
+
+    def filterForDirectory(self, dir):
+        """Only show files in a specific directory"""
+        # this uses json.dumps for escaping the query
+        self.addAndClause("path = %s" % json.dumps(dir))
