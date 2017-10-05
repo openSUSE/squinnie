@@ -54,6 +54,8 @@ class Viewer(object):
 
     def __init__(self, daw_factory, label):
 
+        self.m_gid_filter = -1
+        self.m_uid_filter = -1
         self.m_fsquery = FsQuery()
         self.m_verbose = False
         self.m_have_tty = os.isatty(sys.stdout.fileno())
@@ -86,6 +88,8 @@ class Viewer(object):
         self.setShowFilterChildren(args.children)
         self.setShowFilterParents(args.parent)
         self.createFsQuery(args)
+        self.m_uid_filter = args.uid
+        self.m_gid_filter = args.gid
 
     def performAction(self, args):
         """Performs the action specified in the given argparse.Namespace
@@ -602,8 +606,6 @@ class Viewer(object):
     def printProcessTree(self):
         """Prints a complete process tree according to currently active view
         settings."""
-        # self._assertHaveData()
-
         proc_wrapper = self.m_daw_factory.getProcWrapper()
 
         num_procs = proc_wrapper.getProcessCount()
@@ -719,6 +721,12 @@ class Viewer(object):
 
         if args.capabilities:
             self.m_fsquery.filterForCapabilities()
+
+        if args.uid >= 0:
+            self.m_fsquery.filterForUid(args.uid)
+
+        if args.gid >= 0:
+            self.m_fsquery.filterForGid(args.gid)
 
         if args.umask:
             # TODO: read umask and apply filter
