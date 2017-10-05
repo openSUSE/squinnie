@@ -718,7 +718,6 @@ class Viewer(object):
             self.m_fsquery.filterForSpecialBits()
 
         if args.capabilities:
-            # TODO
             self.m_fsquery.filterForCapabilities()
 
         if args.umask:

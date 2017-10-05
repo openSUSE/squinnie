@@ -210,3 +210,7 @@ class FsQuery(object):
         """Clears all applied filters."""
         self.m_or_list = []
         self.m_and_list = []
+
+    def filterForCapabilities(self):
+        """Filter for files which have specific capabilities."""
+        self.addOrClause("caps != 0")
