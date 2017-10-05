@@ -23,7 +23,7 @@ import sqlite3
 import os.path
 import stat
 import json
-from sscanner.file_mode import getTypeChar
+import sscanner.file_mode as file_mode
 
 
 class Filesystem(object):
@@ -78,7 +78,7 @@ class FsDatabase(object):
         """Returns all files matching a given FsQuery instance."""
         sql = "SELECT * FROM inodes %s" % fsquery.getSqlClause()
         cursor = self.m_db.execute(sql)
-        return cursor.fetchall()
+        return FilesystemIterator(cursor)
 
     def getFileProperties(self, path, name):
         data = self.m_db.execute('SELECT * FROM inodes WHERE name=? AND path=?', (name, path))
@@ -132,7 +132,7 @@ class FsDatabase(object):
     def _createDataArrayFromProperties(props, name, path, parent):
         """Creates a tuple use with insert from a properties dict as delivered by the probe and additional info."""
         mode = props['st_mode']
-        return parent, props['st_uid'], props['st_gid'], props['caps'], mode, getTypeChar(mode), name, path
+        return parent, props['st_uid'], props['st_gid'], props['caps'], mode, file_mode.getTypeChar(mode), name, path
 
     @staticmethod
     def _getInsertSql():
@@ -213,3 +213,51 @@ class FsQuery(object):
     def filterForCapabilities(self):
         """Filter for files which have specific capabilities."""
         self.addOrClause("caps != 0")
+
+
+class FilesystemIterator(object):
+    """This class allows iteration of all the files returned by a query to the FS."""
+
+    def __init__(self, cursor):
+        self.m_cursor = cursor
+        self.m_has_next = True
+
+    def hasNext(self):
+        return self.m_has_next
+
+    def next(self):
+        item = self.m_cursor.fetchone()
+
+        if item is None:
+            self.m_has_next = False
+            return False
+
+        self.id = item[0]
+        self.parent = item[1]
+
+        self.uid = item[2]
+        self.gid = item[3]
+
+        self.caps = item[4]
+        self.mode = item[5]
+        self.type = item[6]
+
+        self.name = item[7]
+        self.basepath = item[8]
+
+        # caps = self.m_cap_translator.getCapStrings(item[4])
+        # cap_str = "|".join(caps)
+
+        return True
+
+    def getFullPath(self):
+        """Returns the full file path including filename."""
+        return os.path.join(self.basepath, self.name)
+
+    def getPermissionString(self):
+        """Returns a string describing the mode string."""
+        return file_mode.getModeString(self.mode)
+
+    def getTypeLabel(self):
+        """Returns the full name of the file type."""
+        return file_mode.getTypeLabel(self.mode)

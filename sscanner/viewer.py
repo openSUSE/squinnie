@@ -237,28 +237,28 @@ class Viewer(object):
         """
 
         fshandler = self.m_daw_factory.getFsWrapper()
-        data = fshandler.queryFilesystem(self.m_fsquery)
+        iterator = fshandler.queryFilesystem(self.m_fsquery)
 
         account_wrapper = self.m_daw_factory.getAccountWrapper()
 
         ret = []
 
-        for item in data:
-            name = item[7]
-            base_path_file = os.path.join(item[8], name)
+        while iterator.next():
+            user = account_wrapper.getNameForUid(iterator.uid, default="(unknown)")
+            group = account_wrapper.getNameForGid(iterator.gid, default="(unknown)")
 
-            mode = item[5]
-            perm_str = file_mode.getModeString(mode)
-            file_type = file_mode.getTypeLabel(mode)
-
-            user = account_wrapper.getNameForUid(item[2], default="(unknown)")
-            group = account_wrapper.getNameForGid(item[3], default="(unknown)")
-
-            caps = self.m_cap_translator.getCapStrings(item[4])
+            caps = self.m_cap_translator.getCapStrings(iterator.caps)
             cap_str = "|".join(caps)
 
             ret.append(
-                [perm_str, base_path_file, file_type, user, group, cap_str]
+                [
+                    iterator.getPermissionString(),
+                    iterator.getFullPath(),
+                    iterator.getTypeLabel(),
+                    user,
+                    group,
+                    cap_str
+                ]
             )
 
         return ret
