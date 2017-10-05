@@ -77,7 +77,6 @@ class FsDatabase(object):
     def executeFsQuery(self, fsquery):
         """Returns all files matching a given FsQuery instance."""
         sql = "SELECT * FROM inodes %s" % fsquery.getSqlClause()
-        print(sql)
         cursor = self.m_db.execute(sql)
         return cursor.fetchall()
 
