@@ -158,11 +158,13 @@ class FsQuery(object):
         self.m_and_list = []
 
     def getSqlClause(self):
-        """Returns the query as SQL clause (without where)."""
+        """Returns the query as SQL clause (with where)."""
         or_list = "(" + (" OR ".join(self.m_or_list)) + ")"
 
         and_list = (self.m_and_list + [or_list]) if len(self.m_or_list) > 0 else self.m_and_list
-        return " AND ".join(and_list)
+        str = " AND ".join(and_list)
+
+        return "WHERE %s" % str if len(str) > 0 else ""
 
     def filterForSpecialBits(self):
         """Adds a filter for SUID, SGID or SVTX bits."""
