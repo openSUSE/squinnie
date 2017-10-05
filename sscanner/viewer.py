@@ -229,11 +229,6 @@ class Viewer(object):
         """
         Recursively constructs and returns list of strings that describes the
         complete file system structure rooted at cur_path/cur_node.
-
-        :param str cur_path: The current path string which needs to correspond
-        to `cur_node`.
-        :param dict cur_node: The current dictionary entry from
-        from the filesystem that corresponds to `cur_path`
         """
 
         fshandler = self.m_daw_factory.getFsWrapper()
