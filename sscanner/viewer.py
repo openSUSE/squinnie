@@ -34,6 +34,7 @@ import sscanner.helper as helper
 import sscanner.file_mode as file_mode
 import sscanner.errors
 from sscanner.types import ProcColumns
+from sscanner.daw.fs import FsQuery
 from sscanner.dio import DumpIO
 from sscanner.daw import factory
 
@@ -53,6 +54,7 @@ class Viewer(object):
 
     def __init__(self, daw_factory, label):
 
+        self.m_fsquery = FsQuery()
         self.m_verbose = False
         self.m_have_tty = os.isatty(sys.stdout.fileno())
         self.m_show_fds = False
@@ -83,6 +85,7 @@ class Viewer(object):
         self.setShowKthreads(args.kthreads)
         self.setShowFilterChildren(args.children)
         self.setShowFilterParents(args.parent)
+        self.createFsQuery(args)
 
     def performAction(self, args):
         """Performs the action specified in the given argparse.Namespace
@@ -130,19 +133,15 @@ class Viewer(object):
         description = "View all files on the file system, including their permissions."
         parser.add_argument("--filesystem", action="store_true", help=description)
 
-        # TODO
         description = "Only show files with special bits set (sticky, suid or sgid)."
         parser.add_argument("--special-bits", "-s", action="store_true", help=description)
 
-        # TODO
         description = "Only show files with capabilities."
         parser.add_argument("--capabilities", "-c", action="store_true", help=description)
 
-        # TODO
         description = "Only show files which violate the given umask."
         parser.add_argument("--umask", action="store_true", help=description)
 
-        # TODO
         description = "Add an extra output column with a verbose representation of the suid bit (S_ISUID), the gid " \
                       "bit (S_ISGID) and the sticky bit (S_ISVTX). This is to allow easier combination with grep."
         parser.add_argument("--verbose-special-bits", action="store_true", help=description)
@@ -234,7 +233,7 @@ class Viewer(object):
         """
 
         fshandler = self.m_daw_factory.getFsWrapper()
-        data = fshandler.getAllFsData()
+        data = fshandler.queryFilesystem(self.m_fsquery)
 
         account_wrapper = self.m_daw_factory.getAccountWrapper()
 
@@ -707,9 +706,24 @@ class Viewer(object):
         """Returns the size of the terminal as a pair of (cols, rows)."""
         # starting with py3.3 there's also shutil.get_terminal_size()
         res = subprocess.check_output(
-            ["stty", "size"], close_fds = True, shell = False
+            ["stty", "size"], close_fds=True, shell=False
         )
-        return tuple(reversed([ int(part) for part in res.decode().split()]))
+        return tuple(reversed([int(part) for part in res.decode().split()]))
+
+    def createFsQuery(self, args):
+        # clear query filters
+        self.m_fsquery.clear()
+
+        if args.special_bits:
+            self.m_fsquery.filterForSpecialBits()
+
+        if args.capabilities:
+            # TODO
+            self.m_fsquery.filterForCapabilities()
+
+        if args.umask:
+            # TODO: read umask and apply filter
+            pass
 
 
 def main():

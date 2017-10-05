@@ -41,6 +41,10 @@ class Filesystem(object):
         # TODO: move FS data refining here
         return self.m_accessor.getFullDump()
 
+    def queryFilesystem(self, fsquery):
+        """Returns the result of a query on the filesystem database with the given parameters."""
+        return self.m_accessor.executeFsQuery(fsquery)
+
     def getFileProperties(self, path):
         """Returns the properties of a specific file on the filesystem."""
         data = self.m_accessor.getFileProperties(os.path.dirname(path), os.path.basename(path))
@@ -68,6 +72,13 @@ class FsDatabase(object):
         """Fetches the data from the filesystem given a where SQL substring. Do note that the given string will not be
         escaped!"""
         cursor = self.m_db.execute("SELECT * FROM inodes WHERE %s" % where)
+        return cursor.fetchall()
+
+    def executeFsQuery(self, fsquery):
+        """Returns all files matching a given FsQuery instance."""
+        sql = "SELECT * FROM inodes %s" % fsquery.getSqlClause()
+        print(sql)
+        cursor = self.m_db.execute(sql)
         return cursor.fetchall()
 
     def getFileProperties(self, path, name):
@@ -195,3 +206,8 @@ class FsQuery(object):
         """Only show files in a specific directory"""
         # this uses json.dumps for escaping the query
         self.addAndClause("path = %s" % json.dumps(dir))
+
+    def clear(self):
+        """Clears all applied filters."""
+        self.m_or_list = []
+        self.m_and_list = []
