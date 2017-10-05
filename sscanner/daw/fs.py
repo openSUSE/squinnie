@@ -181,3 +181,11 @@ class FsQuery(object):
         Ads a new or clause to the query. WARNING: the string will be inserted into the query unescaped!
         """
         self.m_or_list.append("(%s)" % clause)
+
+    def filterForUid(self, uid):
+        """Only shows files for a specific uid."""
+        self.addAndClause("uid = %i" % uid)
+
+    def filterForGid(self, gid):
+        """Only shows files for a specific uid."""
+        self.addAndClause("gid = %i" % gid)
