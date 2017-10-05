@@ -168,4 +168,16 @@ class FsQuery(object):
 
     def filterForSpecialBits(self):
         """Adds a filter for SUID, SGID or SVTX bits."""
-        self.m_or_list.append('(mode & %s) != 0' % hex(stat.S_ISUID | stat.S_ISGID | stat.S_ISVTX))
+        self.addOrClause('(mode & %s) != 0' % hex(stat.S_ISUID | stat.S_ISGID | stat.S_ISVTX))
+
+    def addAndClause(self, clause):
+        """
+        Ads a new and clause to the query. WARNING: the string will be inserted into the query unescaped!
+        """
+        self.m_and_list.append("(%s)" % clause)
+
+    def addOrClause(self, clause):
+        """
+        Ads a new or clause to the query. WARNING: the string will be inserted into the query unescaped!
+        """
+        self.m_or_list.append("(%s)" % clause)
