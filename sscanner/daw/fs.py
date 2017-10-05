@@ -22,7 +22,6 @@ from helper import LazyLoader
 import sqlite3
 import os.path
 import stat
-import sscanner.dio
 from sscanner.file_mode import getTypeChar
 
 
