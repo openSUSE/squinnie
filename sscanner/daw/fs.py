@@ -108,7 +108,6 @@ class FsDatabase(object):
         """Inserts the raw data into a new database."""
         self.createTable()
 
-        # sscanner.dio.DumpIO._debugPrint(fsdata, depth=6)
         cursor = self.m_db.cursor()
         self._processDirectory('/', '/', fsdata, 1, cursor)
         self.m_db.commit()
@@ -174,9 +173,9 @@ class FsQuery(object):
         or_list = "(" + (" OR ".join(self.m_or_list)) + ")"
 
         and_list = (self.m_and_list + [or_list]) if len(self.m_or_list) > 0 else self.m_and_list
-        str = " AND ".join(and_list)
+        result = " AND ".join(and_list)
 
-        return "WHERE %s" % str if len(str) > 0 else ""
+        return "WHERE %s" % result if len(result) > 0 else ""
 
     def filterForSpecialBits(self):
         """Adds a filter for SUID, SGID or SVTX bits."""

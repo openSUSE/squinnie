@@ -32,10 +32,9 @@ import sscanner.errors
 
 
 class CapTranslator(object):
-
     m_capfile = "cap_data.json"
 
-    def __init__(self, file_name = None):
+    def __init__(self, file_name=None):
         self.file_name = file_name if file_name else self.m_capfile
         self.cap_data = self.getCapData()
 
@@ -55,8 +54,8 @@ class CapTranslator(object):
     def getCapData(self):
 
         thisdir = os.path.dirname(__file__)
-        datadir = os.path.join( thisdir, os.path.pardir, "etc" )
-        capfile = os.path.join( datadir, self.file_name )
+        datadir = os.path.join(thisdir, os.path.pardir, "etc")
+        capfile = os.path.join(datadir, self.file_name)
 
         if not os.path.exists(capfile):
             raise sscanner.errors.ScannerError(
@@ -76,7 +75,6 @@ def main():
     )
 
     def hexint(val):
-
         return int(val, 16)
 
     parser.add_argument(
