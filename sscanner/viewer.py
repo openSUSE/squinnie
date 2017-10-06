@@ -702,6 +702,11 @@ class Viewer(object):
     def printFilesystemTable(self):
 
         table = self.getFilesystemTable()
+
+        if len(table) == 0:
+            print("Nothing was found matching the given filters.")
+            return
+
         width_column_dict = self.buildWidthColumnDict(table)
         if self.m_have_tty:
             term_width = self._getTermSize()[0]
