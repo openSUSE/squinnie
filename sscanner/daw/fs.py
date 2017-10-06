@@ -214,6 +214,15 @@ class FsQuery(object):
         """Filter for files which have specific capabilities."""
         self.addOrClause("caps != 0")
 
+    def filterForUmask(self, umask):
+        """This will only show files which have at least one of the bits from umask set."""
+        self.addOrClause('(mode & %s) != 0' % hex(umask))
+
+    def exclusiveUmask(self, umask):
+        """This will filter all files which do not have all bits from the umask set."""
+        umask_hex = hex(umask)
+        self.addAndClause('(mode & %s) == %s' % (umask_hex, umask_hex))
+
 
 class FilesystemIterator(object):
     """This class allows iteration of all the files returned by a query to the FS."""

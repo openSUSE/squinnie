@@ -143,8 +143,15 @@ class Viewer(object):
         description = "Only show files with capabilities."
         parser.add_argument("--capabilities", "-c", action="store_true", help=description)
 
-        description = "Only show files which violate the given umask."
-        parser.add_argument("--umask", action="store_true", help=description)
+        # helper datatype defintion
+        def octint(inp):
+            return int(inp, 8)
+
+        description = "Only show files which have at least one of the bits set from given umask."
+        parser.add_argument("--umask", type=octint, default=-1, help=description)
+
+        description = "Only show files which have all of the bits set from given umask."
+        parser.add_argument("--exclusive-umask", type=octint, default=-1, help=description)
 
         description = "Add an extra output column with a verbose representation of the suid bit (S_ISUID), the gid " \
                       "bit (S_ISGID) and the sticky bit (S_ISVTX). This is to allow easier combination with grep."
@@ -723,9 +730,11 @@ class Viewer(object):
         if args.gid >= 0:
             self.m_fsquery.filterForGid(args.gid)
 
-        if args.umask:
-            # TODO: read umask and apply filter
-            pass
+        if args.umask > 0:
+            self.m_fsquery.filterForUmask(args.umask)
+
+        if args.exclusive_umask > 0:
+            self.m_fsquery.exclusiveUmask(args.exclusive_umask)
 
 
 def main():
