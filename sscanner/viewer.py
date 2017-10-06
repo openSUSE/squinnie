@@ -157,6 +157,9 @@ class Viewer(object):
                       "bit (S_ISGID) and the sticky bit (S_ISVTX). This is to allow easier combination with grep."
         parser.add_argument("--verbose-special-bits", action="store_true", help=description)
 
+        description = "Show only files of a specific type."
+        parser.add_argument("--type", "-t", type=str, default=None, help=description)
+
     def addPidFilter(self, pid):
         """Don't show all PIDs but just the given PID in the table.
         Accumulates."""
@@ -735,6 +738,12 @@ class Viewer(object):
 
         if args.exclusive_umask > 0:
             self.m_fsquery.exclusiveUmask(args.exclusive_umask)
+
+        if args.type is not None:
+            # files are stored in the database with the type '-', but 'f' is more intuitive to the user
+            if args.type == "f":
+                args.type = "-"
+            self.m_fsquery.filterForType(args.type)
 
 
 def main():

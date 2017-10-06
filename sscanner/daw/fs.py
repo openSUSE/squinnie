@@ -203,7 +203,7 @@ class FsQuery(object):
     def filterForDirectory(self, dir):
         """Only show files in a specific directory"""
         # this uses json.dumps for escaping the query
-        self.addAndClause("path = %s" % json.dumps(dir))
+        self.addAndClause("path = %s" % self.escapeStr(dir))
 
     def clear(self):
         """Clears all applied filters."""
@@ -222,6 +222,15 @@ class FsQuery(object):
         """This will filter all files which do not have all bits from the umask set."""
         umask_hex = hex(umask)
         self.addAndClause('(mode & %s) == %s' % (umask_hex, umask_hex))
+
+    def filterForType(self, type):
+        """Only allows files of a specific type."""
+        self.addAndClause("type = %s" % self.escapeStr(type))
+
+    def escapeStr(self, input):
+        """Escapes a string for usage in a database query. Quotes will be automatically added."""
+        # this should escape all strings as far as sqlite is concerned
+        return json.dumps(str(input))
 
 
 class FilesystemIterator(object):

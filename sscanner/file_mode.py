@@ -122,6 +122,18 @@ def getTypeChar(mode):
     return "?"
 
 
+def getFilterForChar(char):
+    """Returns the filter of the file or None if no file matches."""
+    if char == 'f':
+        char = '-'  # regular files are usually shown as '-', but our user might prefer 'f'
+
+    for tp in _filemode_table[0]:
+        # this is using the first tuple row (filetype) in the filemode table to reduce duplication
+        if char == tp[1]:
+            return tp[0]
+    return None
+
+
 def permReadable(file_perm):
     """
     Get access permission as integer
