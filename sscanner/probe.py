@@ -343,6 +343,8 @@ class SlaveScanner(object):
             cont = True
             for excluded in exclude:
                 if path.startswith(excluded):
+                    # don't descend further into excluded directories
+                    dirs[:] = []
                     cont = False
                     break
             if not cont:
