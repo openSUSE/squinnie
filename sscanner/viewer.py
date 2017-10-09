@@ -38,7 +38,6 @@ from sscanner.daw.fs import FsQuery
 from sscanner.dio import DumpIO
 from sscanner.daw import factory
 
-
 pickle = helper.importPickle()
 
 # foreign modules
@@ -69,7 +68,7 @@ class Viewer(object):
         self.m_node_label = label
 
         cap_json = os.path.sep.join([
-            os.path.abspath( os.path.dirname(__file__) ),
+            os.path.abspath(os.path.dirname(__file__)),
             os.path.pardir,
             "etc",
             "cap_data.json"
@@ -300,7 +299,7 @@ class Viewer(object):
             if transport_protocol == "unix":
                 if inode_entry == "":  # unnamed unix domain socket
                     inode_entry = "<anonymous>"
-                else: # named or abstract unix domain socket
+                else:  # named or abstract unix domain socket
                     # TODO: this lookup doesn't work for abstract sockets
                     props = self.getFileProperties(inode_entry)
                     # TODO: this else branch makes no sense
@@ -312,12 +311,12 @@ class Viewer(object):
                     inode_entry = "{} (named socket file permissions: {})".format(
                         inode_entry, permissions
                     )
-            else: # TCP or UDP socket with IP address and port
+            else:  # TCP or UDP socket with IP address and port
                 # TODO: state flags are missing in the data to determine
                 # listening sockets for tcp
                 # TODO: also include IP addresses for IPv4/v6 respectively
                 # using python socket formatting functions
-                inode_entry = int(inode_entry[0][1], 16) # port of the local ip
+                inode_entry = int(inode_entry[0][1], 16)  # port of the local ip
 
             result.append("{}:{}".format(transport_protocol, inode_entry))
 
@@ -406,14 +405,14 @@ class Viewer(object):
                 for uid_type in pid_data["Uid"]:
 
                     user_identity = {
-                        "Uid":uid_type,
-                        "Gid_set":pid_data["Gid"],
+                        "Uid": uid_type,
+                        "Gid_set": pid_data["Gid"],
                     }
 
                     if not file_mode.canAccessFile(
-                        user_identity,
-                        file_identity,
-                        file_perm
+                            user_identity,
+                            file_identity,
+                            file_perm
                     ):
                         color_it = True
 
@@ -425,7 +424,7 @@ class Viewer(object):
                     line = "{:>5}: ".format(fd) + line
                 # TODO: also add ownership information
                 line = "{} (permissions: {})".format(line,
-                        perms_octal)
+                                                     perms_octal)
                 if flags:
                     line = "{} (flags: {})".format(line, "|".join(flags))
                 real_files.append(line)
@@ -522,7 +521,7 @@ class Viewer(object):
             # don't show excess length parameters, only a prefix
             max_len = 40
             cmdline = pid_data[column_label]
-            cmdline_chunks = [cmdline[i:i+max_len] for i in range(0, len(cmdline), max_len)]
+            cmdline_chunks = [cmdline[i:i + max_len] for i in range(0, len(cmdline), max_len)]
             result = "\n".join(cmdline_chunks)
 
         elif column == ProcColumns.open_fds:
@@ -569,7 +568,7 @@ class Viewer(object):
                 children_rows += self.recursiveProcTree(
                     children,
                     child_pid,
-                    level+1,
+                    level + 1,
                     recursive
                 )
 
@@ -599,7 +598,7 @@ class Viewer(object):
             line = []
             for column in column_headers:
                 if column == ProcColumns.pid:
-                    tmp = ( level * indent ) + "+---" + str(pid)
+                    tmp = (level * indent) + "+---" + str(pid)
                 else:
                     tmp = table_data[column][pid]
                 line.append(tmp)
@@ -769,9 +768,8 @@ def main():
     # viewer.activateSettings(args)
     # viewer.loadData(args.input)
     # viewer.performAction(args)
-    print ("This file should not be used as main anymore. Please call the security scanner file instead")
+    print("This file should not be used as main anymore. Please call the security scanner file instead")
 
 
 if __name__ == "__main__":
     helper.executeMain(main)
-

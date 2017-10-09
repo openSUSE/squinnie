@@ -38,7 +38,6 @@ class Filesystem(object):
 
     def getAllFsData(self):
         """Returns all raw filesystem data."""
-        # TODO: move FS data refining here
         return self.m_accessor.getFullDump()
 
     def queryFilesystem(self, fsquery):
