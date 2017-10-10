@@ -115,20 +115,3 @@ class Enricher(object):
                 childs.append(p)
 
         node_dict["children"] = children
-
-
-def main():
-    description = "Enrich the data dump previously collected from a node."
-    parser = argparse.ArgumentParser(prog=sys.argv[0], description=description)
-
-    description = "The collected data dump on disk that will be enriched."
-    parser.add_argument("-i", "--input", required=True, type=str, help=description)
-
-    args = parser.parse_args()
-
-    enricher = Enricher()
-    enricher.loadData(args.input)
-    if not enricher.enrich():
-        print("Node data is already enriched. Nothing to do.")
-        return
-    enricher.saveData(args.input)

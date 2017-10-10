@@ -748,28 +748,3 @@ class Viewer(object):
             if args.type == "f":
                 args.type = "-"
             self.m_fsquery.filterForType(args.type)
-
-
-def main():
-    # description = "Generate various views from collected node data."
-    # parser = argparse.ArgumentParser(description=description)
-    #
-    # description = "The input file containing the dumped node data to view."
-    # parser.add_argument("-i", "--input", required=True, type=str, help=description)
-    #
-    # description = "Print more detailed information."
-    # parser.add_argument("-v", "--verbose", action="store_true", help=description)
-    #
-    # Viewer.addParserArguments(parser)
-    #
-    # args = parser.parse_args()
-    #
-    # viewer = Viewer()
-    # viewer.activateSettings(args)
-    # viewer.loadData(args.input)
-    # viewer.performAction(args)
-    print("This file should not be used as main anymore. Please call the security scanner file instead")
-
-
-if __name__ == "__main__":
-    helper.executeMain(main)

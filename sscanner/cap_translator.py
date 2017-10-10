@@ -64,35 +64,3 @@ class CapTranslator(object):
 
         with open(capfile, "r") as fi:
             return json.load(fi)
-
-
-def main():
-    import argparse
-
-    parser = argparse.ArgumentParser(
-        "cap_translator",
-        description="translate a capability bit vector into human readable strings"
-    )
-
-    def hexint(val):
-        return int(val, 16)
-
-    parser.add_argument(
-        "bitvector",
-        help="the hexadecimal capability bit vector to translate",
-        type=hexint,
-    )
-
-    args = parser.parse_args()
-
-    translator = CapTranslator()
-
-    cap_data = translator.getCapData()
-    print("\nThe given bit vector maps to the following capabilities:\n")
-    for cap in translator.getCapStrings(args.bitvector):
-        print("- {}".format(cap))
-    print("")
-
-
-if __name__ == "__main__":
-    sscanner.helper.executeMain(main)

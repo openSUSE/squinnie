@@ -145,28 +145,3 @@ class Crowbar(object):
             return False
 
         return self.m_config_path and os.path.isfile(self.m_config_path)
-
-def main():
-    description = "Connect to a crowbar node via SSH and extract its network configuration as JSON."
-    parser = argparse.ArgumentParser(prog=sys.argv[0], description=description)
-
-    description = "The host on which crowbar is running."
-    parser.add_argument("-e", "--entry", required=False, type=str, help=description)
-
-    description = "The config file you want your data to be loaded from(dumped to."
-    parser.add_argument("-c", "--config", required=True, type=str, help=description)
-
-    description = "Force overwriting the network configuration file, even if it already exists."
-    parser.add_argument("--nocache", action="store_true", help=description,
-        default = False)
-
-    args = parser.parse_args()
-
-    crowbar = Crowbar()
-    crowbar.setEntryNode(args.entry)
-    crowbar.setConfigPath(args.config)
-    crowbar.setUseCache(not args.nocache)
-    crowbar.loadNetworkInfo()
-
-if __name__ == "__main__":
-    sscanner.helper.executeMain(main)
