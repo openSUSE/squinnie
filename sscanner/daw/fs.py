@@ -57,7 +57,10 @@ class FsDatabase(object):
     def __init__(self, path):
         self.m_path = path
         self.m_db = sqlite3.connect(self.getDbPath())
-        self.m_db.text_factory = str  # to fix string handling in python2
+
+        # usually, python2 uses non-unicode strings, but sqlite does. The probe supplies "normal" strings as well, so we
+        # need to setup sqlite to use the built-in string type to avoid errors.
+        self.m_db.text_factory = str
 
     def getDbPath(self):
         """Returns the path of the database."""
