@@ -136,6 +136,12 @@ def getFilterForChar(char):
     return None
 
 
+def getPossibleFileChars():
+    """Returns all chars used for file types:"""
+    chars = [x[1] for x in _filemode_table[0]]
+    return chars
+
+
 def permReadable(file_perm):
     """
     Get access permission as integer

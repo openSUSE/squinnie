@@ -157,7 +157,8 @@ class Viewer(object):
         parser.add_argument("--verbose-special-bits", action="store_true", help=description)
 
         description = "Show only files of a specific type."
-        parser.add_argument("--type", "-t", type=str, default=None, help=description)
+        parser.add_argument("--type", "-t", type=str, default=None, help=description,
+                            choices=file_mode.getPossibleFileChars())
 
     def addPidFilter(self, pid):
         """Don't show all PIDs but just the given PID in the table.
