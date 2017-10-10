@@ -29,6 +29,8 @@ import stat
 _filemode_table = stat._filemode_table if \
     hasattr(stat, '_filemode_table') else (
     ((stat.S_IFLNK,         "l"),
+     # this line was manually added to support sockets since as of the time this was copied sockets where not
+     # explicitly shown in python3.
      (stat.S_IFSOCK,        "s"),
      (stat.S_IFREG,         "-"),
      (stat.S_IFBLK,         "b"),
