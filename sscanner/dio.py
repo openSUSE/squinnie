@@ -48,7 +48,7 @@ class DumpIO(object):
         """
         return os.path.join(self.m_path_prefix, helper.makeValidDirname(self.m_target_name))
 
-    def _createdDumpDirIfItDoesNotExist(self):
+    def _createDumpDirIfItDoesNotExist(self):
         """Creates the dump directory if it does not exist"""
         ddir = self.getDumpDir()
 
@@ -79,7 +79,7 @@ class DumpIO(object):
             helper.eprint("Warning: Category %s has an invalid name, it will be written as %s instead."
                           .format(category, file_basename))
 
-        self._createdDumpDirIfItDoesNotExist()
+        self._createDumpDirIfItDoesNotExist()
         file = os.path.join(self.getDumpDir(), file_basename + self.FILE_EXTENSION)
         print("Saving data to {}".format(file))
 
