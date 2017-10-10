@@ -17,9 +17,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA 02110-1301 USA.
-"""
-This file is a factory for all DAW classes.
-"""
+
 from sscanner.daw import ProcessData
 from sscanner.daw.fs import Filesystem
 from sscanner.daw import AccountWrapper
@@ -27,6 +25,9 @@ from sscanner.daw import NetworkingWrapper
 
 
 class Factory(object):
+    """
+    This class is a factory for all DAW classes.
+    """
 
     def __init__(self, dumpIO):
         """
