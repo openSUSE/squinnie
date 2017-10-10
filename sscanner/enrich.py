@@ -26,7 +26,7 @@ from __future__ import with_statement
 import argparse
 import sys
 
-# local moduless
+# local modules
 import sscanner.helper
 
 try:
@@ -36,7 +36,7 @@ except ImportError:
 
 
 class Enricher(object):
-    """This class cares for transforming "enriching" the raw data as it is
+    """This class cares for transforming or "enriching" the raw data as it is
     collected on a remote or local node into a form that is more suitable for
     our processing."""
 
