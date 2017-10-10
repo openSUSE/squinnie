@@ -20,9 +20,10 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA 02110-1301 USA.
 
-from sscanner import helper
 import pprint
 import sys
+sys.path.append('..')
+from sscanner import helper
 
 if len(sys.argv) < 2:
     print('Usage: %s <dump.p.gz> [depth]' % sys.argv[0])

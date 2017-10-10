@@ -25,9 +25,10 @@ from __future__ import print_function
 from __future__ import with_statement
 import sys
 import argparse
-import copy
-import re
 import os
+
+# allow importing the sscanner module from ..
+sys.path.append('..')
 
 # Local modules
 import sscanner.dumper
