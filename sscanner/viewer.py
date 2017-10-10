@@ -195,7 +195,6 @@ class Viewer(object):
 
         proc_wrapper = self.m_daw_factory.getProcWrapper()
 
-        all_pids = proc_wrapper.getAllPids()
         for pid, info in OrderedDict(proc_wrapper.getProcData()).items():
             open_file_count = len(info["open_files"])
 

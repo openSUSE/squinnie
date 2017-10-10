@@ -4,7 +4,7 @@
 # security scanner - scan a system's security related information
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
-# Author: Benjamin Deuter, Sebatian Kaim
+# Author: Benjamin Deuter, Sebastian Kaim
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -226,7 +226,7 @@ class SshDumper(Dumper):
         """Returns a configuration string for execnet's makegatway() function
         for dumping the given node."""
         data = {
-            "ssh": "root@{}".format(node) if "@" not in str else node,
+            "ssh": "root@{}".format(node) if "@" not in node else node,
             "id": "{}".format(node),
             "python": "python{}".format(2)
         }
