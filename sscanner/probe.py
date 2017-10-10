@@ -49,7 +49,7 @@ def isPython2():
     return sys.version_info.major == 2
 
 
-class SlaveScanner(object):
+class Scanner(object):
 
     def __init__(self, collect_files = True):
 
@@ -433,7 +433,7 @@ def main():
     if os.isatty(out_file.fileno()):
         exit("Refusing to output binary data to stdout connected to a terminal")
 
-    scanner = SlaveScanner(collect_files=not args.no_files)
+    scanner = Scanner(collect_files=not args.no_files)
     result = scanner.collect()
 
     if isPython2():
@@ -457,7 +457,7 @@ def main():
 
 
 if __name__ == '__channelexec__':
-    scanner = SlaveScanner()
+    scanner = Scanner()
     result = scanner.collect()
     channel.send(result)
 elif __name__ == "__main__":
