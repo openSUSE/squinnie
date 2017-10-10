@@ -24,7 +24,7 @@ from sscanner.daw.helper import LazyLoader
 class AccountWrapper(object):
     """
     This class abstracts all data about users and groups. So far this data is unfortunately only the mapping of the
-    uid/gid to a name.
+    uid/gid to a name, which does not allow any more metadata (for example home directories).
     """
 
     def __init__(self, dumpIO):
