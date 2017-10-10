@@ -4,7 +4,7 @@
 # security scanner - scan a system's security related information
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
-# Author: Benjamin Deuter, Sebatian Kaim
+# Author: Benjamin Deuter, Sebastian Kaim
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
