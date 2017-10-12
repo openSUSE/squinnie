@@ -301,7 +301,7 @@ class Scanner(object):
                 "caps": 0,
                 "st_mode": 0,
                 "st_uid": -1,
-                "st_giod": -1,
+                "st_gid": -1,
                 "type": type
             }
 
