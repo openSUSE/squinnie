@@ -295,7 +295,15 @@ class Scanner(object):
                 ),
                 file=sys.stderr
             )
-            return None
+
+            # return a basic construct as the file will be recorded anyway
+            return {
+                "caps": 0,
+                "st_mode": 0,
+                "st_uid": -1,
+                "st_giod": -1,
+                "type": type
+            }
 
         return properties
 
