@@ -22,7 +22,8 @@
 
 import pprint
 import sys
-sys.path.append('..')
+import os
+sys.path.append(os.path.split(os.path.split(os.path.realpath(__file__))[0])[0])
 from sscanner import helper
 
 if len(sys.argv) < 2:

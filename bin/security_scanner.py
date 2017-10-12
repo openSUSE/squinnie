@@ -28,7 +28,7 @@ import argparse
 import os
 
 # allow importing the sscanner module from ..
-sys.path.append('..')
+sys.path.append(os.path.split(os.path.split(os.path.realpath(__file__))[0])[0])
 
 # Local modules
 import sscanner.dumper
