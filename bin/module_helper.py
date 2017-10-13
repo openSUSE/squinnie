@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # vim: ts=4 et sw=4 sts=4 :
 
-# dumphelper.py - this program prints the contents of a dumpfile via sscanner.helper
+# security scanner - scan a system's security related information
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
 # Author: Sebastian Kaim
@@ -20,20 +20,23 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA 02110-1301 USA.
 
-import pprint
+
+from __future__ import print_function
+import os
 import sys
-import module_helper
-from sscanner import helper
+import pkgutil
 
-if len(sys.argv) < 2:
-    print('Usage: %s <dump.p.gz> [depth]' % sys.argv[0])
-    sys.exit(1)
 
-data = helper.readPickle(sys.argv[1])
+def tryFindModule(module):
+    """Adds .. to the current module path, tries to import $module and exits if it is not found."""
+    # get the full path of the parent directory and append the name
+    parent_dir = os.path.realpath(os.path.dirname(os.path.dirname(__file__)))
+    sys.path.append(parent_dir)
 
-depth=2
-if len(sys.argv) >= 3:
-    depth = int(sys.argv[2])
+    # check if the module can be loaded now
+    if pkgutil.find_loader(module) is None:
+        print("The module %s could not be found in '%s'!" % (module, parent_dir))
+        sys.exit(4)
 
-pprint.pprint(data, indent=2, depth=depth)
 
+tryFindModule("sscanner")
