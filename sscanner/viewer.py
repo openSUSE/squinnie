@@ -146,11 +146,17 @@ class Viewer(object):
         def octint(inp):
             return int(inp, 8)
 
-        description = "Only show files which have at least one of the bits set from given umask."
-        parser.add_argument("--umask", type=octint, default=-1, help=description)
+        description = "Only show files which have at least one of the bits set from given mode."
+        parser.add_argument("--has-mode", type=octint, default=-1, help=description)
 
-        description = "Only show files which have all of the bits set from given umask."
-        parser.add_argument("--exclusive-umask", type=octint, default=-1, help=description)
+        description = "Only show files which have all of the bits set from given filemode."
+        parser.add_argument("--filemode-min", type=octint, default=-1, help=description)
+
+        description = "Only show files which have none the bits set from given filemode."
+        parser.add_argument("--filemode-max", type=octint, default=-1, help=description)
+
+        description = "Only show files which match the given file mode."
+        parser.add_argument("--filemode", type=octint, default=-1, help=description)
 
         description = "Add an extra output column with a verbose representation of the suid bit (S_ISUID), the gid " \
                       "bit (S_ISGID) and the sticky bit (S_ISVTX). This is to allow easier combination with grep."
@@ -737,11 +743,20 @@ class Viewer(object):
         if args.gid >= 0:
             self.m_fsquery.filterForGid(args.gid)
 
-        if args.umask > 0:
-            self.m_fsquery.filterForUmask(args.umask)
+        # parser.add_argument("--filemode-max", type=octint, default=-1, help=description)\
+        # file mode
 
-        if args.exclusive_umask > 0:
-            self.m_fsquery.exclusiveUmask(args.exclusive_umask)
+        if args.has_mode > 0:
+            self.m_fsquery.filterForUmask(args.has_mode)
+
+        if args.filemode_min > 0:
+            self.m_fsquery.exclusiveUmask(args.filemode_min)
+
+        if args.filemode_max > 0:
+            self.m_fsquery.filterFilesWithBits(args.filemode_max)
+
+        if args.filemode > 0:
+            self.m_fsquery.filterFileMode(args.filemode)
 
         if args.type is not None:
             # files are stored in the database with the type '-', but 'f' is more intuitive to the user

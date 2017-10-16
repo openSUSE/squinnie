@@ -236,6 +236,15 @@ class FsQuery(object):
         # this should escape all strings as far as sqlite is concerned
         return json.dumps(str(input))
 
+    def filterFilesWithBits(self, mode):
+        """Filters all files which have one or more bits set from mode."""
+        self.addAndClause('(mode & %s) == 0' % hex(mode))
+
+    def filterFileMode(self, filemode):
+        """Filters for files with this specific mode."""
+        # the 0o777 filters the not relevant bits (file type)
+        self.addAndClause('(mode & %s) == %s' % (0o777, hex(filemode)))
+
 
 class FilesystemIterator(object):
     """This class allows iteration of all the files returned by a query to the FS."""
