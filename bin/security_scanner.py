@@ -64,10 +64,16 @@ class SecurityScanner(object):
         general_group.add_argument("-v", "--verbose", action="store_true", help=description)
 
         description = "Only show results from this uid."
-        general_group.add_argument("-u", "--uid", type=int, help=description, default=-1)
+        general_group.add_argument("--uid", type=int, help=description, default=-1)
+
+        description = "Only show results from this user."
+        general_group.add_argument("-u", "--user", type=str, help=description, default=-1)
 
         description = "Only show results from this gid."
-        general_group.add_argument("-g", "--gid", type=int, help=description, default=-1)
+        general_group.add_argument("--gid", type=int, help=description, default=-1)
+
+        description = "Only show results from this group."
+        general_group.add_argument("-g", "--group", type=str, help=description, default=-1)
 
         # description = "List all nodes in the network."
         # general_group.add_argument("-l", "--list", action="store_true", help=description)

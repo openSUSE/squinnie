@@ -86,9 +86,21 @@ class Viewer(object):
         self.setShowKthreads(args.kthreads)
         self.setShowFilterChildren(args.children)
         self.setShowFilterParents(args.parent)
+        self.parseOwnerFilters(args)
         self.createFsQuery(args)
-        self.m_uid_filter = args.uid
-        self.m_gid_filter = args.gid
+
+    def parseOwnerFilters(self, args):
+        account_helper = self.m_daw_factory.getAccountWrapper()
+
+        if args.user:
+            self.m_uid_filter = account_helper.getUidForName(args.user)
+        if args.group:
+            self.m_gid_filter = account_helper.getGidForName(args.group)
+
+        if args.uid > 0:
+            self.m_uid_filter = args.uid
+        if args.gid > 0:
+            self.m_gid_filter = args.gid
 
     def performAction(self, args):
         """Performs the action specified in the given argparse.Namespace
@@ -737,11 +749,11 @@ class Viewer(object):
         if args.capabilities:
             self.m_fsquery.filterForCapabilities()
 
-        if args.uid >= 0:
-            self.m_fsquery.filterForUid(args.uid)
+        if self.m_uid_filter >= 0:
+            self.m_fsquery.filterForUid(self.m_uid_filter)
 
-        if args.gid >= 0:
-            self.m_fsquery.filterForGid(args.gid)
+        if self.m_gid_filter >= 0:
+            self.m_fsquery.filterForGid(self.m_gid_filter)
 
         # parser.add_argument("--filemode-max", type=octint, default=-1, help=description)\
         # file mode

@@ -44,3 +44,21 @@ class AccountWrapper(object):
         """Returns the name of the group for a specific group id."""
         data = self.m_ll_data.getData()['gids']
         return data[gid] if gid in data else default
+
+    def getGidForName(self, name):
+        """Returns the GID for an account or None if it can't be resolved."""
+        # this lookup is quite inefficient, but so far its only used once per execution and one shouldn't over-optimize.
+        data = self.m_ll_data.getData()['gids']
+        for gid, gname in data.items():
+            if gname == name:
+                return gid
+        return None
+
+    def getUidForName(self, name):
+        """Returns the GID for an account or None if it can't be resolved."""
+        # this lookup is quite inefficient, but so far its only used once per execution and one shouldn't over-optimize.
+        data = self.m_ll_data.getData()['uids']
+        for uid, uname in data.items():
+            if uname == name:
+                return uid
+        return None
