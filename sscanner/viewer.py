@@ -275,11 +275,11 @@ class Viewer(object):
             ret.append(
                 [
                     iterator.getPermissionString(),
-                    iterator.getFullPath(),
                     iterator.getTypeLabel(),
                     user,
                     group,
-                    cap_str
+                    cap_str,
+                    iterator.getFullPath()
                 ]
             )
 
