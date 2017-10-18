@@ -23,7 +23,7 @@
 # Standard library modules
 from __future__ import print_function
 from __future__ import with_statement
-import sys
+import logging
 import argparse
 import os
 
@@ -60,8 +60,9 @@ class SecurityScanner(object):
                       " save files during the execution of the script and then deleted at the end."
         general_group.add_argument("-d", "--directory", type=str, help=description)
 
-        description = "Print more detailed information."
-        general_group.add_argument("-v", "--verbose", action="store_true", help=description)
+        description = "Print more detailed information. You can give this argument up to three times to increase the " \
+                      "verbosity even further (-vvv)."
+        parser.add_argument('--verbose', '-v', action='count', help=description)
 
         description = "Only show results from this uid."
         general_group.add_argument("--uid", type=int, help=description, default=-1)
@@ -188,6 +189,7 @@ class SecurityScanner(object):
     def run(self):
         try:
             self.m_args = self.m_parser.parse_args()
+            self._setupLogging()
             self._checkDirectoryArg()
             self._checkModeArgs()
 
@@ -196,6 +198,18 @@ class SecurityScanner(object):
         finally:
             if self.m_discard_data:
                 self._cleanupData()
+
+    def _setupLogging(self):
+        if not self.m_args.verbose or self.m_args.verbose < 0:
+            self.m_args.verbose = 0
+        if self.m_args.verbose > 3:
+            self.m_args.verbose = 3
+
+        levels = [logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG]
+
+        logger = logging.getLogger("sscanner")
+        logger.setLevel(level=levels[self.m_args.verbose])
+        logging.basicConfig(level=levels[self.m_args.verbose])
 
 
 if __name__ == "__main__":

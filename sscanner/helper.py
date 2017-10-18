@@ -23,6 +23,7 @@
 from __future__ import print_function
 import sys
 import re
+import logging
 
 # a place for assorted code shared between functions
 
@@ -175,3 +176,8 @@ def makeValidDirname(s):
     converting other spaces to underscores and removing anything that is not an alphanumeric, dash or underscore.
     """
     return re.sub(r'(?u)[^-\w.]', '', s.strip().replace(' ', '_'))
+
+
+def getLogger():
+    """Returns the logger for the project."""
+    logging.getLogger("sscanner")
