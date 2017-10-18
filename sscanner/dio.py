@@ -26,11 +26,13 @@ import threading
 import shutil
 from sscanner import helper
 from sscanner.daw.fs import FsDatabase
+import logging
 
 
 class DumpIO(object):
     """This class manages saving and loading whole dumps and parts to and from the filesystem."""
     FILE_EXTENSION = ".p.gz"
+    LOCK_FILE_NAME = '.security-scanner.data'
 
     def __init__(self, target, path="/tmp/security-scanner"):
         """
@@ -82,6 +84,9 @@ class DumpIO(object):
         self._createDumpDirIfItDoesNotExist()
         file = os.path.join(self.getDumpDir(), file_basename + self.FILE_EXTENSION)
         print("Saving data to {}".format(file))
+
+        # create the lockfile
+        open(os.path.join(self.getDumpDir(), self.LOCK_FILE_NAME), 'a').close()
 
         helper.writePickle(data, file)
         # self._debugPrint(data[category])
@@ -136,7 +141,17 @@ class DumpIO(object):
 
     def clearCache(self):
         path = self.getDumpDir()
-        print("Discarding cached data for %s" % path)
+
+        logging.info("Removing cached data in %s!" % path)
+
+        lockfile = os.path.join(path, self.LOCK_FILE_NAME)
+        if not os.path.isfile(lockfile):
+            logging.error("Refusing to remove %s as there is no lockfile! If you're sure you want to delete this "
+                          % path)
+            logging.error("If you're sure you want to delete this directory please execute `touch '%s'` and retry."
+                          % lockfile)
+            exit(2)
+
         shutil.rmtree(path)
 
     @staticmethod

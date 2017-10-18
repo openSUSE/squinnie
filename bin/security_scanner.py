@@ -180,24 +180,14 @@ class SecurityScanner(object):
             print("\n\nReport for {} ...".format(config['node']))
             viewer.performAction(self.m_args)
 
-    def _cleanupData(self):
-        import shutil
-        if self.m_args.verbose:
-            print("Removing temporary data in", self.m_args.directory)
-        shutil.rmtree(self.m_args.directory)
-
     def run(self):
-        try:
-            self.m_args = self.m_parser.parse_args()
-            self._setupLogging()
-            self._checkDirectoryArg()
-            self._checkModeArgs()
+        self.m_args = self.m_parser.parse_args()
+        self._setupLogging()
+        self._checkDirectoryArg()
+        self._checkModeArgs()
 
-            self._collectDumps()
-            self._viewData()
-        finally:
-            if self.m_discard_data:
-                self._cleanupData()
+        self._collectDumps()
+        self._viewData()
 
     def _setupLogging(self):
         if not self.m_args.verbose or self.m_args.verbose < 0:
