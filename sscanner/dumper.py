@@ -70,7 +70,7 @@ class Dumper(object):
 
         for node in self.getNodeData():
             if node['cached']:
-                logger.info("Not regenerating cached dump for", node['node'])
+                logging.info("Not regenerating cached dump for", node['node'])
 
     def getNodeData(self):
         """Returns the currently collected node data. Only valid after a call
