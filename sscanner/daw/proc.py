@@ -18,7 +18,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA 02110-1301 USA.
-from sscanner.daw.helper import LazyLoader
+from sscanner.daw.helper import CategoryLoader
 
 
 class ProcessData(object):
@@ -29,9 +29,9 @@ class ProcessData(object):
         """
         self.m_dumpIO = dumpIO
         self.m_data = {}
-        self.m_ll_proc = LazyLoader("proc_data", self.m_dumpIO)
-        self.m_ll_children = LazyLoader("children", self.m_dumpIO)
-        self.m_ll_parents = LazyLoader("parents", self.m_dumpIO)
+        self.m_ll_proc = CategoryLoader("proc_data", self.m_dumpIO)
+        self.m_ll_children = CategoryLoader("children", self.m_dumpIO)
+        self.m_ll_parents = CategoryLoader("parents", self.m_dumpIO)
 
     def getProcData(self):
         """Return general process data."""

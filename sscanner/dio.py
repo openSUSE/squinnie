@@ -42,6 +42,7 @@ class DumpIO(object):
 
         self.m_target_name = target
         self.m_path_prefix = path
+        self.cache = {}
 
     def getDumpDir(self):
         """
@@ -89,6 +90,7 @@ class DumpIO(object):
         open(os.path.join(self.getDumpDir(), self.LOCK_FILE_NAME), 'a').close()
 
         helper.writePickle(data, file)
+        self.cache[category] = data
         # self._debugPrint(data[category])
 
     def loadFullDump(self):
@@ -115,6 +117,9 @@ class DumpIO(object):
 
     def loadCategory(self, category):
         """This method loads a specific category file from a dump."""
+        if category in self.cache:
+            return self.cache[category]
+
         file_basename = helper.makeValidDirname(category)
 
         file = os.path.join(self.getDumpDir(), file_basename + self.FILE_EXTENSION)
@@ -136,10 +141,11 @@ class DumpIO(object):
                 for f in os.listdir(path) if os.path.isfile(os.path.join(path, f)) and f.endswith(self.FILE_EXTENSION)]
 
     def hasCache(self):
-        # TODO: Check if all data is available which is needed
         return len(self.getAllCachedCategories()) > 0
 
     def clearCache(self):
+        self.cache.clear()
+
         path = self.getDumpDir()
 
         logging.info("Removing cached data in %s!" % path)

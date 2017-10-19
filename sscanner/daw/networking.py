@@ -18,7 +18,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA 02110-1301 USA.
-from sscanner.daw.helper import LazyLoader
+from sscanner.daw.helper import CategoryLoader
 
 
 class NetworkingWrapper(object):
@@ -33,7 +33,7 @@ class NetworkingWrapper(object):
         :param dumpIO: An instance of sscanner.dio.DumpIO for loading the data
         """
         self.m_dumpIO = dumpIO
-        self.m_ll_protos = LazyLoader("networking", self.m_dumpIO)
+        self.m_ll_protos = CategoryLoader("networking", self.m_dumpIO)
 
     def getProtocols(self):
         """Returns a list of all currently possible protocols."""

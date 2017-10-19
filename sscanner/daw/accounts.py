@@ -18,7 +18,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA 02110-1301 USA.
-from sscanner.daw.helper import LazyLoader
+from sscanner.daw.helper import CategoryLoader
 
 
 class AccountWrapper(object):
@@ -33,7 +33,7 @@ class AccountWrapper(object):
         """
         self.m_dumpIO = dumpIO
         self.m_data = {}
-        self.m_ll_data = LazyLoader("userdata", self.m_dumpIO)
+        self.m_ll_data = CategoryLoader("userdata", self.m_dumpIO)
 
     def getNameForUid(self, uid, default=None):
         """Returns the name of the user for a specific uid."""

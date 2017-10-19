@@ -19,6 +19,21 @@
 # MA 02110-1301 USA.
 
 
+class CategoryLoader(object):
+    """Loads a category from the filesystem via a DumpIO instance."""
+    def __init__(self, category, dumpIO):
+        """
+        :param category: The name of the category.
+        :param dumpIO: An instance of sscanner.dio.DumpIO for loading the data
+        """
+        self.m_dumpIO = dumpIO
+        self.m_category = category
+
+    def getData(self):
+        """Return the contained data, load if necessary."""
+        return self.m_dumpIO.loadCategory(self.m_category)
+
+
 class LazyLoader(object):
     """Lazily loads a category when required."""
 
