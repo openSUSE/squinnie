@@ -34,6 +34,7 @@ import termcolor
 import sscanner.helper
 import sscanner.network_config
 import sscanner.errors
+import logging
 
 # PyPy modules
 try:
@@ -129,7 +130,7 @@ class Crowbar(object):
             self._fetchConfig()
 
     def _loadConfig(self):
-        print("Using cached crowbar network data from", self.m_config_path)
+        logging.info("Using cached crowbar network data from", self.m_config_path)
         self.m_net_config.load(self.m_config_path)
         self.m_info = next(iter(self.m_net_config.getNetwork()))
 
@@ -137,7 +138,7 @@ class Crowbar(object):
         self.m_info = self.getCrowbarConfig()
         self.m_net_config.setNetwork(self.m_info)
         self.m_net_config.save(self.m_config_path)
-        print("Wrote crowbar network data to {}\n".format(self.m_config_path))
+        logging.info("Wrote crowbar network data to {}\n".format(self.m_config_path))
 
     def _haveCache(self):
 

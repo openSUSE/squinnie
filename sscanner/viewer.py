@@ -21,12 +21,12 @@
 # MA 02110-1301 USA.
 
 # Standard library modules.
-from __future__ import print_function
 from __future__ import with_statement
 import sys
 import os
 import stat
 import subprocess
+import logging
 from collections import OrderedDict
 # Local modules.
 import sscanner.cap_translator as cap_translator
@@ -631,11 +631,11 @@ class Viewer(object):
         proc_wrapper = self.m_daw_factory.getProcWrapper()
 
         num_procs = proc_wrapper.getProcessCount()
-        print("There are {} processes running on {}.".format(
+        logging.info("There are {} processes running on {}.".format(
             num_procs,
             self.m_node_label
         ))
-        print("")
+        # print("")
 
         all_pids = proc_wrapper.getAllPids()
         children = proc_wrapper.getChildren()

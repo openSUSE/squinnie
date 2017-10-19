@@ -21,10 +21,9 @@
 # MA 02110-1301 USA.
 
 # Standard library modules.
-from __future__ import print_function
 from __future__ import with_statement
 from collections import OrderedDict
-import argparse
+import logging
 import sys
 import os
 
@@ -71,7 +70,7 @@ class Dumper(object):
 
         for node in self.getNodeData():
             if node['cached']:
-                print("Not regenerating cached dump for", node['node'])
+                logger.info("Not regenerating cached dump for", node['node'])
 
     def getNodeData(self):
         """Returns the currently collected node data. Only valid after a call
@@ -91,7 +90,7 @@ class Dumper(object):
                     config['node']: config['data']
             }
             enricher = sscanner.enrich.Enricher(node_data_dict)
-            print("Enriching node data")
+            logging.debug("Enriching node data")
             enricher.enrich()
             dump_path = config['full_path']
             # enricher.saveData(dump_path)
@@ -131,7 +130,7 @@ class Dumper(object):
                 continue
             dump_path = config['full_path']
 
-            print("Loading cached dump from", dump_path)
+            logging.info("Loading cached dump from", dump_path)
 
             dmp = DumpIO(config['node'], path=self.m_outdir)
 
@@ -247,7 +246,7 @@ class SshDumper(Dumper):
             if config['cached']:
                 continue
             node = config['node']
-            print("Receiving data from {}".format(node))
+            logging.info("Receiving data from {}".format(node))
             gateway = self._getExecnetGateway(node, config['via'])
             group.makegateway(gateway)
 

@@ -47,7 +47,8 @@ def missingModule(which=None, ex=None):
     if which is None:
         which = ex.message.split()[-1]
 
-    eprint("The module {} could not be found. Please use your system's package manager or pip to install it.".format(which))
+    logging.critical("The module {} could not be found. Please use your system's package manager or pip to install it.".
+                     format(which))
     sys.exit(1)
 
 
@@ -160,11 +161,11 @@ def executeMain(call):
         call()
         return
     except errors.ScannerError as e:
-        print(termcolor.colored("Error:", color="red"), e)
+        logging.critical(e)
     except EnvironmentError as e:
-        print(termcolor.colored("Failed:", color="red"), e)
+        logging.critical(e)
     except Exception as e:
-        print(termcolor.colored("Unexpected error:", color="red"))
+        logging.critical(e)
         raise
 
     sys.exit(1)

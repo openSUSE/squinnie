@@ -114,7 +114,7 @@ class SecurityScanner(object):
             import tempfile
             self.m_args.directory = tempfile.mkdtemp(prefix = "cloud_scanner")
             self.m_discard_data = True
-            print("Storing temporary data in", self.m_args.directory)
+            logging.info("Storing temporary data in", self.m_args.directory)
         elif not os.path.isdir(self.m_args.directory):
             os.makedirs(self.m_args.directory)
 

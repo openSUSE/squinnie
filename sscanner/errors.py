@@ -8,7 +8,6 @@
 #
 # see LICENSE file for detailed licensing information
 
-from __future__ import print_function
 
 class ScannerError(Exception):
     """Specialized exception type for usage and logical errors detected

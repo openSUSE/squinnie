@@ -70,7 +70,7 @@ class DumpIO(object):
 
         # TODO: This should probably be split better
         if category == "filesystem":
-            print("Inserting data into fs")
+            logging.debug("Inserting data into fs")
             fsdb = FsDatabase(self.getDumpDir())
             fsdb.insertRawData(data)
             fsdb.close()
@@ -78,12 +78,12 @@ class DumpIO(object):
 
         file_basename = helper.makeValidDirname(category)
         if file_basename != category:
-            helper.eprint("Warning: Category %s has an invalid name, it will be written as %s instead."
+            logging.warning("Category %s has an invalid name, it will be written as %s instead."
                           .format(category, file_basename))
 
         self._createDumpDirIfItDoesNotExist()
         file = os.path.join(self.getDumpDir(), file_basename + self.FILE_EXTENSION)
-        print("Saving data to {}".format(file))
+        logging.debug("Saving data to {}".format(file))
 
         # create the lockfile
         open(os.path.join(self.getDumpDir(), self.LOCK_FILE_NAME), 'a').close()
@@ -122,7 +122,7 @@ class DumpIO(object):
         if not os.path.exists(file):
             raise LookupError
 
-        print("Loading data from {}".format(file))
+        logging.debug("Loading data from {}".format(file))
         return helper.readPickle(file)
 
     def getAllCachedCategories(self):
