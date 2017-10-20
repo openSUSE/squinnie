@@ -775,3 +775,31 @@ class Viewer(object):
             if args.type == "f":
                 args.type = "-"
             self.m_fsquery.filterForType(args.type)
+
+
+class TablePrinter(object):
+    """This class prints a table to the terminal"""
+
+    def __init__(self, include=[], exclude=[]):
+        self.m_columns = []
+        self.m_exclude = exclude
+        self.m_include = include
+
+
+class Column(object):
+    """This class represents a column for printing via TablePrinter"""
+
+    def __init__(self, name, filter_functions=[], enable_color=True):
+        """
+        :param name: The title of the column
+        :param filter_functions: A function to determine the color of the output. Should return a string describing a
+        color in case of colored output (e.g. "red") or None if no color should be applied. The last filter function to
+        return a color will be used. The only input argument will be the data.
+        """
+        self.m_filter_funtions = filter_functions
+        self.m_name = name
+        self.m_colored = enable_color
+
+    def printCol(self, data):
+        color = [c for c in [fn(data) for fn in self.m_filter_funtions] if c][-1]
+
