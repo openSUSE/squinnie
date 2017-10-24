@@ -780,10 +780,57 @@ class Viewer(object):
 class TablePrinter(object):
     """This class prints a table to the terminal"""
 
-    def __init__(self, include=[], exclude=[]):
-        self.m_columns = []
+    def __init__(self, columns, data, include=[], exclude=[] ):
+        """
+        Creates a new object of type table.
+        :param columns: All the columns. This should be Column objects.
+        :param data: The data to print. Must be a two dimensional array ([lines][cols]) of stuff to print.
+        :param include: What columns to include. Will not override excluded ones.
+        :param exclude: What columns to exclude.
+        """
+        self.m_columns = columns
         self.m_exclude = exclude
         self.m_include = include
+        self.m_data = data
+        self.m_col_len = self._determineMaxLengthForColumns()
+
+    def makeLineStr(self, line):
+        """
+        Creates a colored (if enabled) string for the given dataset.
+        """
+
+        str = ""
+
+        for i in range(self.m_columns):
+            name = self.m_columns[i].name
+
+            # check if the column is on the whitelist (if it is not empty) and not on the black list
+            if (len(self.m_include) > 0 and name not in self.m_include) or name in self.m_exclude:
+                continue
+
+            str += self.m_columns[i].getValue(line[i], padding=self.m_col_len[i])
+
+        return str
+
+    def writeOut(self):
+        for i in range(len(self.m_data)):
+            print(self.makeLineStr(self.m_data[i]))
+
+    def _determineMaxLengthForColumns(self):
+        maxlen = [0] * len(self.m_columns)
+
+        for i in range(len(self.m_data)):
+            row = self.m_data[i]
+
+            for k in range(len(self.m_columns)):
+                if maxlen[k] < len(row[k]):
+                    maxlen[k] = len(row[k])
+
+        for k in range(len(self.m_columns)):
+            if maxlen[k] < len(self.m_columns[k].name):
+                maxlen[k] = len(self.m_columns[k].name)
+
+        return maxlen
 
 
 class Column(object):
@@ -797,9 +844,26 @@ class Column(object):
         return a color will be used. The only input argument will be the data.
         """
         self.m_filter_funtions = filter_functions
-        self.m_name = name
+        # no m_ as this is public
+        self.name = name
         self.m_colored = enable_color
 
-    def printCol(self, data):
-        color = [c for c in [fn(data) for fn in self.m_filter_funtions] if c][-1]
+    def addFilterFunction(self, fn):
+        self.m_filter_funtions.append(fn)
+
+    def getValue(self, data, padding=0):
+        """Returns a colored string for printing if a lambda matches and there is a terminal used (determined by
+        constructor argument) or the data otherwise."""
+        if not self.m_colored:
+            return data
+
+        # go through all filter FNs in reverse to find a given color
+        for i in range(len(self.m_filter_funtions)-1, 0, -1):
+            color = self.m_filter_funtions[i](data)
+
+            # if a color is found, we're done :)
+            if color is not None:
+                return termcolor.colored(str(data).ljust(padding), color)
+
+        return data.ljust(padding)
 
