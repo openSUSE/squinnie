@@ -822,7 +822,7 @@ class TablePrinter(object):
 
             str.append(self.m_columns[i].getValue(line[i], padding=self.m_col_len[i]))
 
-        return " ".join(str)
+        return " ".join(str).rstrip()
 
     def writeOut(self):
         self._writeHeaders()
