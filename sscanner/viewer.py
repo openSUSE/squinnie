@@ -729,6 +729,7 @@ class Viewer(object):
             Column('type', [], self.m_have_tty),
             Column('user', [], self.m_have_tty),
             Column('group', [], self.m_have_tty),
+            Column('capabilities', [], self.m_have_tty),
             Column('path', [], self.m_have_tty)
         ], data=table)
 
