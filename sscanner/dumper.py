@@ -89,11 +89,8 @@ class Dumper(object):
             node_data_dict = {
                     config['node']: config['data']
             }
-            enricher = sscanner.enrich.Enricher(node_data_dict)
             logging.debug("Enriching node data")
-            enricher.enrich()
             dump_path = config['full_path']
-            # enricher.saveData(dump_path)
 
             dio = DumpIO(config["node"], path=self.m_outdir)
             dio.saveFullDump(node_data_dict[config["node"]])
