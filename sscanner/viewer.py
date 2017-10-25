@@ -884,7 +884,7 @@ class Column(object):
             return data
 
         # go through all filter FNs in reverse to find a given color
-        for i in range(len(self.m_filter_funtions)-1, 0, -1):
+        for i in range(len(self.m_filter_funtions)-1, -1, -1):
             color = self.m_filter_funtions[i](data)
 
             # if a color is found, we're done :)
