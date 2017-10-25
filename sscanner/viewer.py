@@ -724,6 +724,17 @@ class Viewer(object):
             print("Nothing was found matching the given filters.")
             return
 
+        formatter = TablePrinter(columns=[
+            Column('permissions', [], self.m_have_tty),
+            Column('type', [], self.m_have_tty),
+            Column('user', [], self.m_have_tty),
+            Column('group', [], self.m_have_tty),
+            Column('path', [], self.m_have_tty)
+        ], data=table)
+
+        formatter.writeOut()
+        return
+
         width_column_dict = self.buildWidthColumnDict(table)
         if self.m_have_tty:
             term_width = self._getTermSize()[0]
@@ -799,22 +810,36 @@ class TablePrinter(object):
         Creates a colored (if enabled) string for the given dataset.
         """
 
-        str = ""
+        str = []
 
-        for i in range(self.m_columns):
+        for i in range(len(self.m_columns)):
             name = self.m_columns[i].name
 
             # check if the column is on the whitelist (if it is not empty) and not on the black list
             if (len(self.m_include) > 0 and name not in self.m_include) or name in self.m_exclude:
                 continue
 
-            str += self.m_columns[i].getValue(line[i], padding=self.m_col_len[i])
+            str.append(self.m_columns[i].getValue(line[i], padding=self.m_col_len[i]))
 
-        return str
+        return " ".join(str)
 
     def writeOut(self):
+        self._writeHeaders()
+
         for i in range(len(self.m_data)):
             print(self.makeLineStr(self.m_data[i]))
+
+    def _writeHeaders(self):
+        hd = []
+        for i in range(len(self.m_columns)):
+            name = self.m_columns[i].name
+
+            # check if the column is on the whitelist (if it is not empty) and not on the black list
+            if (len(self.m_include) > 0 and name not in self.m_include) or name in self.m_exclude:
+                continue
+            hd.append(name.ljust(self.m_col_len[i]))
+
+        print(" ".join(hd))
 
     def _determineMaxLengthForColumns(self):
         maxlen = [0] * len(self.m_columns)
