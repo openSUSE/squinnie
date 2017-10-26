@@ -77,6 +77,9 @@ class Viewer(object):
 
         self.m_daw_factory = daw_factory
 
+        self.m_excluded = []
+        self.m_included = []
+
     def activateSettings(self, args):
         """Activates the settings found in the given argparse.Namespace
         object."""
@@ -88,6 +91,7 @@ class Viewer(object):
         self.setShowFilterParents(args.parent)
         self.parseOwnerFilters(args)
         self.createFsQuery(args)
+        self.setExcludeInclude(args)
 
     def parseOwnerFilters(self, args):
         account_helper = self.m_daw_factory.getAccountWrapper()
@@ -123,6 +127,12 @@ class Viewer(object):
         """Adds the viewer specific command line arguments to the given
         argparse.ArgumentParser object."""
         # this is for reuse in the main security_scanner script.
+
+        description = "A comma-separated list of columns to include in the output."
+        parser.add_argument("--cols", type=str, help=description)
+
+        description = "A comma-separated list of columns to exclude in the output."
+        parser.add_argument("-x", "--exclude", type=str, help=description)
 
         description = "Show parameters from the process's cmdline entry."
         parser.add_argument("--params", action="store_true", help=description)
@@ -731,7 +741,7 @@ class Viewer(object):
             Column('group', [], self.m_have_tty),
             Column('capabilities', [lambda x: "red"], self.m_have_tty),
             Column('path', [], self.m_have_tty)
-        ], data=table)
+        ], data=table, include=self.m_included, exclude=self.m_excluded)
 
         formatter.writeOut()
         return
@@ -788,11 +798,18 @@ class Viewer(object):
                 args.type = "-"
             self.m_fsquery.filterForType(args.type)
 
+    def setExcludeInclude(self, args):
+        if args.cols and len(args.cols) > 0:
+            self.m_included = args.cols.split(",")
+
+        if args.exclude and len(args.exclude) > 0:
+            self.m_excluded = args.exclude.split(",")
+
 
 class TablePrinter(object):
     """This class prints a table to the terminal"""
 
-    def __init__(self, columns, data, include=[], exclude=[] ):
+    def __init__(self, columns, data, include=[], exclude=[]):
         """
         Creates a new object of type table.
         :param columns: All the columns. This should be Column objects.
