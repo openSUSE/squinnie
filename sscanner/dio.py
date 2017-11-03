@@ -125,7 +125,7 @@ class DumpIO(object):
         file = os.path.join(self.getDumpDir(), file_basename + self.FILE_EXTENSION)
 
         if not os.path.exists(file):
-            raise LookupError
+            raise LookupError("File '%s' to load category '%s' does not exist!" % (file, category))
 
         logging.debug("Loading data from {}".format(file))
         return helper.readPickle(file)
