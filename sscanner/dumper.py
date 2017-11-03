@@ -116,6 +116,7 @@ class Dumper(object):
             if config['cached']:
                 dio = DumpIO(config["node"], path=self.m_outdir)
                 dio.clearCache()
+                config['cached'] = False
 
     def _loadCachedDumps(self):
         """Loads any dumps for nodes in self.m_nodes that are marked as cached
