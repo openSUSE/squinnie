@@ -89,7 +89,6 @@ class Dumper(object):
             node_data_dict = {
                     config['node']: config['data']
             }
-            logging.debug("Enriching node data")
             dump_path = config['full_path']
 
             dio = DumpIO(config["node"], path=self.m_outdir)
