@@ -16,10 +16,8 @@ class Modes(object):
 
     @classmethod
     def fillModes(cls):
-        num = 1
         for mode in cls.all_modes:
-            setattr(cls, mode, num)
-            num += 1
+            setattr(cls, mode, mode)
 
     @classmethod
     def checkModeArg(cls, mode):

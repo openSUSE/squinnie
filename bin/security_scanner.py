@@ -87,7 +87,8 @@ class SecurityScanner(object):
         dump_group = parser.add_argument_group('scan / dump arguments')
 
         description = "The mode the scanner should be operating under. 'local' by default"
-        dump_group.add_argument("-m", "--mode", type=Modes.checkModeArg, help=description, default="local")
+        dump_group.add_argument("-m", "--mode", choices=Modes.all_modes, type=str, help=description,
+                                default="local")
 
         description = "The first hop scan host. The only target host for mode == 'ssh', the crowbar host for mode ==" \
                       " 'susecloud'"
