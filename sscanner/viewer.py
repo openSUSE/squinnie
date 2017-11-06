@@ -579,7 +579,7 @@ class Viewer(object):
             result = termcolor.colored(a_string, "red")
         return result
 
-    def recursiveProcTree(self, children, pid, level, recursive):
+    def recursiveProcTree(self, children_provider, pid, level, recursive):
         """
         Constructs a list of tuples (pid, level) that describes the process
         tree and which indentation level should be applied each entry.
@@ -591,10 +591,12 @@ class Viewer(object):
         # if current pid has children and unless the user does not explicitly
         # want them printed
 
-        if recursive and pid in children.keys():
-            for child_pid in sorted(children[pid]):
+        children = children_provider(pid)
+
+        if recursive and children:
+            for child_pid in sorted(children):
                 children_rows += self.recursiveProcTree(
-                    children,
+                    children_provider,
                     child_pid,
                     level + 1,
                     recursive
@@ -648,7 +650,7 @@ class Viewer(object):
         # print("")
 
         all_pids = proc_wrapper.getAllPids()
-        children = proc_wrapper.getChildren()
+        children_provider = proc_wrapper.getChildrenForPid
         parents = proc_wrapper.getParents()
 
         column_headers = ProcColumns.getAll()
@@ -696,7 +698,7 @@ class Viewer(object):
                     )
 
                 proc_tree += self.recursiveProcTree(
-                    children,
+                    children_provider,
                     pid,
                     level,
                     recursive
@@ -709,7 +711,7 @@ class Viewer(object):
 
             for pid in root_pids:
                 proc_tree += self.recursiveProcTree(
-                    children,
+                    children_provider,
                     pid,
                     level,
                     True
