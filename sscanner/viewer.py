@@ -323,20 +323,18 @@ class Viewer(object):
                 continue
 
             # a named unix domain socket
-            # TODO: move this processing to the networking wrapper
             if transport_protocol == "unix":
                 if inode_entry == "":  # unnamed unix domain socket
                     inode_entry = "<anonymous>"
                 else:  # named or abstract unix domain socket
-                    # TODO: this lookup doesn't work for abstract sockets
                     props = self.getFileProperties(inode_entry)
-                    # TODO: this else branch makes no sense
                     if props:
                         st_mode = props['st_mode']
-                        permissions = file_mode.getModeString(st_mode)
+                        # permissions = file_mode.getModeString(st_mode)
+                        permissions = format(st_mode & 0x01FF, 'o')
                     else:
-                        permissions = "!PERMERROR"
-                    inode_entry = "{} (named socket file permissions: {})".format(
+                        permissions = "unkown"
+                    inode_entry = "{} (file permissions: {})".format(
                         inode_entry, permissions
                     )
             else:  # TCP or UDP socket with IP address and port
