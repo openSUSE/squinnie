@@ -190,8 +190,9 @@ class Scanner(object):
                 status_pid["root"] = os.path.realpath("/proc/{}/root".format(p))
                 status_pid["open_files"] = self.getFdData(p)
 
+                status_pid["parent"] = int(fields["PPid"])
+                parents[p] = status_pid["parent"]
                 status[p] = status_pid
-                parents[p] = int(fields["PPid"])
 
             except EnvironmentError as e:
                 # The process does not exist anymore

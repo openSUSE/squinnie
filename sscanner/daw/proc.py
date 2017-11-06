@@ -30,7 +30,7 @@ class ProcessData(object):
         self.m_dumpIO = dumpIO
         self.m_data = {}
         self.m_ll_proc = CategoryLoader("proc_data", self.m_dumpIO)
-        self.m_ll_children = CategoryLoader("children", self.m_dumpIO)
+        # self.m_ll_children = CategoryLoader("children", self.m_dumpIO)
         self.m_ll_parents = CategoryLoader("parents", self.m_dumpIO)
 
     def getProcData(self):
@@ -41,9 +41,9 @@ class ProcessData(object):
         """Return the parents of each process"""
         return self.m_ll_parents.getData()
 
-    def getChildren(self):
-        """Return the children of each process"""
-        return self.m_ll_children.getData()
+    # def getChildren(self):
+    #     """Return the children of each process"""
+    #     return self.m_ll_children.getData()
 
     def getProcessCount(self):
         """Returns the number of recorded processes for the scanned host"""
@@ -56,3 +56,10 @@ class ProcessData(object):
     def getProcessInfo(self, pid):
         """Get the data for a specific process"""
         return self.getProcData()[pid]
+
+    def getChildrenForPid(self, searched_pid):
+        """Returns all children for a given pid."""
+        return [pid for pid, parent in self.getParents().items() if searched_pid == parent]
+
+
+
