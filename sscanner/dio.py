@@ -128,7 +128,8 @@ class DumpIO(object):
             raise LookupError("File '%s' to load category '%s' does not exist!" % (file, category))
 
         logging.debug("Loading data from {}".format(file))
-        return helper.readPickle(file)
+        self.cache[category] = helper.readPickle(file)
+        return self.cache[category]
 
     def getAllCachedCategories(self):
         """Returns a list of all categories saved on disk"""
