@@ -19,11 +19,12 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA 02110-1301 USA.
 from sscanner.daw.helper import CategoryLoader
+from sscanner.daw.sockets import FdWrapper
 
 
 class ProcessData(object):
 
-    def __init__(self, dumpIO):
+    def __init__(self, dumpIO, factory):
         """
         :param dumpIO: An instance of sscanner.dio.DumpIO for loading the data
         """
@@ -32,6 +33,7 @@ class ProcessData(object):
         self.m_ll_proc = CategoryLoader("proc_data", self.m_dumpIO)
         # self.m_ll_children = CategoryLoader("children", self.m_dumpIO)
         self.m_ll_parents = CategoryLoader("parents", self.m_dumpIO)
+        self.m_daw_factory = factory
 
     def getProcData(self):
         """Return general process data."""
@@ -61,5 +63,8 @@ class ProcessData(object):
         """Returns all children for a given pid."""
         return [pid for pid, parent in self.getParents().items() if searched_pid == parent]
 
-
+    def getFileDescriptorsForPid(self, pid):
+        """Returns an instance of FileHandlerWrapper for a given process."""
+        data = self.getProcessInfo(pid)
+        return FdWrapper(pid, data['open_files'], data['Uid'], data['Gid'], self.m_daw_factory)
 

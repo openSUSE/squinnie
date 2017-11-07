@@ -34,7 +34,7 @@ class Factory(object):
         :param dumpIO: An instance of sscanner.dio.DumpIO for loading the data
         """
         self.m_dumpIO = dumpIO
-        self.m_proc_data = ProcessData(self.m_dumpIO)
+        self.m_proc_data = ProcessData(self.m_dumpIO, self)
         self.m_fs_wrapper = Filesystem(self.m_dumpIO)
         self.m_account_wrapper = AccountWrapper(self.m_dumpIO)
         self.m_networking_wrapper = NetworkingWrapper(self.m_dumpIO)
