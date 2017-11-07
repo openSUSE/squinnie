@@ -30,7 +30,14 @@ class FdWrapper(object):
         self.m_fdinfo = fdinfo
         self.m_uid = uid
         self.m_gid = gid
-        self.m_file_descriptors = [FileDescriptor(fd, info, uid, gid, daw_factory) for fd, info in fdinfo.items]
+        self.m_file_descriptors = [FileDescriptor(fd, info, uid, gid, daw_factory) for fd, info in fdinfo.items()]
+
+    def __str__(self):
+        self.toString()
+
+    def toString(self, verbose=False):
+        lines = [fd.toString(verbose) for fd in self.m_file_descriptors]
+        return "\n".join(sorted(lines))
 
 
 class FileDescriptor(object):
