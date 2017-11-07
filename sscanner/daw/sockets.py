@@ -135,6 +135,9 @@ class FileDescriptor(object):
         return fs_wrapper.getFileProperties(filename)
 
     def __str__(self):
+        return self.toString()
+
+    def toString(self, verbose=False):
         symlink = self.m_info["symlink"]
 
         flags = file_mode.getFdFlagLabels(self.m_info["file_flags"])
@@ -157,8 +160,8 @@ class FileDescriptor(object):
             type, inode = symlink.split(':', 1)
             line = self.getPseudoFileDesc(symlink)
 
-            # if self.m_verbose:
-            #     line = "{:>5}: ".format(self.m_socket) + line
+            if verbose:
+                line = "{:>5}: ".format(self.m_socket) + line
             if type == "socket":
                 line = "{} (permissions: {})".format(line, perms_octal)
             if flags:
@@ -189,8 +192,8 @@ class FileDescriptor(object):
             # if color_it:
             #     line = self.getColored(line)
 
-            # if self.m_verbose:
-            #     line = "{:>5}: ".format(self.m_socket.fd) + line
+            if verbose:
+                line = "{:>5}: ".format(self.m_socket.fd) + line
             # TODO: also add ownership information
             line = "{} (permissions: {})".format(line,
                                                  perms_octal)
