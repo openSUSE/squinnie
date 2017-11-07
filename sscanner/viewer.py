@@ -230,10 +230,12 @@ class Viewer(object):
             # Hide the process if it has no open files
             # But always show all processes on -v
             if open_file_count > 0 or self.m_verbose:
-                list_str = self.getListOfOpenFileDescriptors(info)
+                # list_str = self.getListOfOpenFileDescriptors(info)
+                wrapper = proc_wrapper.getFileDescriptorsForPid(pid)
+
                 print("{} (pid: {})".format(info["executable"], pid))
                 print("----")
-                print(list_str)
+                print(wrapper.toString())
                 print("")
 
     def getFileProperties(self, filename):
