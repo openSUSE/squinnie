@@ -70,7 +70,7 @@ class Dumper(object):
 
         for node in self.getNodeData():
             if node['cached']:
-                logging.info("Not regenerating cached dump for", node['node'])
+                logging.info("Not regenerating cached dump for %s" % node['node'])
 
     def getNodeData(self):
         """Returns the currently collected node data. Only valid after a call
@@ -127,7 +127,7 @@ class Dumper(object):
                 continue
             dump_path = config['full_path']
 
-            logging.info("Loading cached dump from", dump_path)
+            logging.info("Loading cached dump from %s" % str(dump_path))
 
             dmp = DumpIO(config['node'], path=self.m_outdir)
 
