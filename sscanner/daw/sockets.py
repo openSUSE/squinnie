@@ -31,7 +31,7 @@ class FdWrapper(object):
         self.m_fdinfo = fdinfo
         self.m_uid = uid
         self.m_gid = gid
-        self.m_file_descriptors = [FileDescriptor(fd, info, uid, gid, daw_factory) for fd, info in fdinfo.items()]
+        self.m_file_descriptors = [FileDescriptor(fd, pid, info, uid, gid, daw_factory) for fd, info in fdinfo.items()]
 
     def __str__(self):
         self.toString()
@@ -44,13 +44,15 @@ class FdWrapper(object):
 class FileDescriptor(object):
     """Represents a file descriptor as open by a process."""
 
-    def __init__(self, socket, fdinfo, uid, gid, daw_factory):
+    def __init__(self, socket, pid, fdinfo, uid, gid, daw_factory):
         self.m_socket = socket
         self.m_info = fdinfo
+        self.m_pid = pid
         self.m_uid = uid
         self.m_gid = gid
         self.m_daw_factory = daw_factory
         self.m_account_wrapper = daw_factory.getAccountWrapper()
+        self.m_proc_wrapper = daw_factory.getProcWrapper()
 
     def getPseudoFileDesc(self, pseudo_label):
         """
@@ -66,14 +68,22 @@ class FileDescriptor(object):
         value = value.strip("[]")
 
         if _type == "pipe":
-            # TODO: include to which process this pipe is connected to
-            result = "{} : {:>10}".format(_type, value)
+            logging.debug(pseudo_label)
+            endpoints = self.m_proc_wrapper.getEndpointsForPipe(value)
+            result = "{}: {:>6} {}".format(_type, value, '[unconnected]' if len(endpoints) < 2 else '')
+
+            for endpoint in endpoints:
+                if endpoint['pid'] != self.m_pid:
+                    # this adds a line for each other connected process, but cuts of long process names
+                    result += "\n{}--> {} [{}]".format(' ' * (len(_type) + 2), endpoint['pid'],
+                         (endpoint['name'][:52] + '...') if endpoint['name'][55:] else endpoint['name'].strip())
+
         elif _type == "socket":
-            result = "{} : {:>10}".format(
+            result = "{}: {:>10}".format(
                 _type, self.inodeToIdentifier(_type, int(value))
             )
         elif _type == "anon_inode":
-            result = "{} : {}".format(_type, value)
+            result = "{}: {}".format(_type, value)
         else:
             raise Exception("Unexpected pseudo file type " + _type)
         return result
