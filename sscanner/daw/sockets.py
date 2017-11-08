@@ -148,7 +148,6 @@ class FileDescriptor(object):
         symlink = self.m_info["symlink"]
 
         flags = file_mode.getFdFlagLabels(self.m_info["file_flags"])
-        # TODO: This should be in the DAW
         file_perm = {
             "Uid": (self.m_info["file_perm"] & stat.S_IRWXU) >> 6,
             "Gid": (self.m_info["file_perm"] & stat.S_IRWXG) >> 3,
