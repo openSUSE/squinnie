@@ -13,3 +13,7 @@ Class methods MUST be named in lowerCamelCase. Example: `def processUsageData(se
 ## File names
 
 Files names should not contain spaces. Ideally the should only contain alphanumeric characters and `-_.`.
+
+## String formating
+
+The `%` operator should not be used. Instead, the python3 `.format()` function should be used.
