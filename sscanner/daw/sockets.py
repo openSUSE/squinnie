@@ -20,6 +20,7 @@
 # MA 02110-1301 USA.
 import sscanner.file_mode as file_mode
 import stat
+import logging
 
 
 class FdWrapper(object):
@@ -49,6 +50,7 @@ class FileDescriptor(object):
         self.m_uid = uid
         self.m_gid = gid
         self.m_daw_factory = daw_factory
+        self.m_account_wrapper = daw_factory.getAccountWrapper()
 
     def getPseudoFileDesc(self, pseudo_label):
         """
@@ -200,9 +202,10 @@ class FileDescriptor(object):
 
             if verbose:
                 line = "{:>5}: ".format(self.m_socket.fd) + line
-            # TODO: also add ownership information
-            line = "{} (permissions: {})".format(line,
-                                                 perms_octal)
+            line = "{} (permissions: {}, owned by {}:{})".format(line, perms_octal,
+                                                                 self.m_account_wrapper.getNameForUid(self.m_uid[0]),
+                                                                 self.m_account_wrapper.getNameForGid(self.m_gid[0]))
+
             if flags:
                 line = "{} (flags: {})".format(line, "|".join(flags))
 
