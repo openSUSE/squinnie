@@ -132,21 +132,22 @@ class FileDescriptor(object):
                     inode_entry = "{} (file permissions: {})".format(
                         inode_entry, permissions
                     )
+
+                result.append("{}:{}".format(transport_protocol, inode_entry))
             else:  # TCP or UDP socket with IP address and port
                 # TODO: state flags are missing in the data to determine
                 # listening sockets for tcp
-                # TODO: also include IP addresses for IPv4/v6 respectively
-                # using python socket formatting functions
-                inode_entry = int(inode_entry[0][1], 16)  # port of the local ip
+                sc = NetworkSocket.fromTuple(inode_entry, transport_protocol)
 
-            result.append("{}:{}".format(transport_protocol, inode_entry))
+                result.append(str(sc))
+                logging.debug(str(sc))
 
         result = "|".join(result)
 
         if result:
             return result
         else:
-            return "<port not found, inode: {:>15}>".format(inode)
+            return "<port not found, inode: {:>8}>".format(inode)
 
     def getFileProperties(self, filename):
         """Returns the properties of a given file path in the file system. Or
