@@ -228,9 +228,15 @@ class Viewer(object):
         for pid, info in OrderedDict(proc_wrapper.getProcData()).items():
             open_file_count = len(info["open_files"])
 
+            # skip filtered PIDs
+            if self.m_uid_filter and self.m_uid_filter not in info['Uid']:
+                continue
+            if self.m_gid_filter and self.m_gid_filter not in info['Gid']:
+                continue
+
             # Hide the process if it has no open files
             # But always show all processes on -v
-            if open_file_count > 0: # or self.m_verbose:
+            if open_file_count > 0:
                 # list_str = self.getListOfOpenFileDescriptors(info)
                 wrapper = proc_wrapper.getFileDescriptorsForPid(pid)
 
