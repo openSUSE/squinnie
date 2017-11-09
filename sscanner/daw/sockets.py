@@ -21,6 +21,8 @@
 import sscanner.file_mode as file_mode
 import stat
 import logging
+import socket
+import struct
 
 
 class FdWrapper(object):
@@ -220,3 +222,53 @@ class FileDescriptor(object):
                 line = "{} (flags: {})".format(line, "|".join(flags))
 
             return line
+
+
+class NetworkSocket(object):
+    """This class represents a network socket."""
+
+    def __init__(self, protocol, ip_version, local_endpoint, local_port, remote_endpoint, remote_port):
+        self.m_protocol = protocol
+        self.m_ip_version = ip_version
+        self.m_local_endpoint = NetworkEndpoint(ip_version, local_endpoint, local_port)
+        self.m_remote_endpoint = NetworkEndpoint(ip_version, remote_endpoint, remote_port)
+
+    @staticmethod
+    def fromTuple(socketdata, protocol):
+        ipv = 4
+        if len(protocol) > 3:  # tcp6 or udp6
+            ipv = 6
+            protocol = protocol[:3]
+
+        data = NetworkSocket(protocol, ipv, socketdata[0][0], int(socketdata[0][1], 16),
+                             socketdata[1][0], int(socketdata[1][1], 16))
+        return data
+
+    def __str__(self):
+        outp = '{}{}: {}'.format(self.m_protocol, self.m_ip_version, str(self.m_local_endpoint))
+
+        if self.m_remote_endpoint.isConnected():
+            outp += ' <--> {}'.format(str(self.m_remote_endpoint))
+        else:
+            outp += ' listening/waiting'
+        return outp
+
+
+class NetworkEndpoint(object):
+    """Represents a network endpoint with IP and port."""
+
+    def __init__(self, ip_version, ip, port):
+        self.m_ip_version = ip_version
+        self.m_ip = ip
+        self.m_port = port
+
+    def isConnected(self):
+        # the ip can be zero when listening on all IPs
+        return self.m_port != 0
+
+    def __str__(self):
+        if self.m_ip_version == 4:
+            return '{}:{}'.format(socket.inet_ntoa(struct.pack('!L', int(self.m_ip, 16))), str(self.m_port))
+        else:
+            bin_ip = str(bytearray.fromhex(self.m_ip))
+            return '[{}]:{}'.format(socket.inet_ntop(socket.AF_INET6, bin_ip), str(self.m_port))
