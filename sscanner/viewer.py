@@ -223,13 +223,14 @@ class Viewer(object):
         data set."""
 
         proc_wrapper = self.m_daw_factory.getProcWrapper()
+        descriptorless_pids = []
 
         for pid, info in OrderedDict(proc_wrapper.getProcData()).items():
             open_file_count = len(info["open_files"])
 
             # Hide the process if it has no open files
             # But always show all processes on -v
-            if open_file_count > 0 or self.m_verbose:
+            if open_file_count > 0: # or self.m_verbose:
                 # list_str = self.getListOfOpenFileDescriptors(info)
                 wrapper = proc_wrapper.getFileDescriptorsForPid(pid)
 
@@ -237,6 +238,15 @@ class Viewer(object):
                 print("----")
                 print(wrapper.toString())
                 print("")
+            else:
+                descriptorless_pids.append(pid)
+
+        if self.m_verbose:  # only tell there are no processes w/o file descriptors if we're verbose
+            if len(descriptorless_pids) > 0:
+                print("PIDs without open file descriptors [{}]: {}"
+                      .format(len(descriptorless_pids), ", ".join([str(i) for i in sorted(descriptorless_pids)])))
+            else:
+                print('There were no PIDs without open file descriptors.')
 
     @staticmethod
     def buildWidthColumnDict(table):
