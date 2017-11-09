@@ -119,10 +119,6 @@ class PipeCache:
                         'name': '{} {}'.format(process_data['executable'], process_data['parameters'])
                     })
 
-        import pprint
-        pp = pprint.PrettyPrinter(indent=2, depth=4)
-        pp.pprint(self.m_pipes)
-
     @staticmethod
     def isPipe(fdinfo):
         """Checks whether the file descriptor is a pipe from the proc data set."""
