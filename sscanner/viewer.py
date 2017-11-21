@@ -223,25 +223,36 @@ class Viewer(object):
         data set."""
 
         proc_wrapper = self.m_daw_factory.getProcWrapper()
+        descriptorless_pids = []
 
         for pid, info in OrderedDict(proc_wrapper.getProcData()).items():
             open_file_count = len(info["open_files"])
 
+            # skip filtered PIDs
+            if self.m_uid_filter and self.m_uid_filter not in info['Uid']:
+                continue
+            if self.m_gid_filter and self.m_gid_filter not in info['Gid']:
+                continue
+
             # Hide the process if it has no open files
             # But always show all processes on -v
-            if open_file_count > 0 or self.m_verbose:
-                list_str = self.getListOfOpenFileDescriptors(info)
+            if open_file_count > 0:
+                # list_str = self.getListOfOpenFileDescriptors(info)
+                wrapper = proc_wrapper.getFileDescriptorsForPid(pid)
+
                 print("{} (pid: {})".format(info["executable"], pid))
                 print("----")
-                print(list_str)
+                print(wrapper.toString())
                 print("")
+            else:
+                descriptorless_pids.append(pid)
 
-    def getFileProperties(self, filename):
-        """Returns the properties of a given file path in the file system. Or
-        an empty dictionary on failure."""
-        fs_wrapper = self.m_daw_factory.getFsWrapper()
-
-        return fs_wrapper.getFileProperties(filename)
+        if self.m_verbose:  # only tell there are no processes w/o file descriptors if we're verbose
+            if len(descriptorless_pids) > 0:
+                print("PIDs without open file descriptors [{}]: {}"
+                      .format(len(descriptorless_pids), ", ".join([str(i) for i in sorted(descriptorless_pids)])))
+            else:
+                print('There were no PIDs without open file descriptors.')
 
     @staticmethod
     def buildWidthColumnDict(table):
@@ -294,170 +305,6 @@ class Viewer(object):
             )
 
         return ret
-
-    def inodeToIdentifier(self, _type, inode):
-        """
-        Returns a human readable string describing the given node number.
-
-        This is helpful for pseudo files found in /proc/<pid>/fd, that for
-        some types of files contain the inode number which can be looked up in
-        other data structures.
-
-        :param str _type: The type of the inode like "socket"
-        :param int inode: The inode number to lookup.
-        """
-
-        if _type != "socket":
-            raise Exception("Can only translate socket inodes for now")
-
-        networking_wrapper = self.m_daw_factory.getNetworkingWrapper()
-
-        result = []
-        for transport_protocol in networking_wrapper.getProtocols():
-            transport_dict = networking_wrapper.getProtocolData(transport_protocol)
-            if not transport_dict:
-                continue
-            inode_entry = transport_dict.get(str(inode), -1)
-
-            if inode_entry == -1:
-                continue
-
-            # a named unix domain socket
-            if transport_protocol == "unix":
-                if inode_entry == "":  # unnamed unix domain socket
-                    inode_entry = "<anonymous>"
-                else:  # named or abstract unix domain socket
-                    props = self.getFileProperties(inode_entry)
-                    if props:
-                        st_mode = props['st_mode']
-                        # permissions = file_mode.getModeString(st_mode)
-                        permissions = format(st_mode & 0x01FF, 'o')
-                    else:
-                        permissions = "unkown"
-                    inode_entry = "{} (file permissions: {})".format(
-                        inode_entry, permissions
-                    )
-            else:  # TCP or UDP socket with IP address and port
-                # TODO: state flags are missing in the data to determine
-                # listening sockets for tcp
-                # TODO: also include IP addresses for IPv4/v6 respectively
-                # using python socket formatting functions
-                inode_entry = int(inode_entry[0][1], 16)  # port of the local ip
-
-            result.append("{}:{}".format(transport_protocol, inode_entry))
-
-        result = "|".join(result)
-
-        if result:
-            return result
-        else:
-            return "<port not found, inode: {:>15}>".format(inode)
-
-    def getPseudoFileDesc(self, pseudo_label):
-        """
-        Returns a descriptive, formatted string for the given ``pseudo_label``
-        which is the symlink content for pseudo files in /proc/<pid>/fd.
-        """
-
-        # Convert fds to more easy-to-read strings
-
-        # this is a string like "<type>:<value>", where <value> is either an
-        # inode of the form "[num]" or a subtype field like "inotify".
-        _type, value = pseudo_label.split(':', 1)
-        value = value.strip("[]")
-
-        if _type == "pipe":
-            # TODO: include to which process this pipe is connected to
-            result = "{} : {:>10}".format(_type, value)
-        elif _type == "socket":
-            result = "{} : {:>10}".format(
-                _type, self.inodeToIdentifier(_type, int(value))
-            )
-        elif _type == "anon_inode":
-            result = "{} : {}".format(_type, value)
-        else:
-            raise Exception("Unexpected pseudo file type " + _type)
-        return result
-
-    def getListOfOpenFileDescriptors(self, pid_data):
-        """
-        Get all open file descriptors as a list of strings.
-
-        :param dict pid_data: the info dictionary of the PID for which to get the
-        info.
-        """
-
-        real_files = []
-        pseudo_files = []
-
-        for fd, info in pid_data["open_files"].items():
-
-            symlink = info["symlink"]
-
-            flags = file_mode.getFdFlagLabels(info["file_flags"])
-            # TODO: This should be in the DAW
-            file_perm = {
-                "Uid": (info["file_perm"] & stat.S_IRWXU) >> 6,
-                "Gid": (info["file_perm"] & stat.S_IRWXG) >> 3,
-                "other": (info["file_perm"] & stat.S_IRWXO) >> 0,
-            }
-            perms_octal = ''.join(
-                [str(file_perm[key]) for key in ('Uid', 'Gid', 'other')]
-            )
-
-            # since all paths a absolute, real paths start with /
-            is_pseudo_file = not symlink.startswith('/')
-
-            # pseudo files: sockets, pipes, ...
-            if is_pseudo_file:
-
-                type, inode = symlink.split(':', 1)
-                line = self.getPseudoFileDesc(symlink)
-
-                if self.m_verbose:
-                    line = "{:>5}: ".format(fd) + line
-                if type == "socket":
-                    line = "{} (permissions: {})".format(line, perms_octal)
-                if flags:
-                    line = "{} (flags: {})".format(line, "|".join(flags))
-
-                pseudo_files.append(line)
-            else:
-                # real files on disk
-
-                file_identity = info["file_identity"]
-
-                color_it = False
-                for uid_type in pid_data["Uid"]:
-
-                    user_identity = {
-                        "Uid": uid_type,
-                        "Gid_set": pid_data["Gid"],
-                    }
-
-                    if not file_mode.canAccessFile(
-                            user_identity,
-                            file_identity,
-                            file_perm
-                    ):
-                        color_it = True
-
-                line = symlink
-                if color_it:
-                    line = self.getColored(line)
-
-                if self.m_verbose:
-                    line = "{:>5}: ".format(fd) + line
-                # TODO: also add ownership information
-                line = "{} (permissions: {})".format(line,
-                                                     perms_octal)
-                if flags:
-                    line = "{} (flags: {})".format(line, "|".join(flags))
-                real_files.append(line)
-
-        all_strs = sorted(real_files) + sorted(pseudo_files)
-
-        return "\n".join(all_strs)
 
     def getColumnValue(self, column, pid):
         """
