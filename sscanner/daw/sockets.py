@@ -135,8 +135,6 @@ class FileDescriptor(object):
 
                 result.append("{}:{}".format(transport_protocol, inode_entry))
             else:  # TCP or UDP socket with IP address and port
-                # TODO: state flags are missing in the data to determine
-                # listening sockets for tcp
                 sc = NetworkSocket.fromTuple(inode_entry, transport_protocol)
 
                 result.append(str(sc))
@@ -267,9 +265,14 @@ class NetworkEndpoint(object):
         # the ip can be zero when listening on all IPs
         return self.m_port != 0
 
+    @staticmethod
+    def IPv6ToString(ipv6):
+        packed = struct.unpack('>IIII', ipv6.decode('hex'))
+        addr = struct.pack('@IIII', *packed)
+        return socket.inet_ntop(socket.AF_INET6, addr)
+
     def __str__(self):
         if self.m_ip_version == 4:
-            return '{}:{}'.format(socket.inet_ntoa(struct.pack('!L', int(self.m_ip, 16))), str(self.m_port))
+            return '{}:{}'.format(socket.inet_ntoa(struct.pack('<L', int(self.m_ip, 16))), str(self.m_port))
         else:
-            bin_ip = str(bytearray.fromhex(self.m_ip))
-            return '[{}]:{}'.format(socket.inet_ntop(socket.AF_INET6, bin_ip), str(self.m_port))
+            return '[{}]:{}'.format(self.IPv6ToString(self.m_ip), str(self.m_port))
