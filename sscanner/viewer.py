@@ -593,14 +593,6 @@ class Viewer(object):
         ], data=table, include=self.m_included, exclude=self.m_excluded)
 
         formatter.writeOut()
-        return
-
-        width_column_dict = self.buildWidthColumnDict(table)
-        if self.m_have_tty:
-            term_width = self._getTermSize()[0]
-        else:
-            term_width = 0
-        self.printTableWidthColumnDict(table, width_column_dict, term_width)
 
     def _getTermSize(self):
         """Returns the size of the terminal as a pair of (cols, rows)."""
