@@ -191,6 +191,8 @@ class Scanner(object):
                 status_pid["open_files"] = self.getFdData(p)
 
                 status_pid["parent"] = int(fields["PPid"])
+                if 'Umask' in fields:
+                    status_pid['Umask'] = int(fields['Umask'], 8)
                 parents[p] = status_pid["parent"]
                 status[p] = status_pid
 
