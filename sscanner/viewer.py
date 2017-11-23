@@ -578,14 +578,16 @@ class Viewer(object):
         table = self.getFilesystemTable()
 
         if len(table) == 0:
-            print("Nothing was found matching the given filters.")
+            print("Nothing was found matching the given filters.".startswith())
             return
+
+        nm_lambda = lambda t: 'magenta' if t == '(unknown)' else None
 
         formatter = TablePrinter(columns=[
             Column('permissions', [], self.m_have_tty),
-            Column('type', [], self.m_have_tty),
-            Column('user', [], self.m_have_tty),
-            Column('group', [], self.m_have_tty),
+            Column('type', [lambda t: 'red' if t.startswith('ukn') else None], self.m_have_tty),
+            Column('user', [nm_lambda], self.m_have_tty),
+            Column('group', [nm_lambda], self.m_have_tty),
             Column('capabilities', [lambda x: "red"], self.m_have_tty),
             Column('path', [], self.m_have_tty)
         ], data=table, include=self.m_included, exclude=self.m_excluded)
