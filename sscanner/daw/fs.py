@@ -181,6 +181,9 @@ class FsQuery(object):
     def filterForSpecialBits(self):
         """Adds a filter for SUID, SGID or SVTX bits."""
         self.addOrClause('(mode & %s) != 0' % hex(stat.S_ISUID | stat.S_ISGID | stat.S_ISVTX))
+        self.addOrClause('uid = -1')
+        self.addOrClause('gid = -1')
+        self.addOrClause('type = "?"')
 
     def addAndClause(self, clause):
         """

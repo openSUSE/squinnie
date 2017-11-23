@@ -158,7 +158,7 @@ class Viewer(object):
         description = "View all files on the file system, including their permissions."
         parser.add_argument("--filesystem", action="store_true", help=description)
 
-        description = "Only show files with special bits set (sticky, suid or sgid)."
+        description = "Only show files with special bits set (sticky, suid or sgid) or missing."
         parser.add_argument("--special-bits", "-s", action="store_true", help=description)
 
         description = "Only show files with capabilities."
