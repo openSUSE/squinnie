@@ -181,8 +181,8 @@ class SecurityScanner(object):
             print("\n\nReport for {} ...".format(config['node']))
             viewer.performAction(self.m_args)
 
-    def run(self):
-        self.m_args = self.m_parser.parse_args()
+    def run(self, args=None):
+        self.m_args = self.m_parser.parse_args(args=args)
         self._setupLogging()
         self._checkDirectoryArg()
         self._checkModeArgs()
