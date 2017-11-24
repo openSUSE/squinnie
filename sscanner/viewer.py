@@ -403,7 +403,7 @@ class Viewer(object):
             elif not self.m_show_fds:
                 result = len(pid_data["open_files"])
             else:
-                result = self.getListOfOpenFileDescriptors(pid_data)
+                result = proc_wrapper.getFileDescriptorsForPid(pid)
 
         elif column in pid_data:
             # take data as is
