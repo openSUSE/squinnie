@@ -84,7 +84,7 @@ class SscannerTest(object):
             self.testcases.append(TestCase(os.path.join(tdir, str(counter)), False, variation))
             counter += 1
             if remote:
-                self.testcases.append(TestCase(os.path.join(tdir, counter), remote, variation))
+                self.testcases.append(TestCase(os.path.join(tdir, str(counter)), remote, variation))
                 counter += 1
 
     def runTests(self):
@@ -143,7 +143,7 @@ class TestCase(object):
         if not self.remote:
             return ['--mode', 'local']
         else:
-            return ['---mode', 'ssh', '--entry', self.remote]
+            return ['--mode', 'ssh', '--entry', self.remote]
 
     def run(self):
         if not os.path.exists(self.dir):
