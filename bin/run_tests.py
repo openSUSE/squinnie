@@ -1,0 +1,203 @@
+#!/usr/bin/env python2
+# vim: ts=4 et sw=4 sts=4 :
+
+# security scanner - scan a system's security related information
+# Copyright (C) 2017 SUSE LINUX GmbH
+#
+# Author: Benjamin Deuter, Sebastian Kaim
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# version 2 as published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+# MA 02110-1301 USA.
+
+# Standard library modules
+from __future__ import print_function
+from __future__ import with_statement
+import threading
+import argparse
+import os
+import subprocess
+import tempfile
+
+
+SSCANNER_PATH = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'security_scanner.py')
+
+
+class SscannerTest(object):
+
+    PARAM_VARIATIONS = [
+        [],  # default - show processes
+        ['--params'],  # show processes w/ parameters
+        ['--fd'],  # show processes w/ file descriptors
+        ['--onlyfd'],  # only show file descriptors
+        ['--filesystem', '-s']  # show interesting files on filesystem
+    ]
+
+    def __init__(self):
+        self._setupArgparse()
+        self.testcases = []
+        self.params = None
+
+    def _setupArgparse(self):
+        description = "Testing tool for the security scanner. Runs the scanner in several configurations and returns " \
+                      "the exit code as well as the output."
+        parser = argparse.ArgumentParser(description=description)
+
+        description = "The directory to store the testdata in. Defaults to a random directory in /tmp."
+        parser.add_argument("-d", "--directory", type=str, help=description,
+                            default=tempfile.mkdtemp(prefix='sscanner-test'))
+
+        description = "The remote to use (root@some-vm). If empty, remote test will be skipped."
+        parser.add_argument("-r", "--remote", type=str, help=description, default='')
+
+        # TODO
+        # description = "The amount of threads to use. Defaults to 8. Use 1 to disable threading."
+        # parser.add_argument("-j", "-t", "--threads", type=int, help=description, default=8)
+
+        self.parser = parser
+
+    def run(self, args=None):
+        self.params = self.parser.parse_args(args=args)
+        self.prepareTests()
+        self.runTests()
+        self.printResults()
+
+    def prepareTests(self):
+        remote = self.params.remote
+        tdir = self.params.directory
+        counter = 10
+
+        if not os.path.exists(tdir):
+            os.mkdir(tdir)
+
+        for variation in SscannerTest.PARAM_VARIATIONS:
+            self.testcases.append(TestCase(os.path.join(tdir, str(counter)), False, variation))
+            counter += 1
+            if remote:
+                self.testcases.append(TestCase(os.path.join(tdir, counter), remote, variation))
+                counter += 1
+
+    def runTests(self):
+        amount = len(self.testcases)
+
+        print("Running {} tests in {}.".format(amount, self.params.directory))
+
+        def runner(case):
+            case.run()
+            print("One test finished.")
+
+        threads = []
+        for tc in self.testcases:
+            t = threading.Thread(target=runner, args=[tc])
+            threads.append(t)
+            t.start()
+
+        for t in threads:
+            t.join()
+
+    def printResults(self):
+        tests = [item for testcase in self.testcases for item in testcase.getRuns()]
+        amount = len(tests)
+        failed_tests = [test for test in tests if test.hasFailed()]
+        amount_failed = len(failed_tests)
+
+        print("""
+ Results
+=========
+Ran: {}
+Successful: {}
+Failed: {}
+""".format(amount, amount-amount_failed, amount_failed))
+
+        if amount_failed > 0:
+            print("\nReports of failed tests:\n")
+            print("\n--\n".join([str(test) for test in failed_tests]))
+
+
+class TestCase(object):
+    """This class represents a Testcase with a cached, an uncached and a --nocache run."""
+
+    def __init__(self, directory, remote, arguments):
+        self.dir = directory
+        self.remote = remote
+        self.arguments = arguments
+        self.tests = [
+            TestRun(os.path.join(self.dir, 'cached'), self._getModeArguments() + self.arguments, False, 'uncached'),
+            TestRun(os.path.join(self.dir, 'cached'), self._getModeArguments() + self.arguments, True, 'cached'),
+            TestRun(os.path.join(self.dir, 'nocache'), self._getModeArguments() + self.arguments + ['--nocache'], False,
+                    'nocache')
+        ]
+
+    def _getModeArguments(self):
+        """Gets the mode arguments for this test."""
+        if not self.remote:
+            return ['--mode', 'local']
+        else:
+            return ['---mode', 'ssh', '--entry', self.remote]
+
+    def run(self):
+        if not os.path.exists(self.dir):
+            os.mkdir(self.dir)  # not totally safe but safe enough
+
+        for test in self.tests:
+            test.run()
+
+    def getRuns(self):
+        return self.tests
+
+
+class TestRun(object):
+    """This class represents a run of the scanner."""
+    def __init__(self, dir, arguments, cached, name):
+        self.ran = False
+        self.exitcode = 0
+        self.dir = dir
+        self.cached = cached
+        self.name = name
+        self.stdout = os.path.join(dir, "stdout-{}.txt".format(name))
+        self.stderr = os.path.join(dir, "stderr-{}.txt".format(name))
+        self.cachedir = os.path.join(dir, "sscanner-cache")
+        self.m_arguments = ['-d', self.cachedir] + arguments
+
+    def run(self):
+        if not os.path.exists(self.dir):
+            os.mkdir(self.dir)
+
+        with open(self.stdout, "w") as stdout:
+            with open(self.stderr, "w") as stderr:
+                self.exitcode = subprocess.call(
+                    executable=SSCANNER_PATH,
+                    args=[SSCANNER_PATH] + self.m_arguments,
+                    stderr=stderr,
+                    stdout=stdout
+                )
+                self.ran = True
+
+    def __str__(self):
+        status = (str(self.hasFailed()) + '({})'.format(self.exitcode)) if self.ran else "(not yet run)"
+
+        return """ Testrun {} [Failed: {}] [Cached: {}]
+------------------------------
+dir: {}
+command line: {}
+stdout: {}
+stderr: {} 
+""".format(self.name, status, self.cached, self.dir, str(self.m_arguments), self.stdout, self.stderr)
+
+    def hasFailed(self):
+        return self.exitcode != 0
+
+
+if __name__ == "__main__":
+    tester = SscannerTest()
+    tester.run()
