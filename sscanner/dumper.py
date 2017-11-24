@@ -277,16 +277,11 @@ class LocalDumper(Dumper):
 
         have_root_privs = os.geteuid() == 0
 
-        if have_root_privs:
-            node_data = sscanner.probe.collect()
-            self.m_nodes[0]['data'] = node_data
-        else:
-            # might be a future command line option to allow this, it is helpful
-            # for testing. For now we use sudo.
-            #print("You're scanning as non-root, only partial data will be collected")
-            #print("Run as root to get a full result. This mode is not fully supported.")
-            node_data = self._sudoCollect()
-            self.m_nodes[0]['data'] = node_data
+        # might be a future command line option to allow running as non-root. could be helpful for testing
+        # print("You're scanning as non-root, only partial data will be collected")
+        # print("Run as root to get a full result. This mode is not fully supported.")
+        node_data = self._subprocessCollect(use_sudo=not have_root_privs)
+        self.m_nodes[0]['data'] = node_data
 
     def _getLocalNode(self):
         """Returns a node list containing just the localhost for local
@@ -295,7 +290,7 @@ class LocalDumper(Dumper):
         node = socket.gethostname()
         return [(node, None)]
 
-    def _sudoCollect(self):
+    def _subprocessCollect(self, use_sudo=True):
         import subprocess
 
         # gzip has a bug in python2, it can't stream, because it tries
@@ -306,9 +301,11 @@ class LocalDumper(Dumper):
             import tempfile
             tmpfile = tempfile.TemporaryFile(mode='wb+')
 
+        prefix = ['sudo'] if use_sudo else []
+
         slave_proc = subprocess.Popen(
+            prefix +
             [
-                "sudo",
                 # use the same python interpreter as we're currently
                 # running
                 sys.executable,
