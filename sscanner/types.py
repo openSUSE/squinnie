@@ -39,9 +39,8 @@ class ProcColumns(object):
 
     # order of these matter, it defines the order of the columns in outputs
     all_columns = [
-        "pid", "executable", "parameters", "user", "groups", "open_fds",
-        "features", "cap_inherit", "cap_perm", "cap_eff", "cap_bnd",
-        "cap_ambient"
+        "pid", "executable", "parameters", "user", "groups", "open_fds", "umask", "features", "cap_inherit", "cap_perm",
+        "cap_eff", "cap_bnd", "cap_ambient"
     ]
 
     @classmethod

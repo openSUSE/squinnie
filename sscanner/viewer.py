@@ -405,6 +405,9 @@ class Viewer(object):
             else:
                 result = proc_wrapper.getFileDescriptorsForPid(pid)
 
+        elif column == ProcColumns.umask:
+            result = "{0:o}".format(pid_data['Umask']).rjust(4, '0') if 'Umask' in pid_data else ''
+
         elif column in pid_data:
             # take data as is
             result = pid_data[column_label]
@@ -516,6 +519,10 @@ class Viewer(object):
         # These values are generally uninteresting
         to_remove.add(ProcColumns.cap_ambient)
         to_remove.add(ProcColumns.cap_bnd)
+
+        # remove the umask column if no data is available
+        if len(table[ProcColumns.umask]) < 1 or table[ProcColumns.umask].values()[0] == '':
+            to_remove.add(ProcColumns.umask)
 
         if not self.m_show_params:
             to_remove.add(ProcColumns.parameters)
