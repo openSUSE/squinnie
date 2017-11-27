@@ -403,7 +403,8 @@ class Viewer(object):
             elif not self.m_show_fds:
                 result = len(pid_data["open_files"])
             else:
-                result = proc_wrapper.getFileDescriptorsForPid(pid)
+                # in case we print the full fds we add a newline after each process to make it a bit more readable
+                result = str(proc_wrapper.getFileDescriptorsForPid(pid)) + "\n"
 
         elif column == ProcColumns.umask:
             result = "{0:o}".format(pid_data['Umask']).rjust(4, '0') if 'Umask' in pid_data else ''
