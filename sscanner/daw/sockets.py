@@ -182,9 +182,9 @@ class FileDescriptor(object):
             if verbose:
                 line = "{:>5}: ".format(self.m_socket) + line
             if type == "socket":
-                line = "{} (permissions: {})".format(line, perms_octal)
+                line = "{} {}".format(line, file_mode.getModeString(self.m_info["file_perm"]))
             if flags:
-                line = "{} (flags: {})".format(line, "|".join(flags))
+                line = "{} w/ {}".format(line, "|".join(flags))
 
             return line
         else:
