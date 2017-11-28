@@ -26,7 +26,7 @@ class NetworkingWrapper(object):
     This class abstracts all info about network connections including unix sockets.
     """
 
-    PROTOCOLS = ["tcp", "tcp6", "udp", "udp6", "unix"]
+    PROTOCOLS = ["tcp", "tcp6", "udp", "udp6", "unix", "netlink"]
 
     def __init__(self, dumpIO):
         """

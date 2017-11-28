@@ -156,6 +156,8 @@ class FileDescriptor(object):
                     )
 
                 result.append("{}:{}".format(transport_protocol, inode_entry))
+            elif transport_protocol == "netlink":
+                result.append("netlink socket {} on if {}".format(inode, inode_entry))
             else:  # TCP or UDP socket with IP address and port
                 sc = NetworkSocket.fromTuple(inode_entry, transport_protocol)
 

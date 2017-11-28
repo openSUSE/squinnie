@@ -122,15 +122,18 @@ class Scanner(object):
         self.m_protocols[protocol] = info
 
         for line in table:
+            parts = line.split()
+
+            if protocol == "netlink":
+                inode = parts[-1]
+                info[inode] = parts[1]  # the Eth
             # IP based protocols
-            if protocol != "unix":
-                parts = line.split()
+            elif protocol != "unix":
                 l_host, l_port = parts[1].split(':')
                 r_host, r_port = parts[2].split(':')
                 inode = parts[9]
                 info[inode] = [[l_host, l_port], [r_host, r_port]]
             else:
-                parts = line.split()
                 if len(parts) == 7:
                     # this is for unnamed unix domain sockets that have no
                     # path
@@ -392,7 +395,7 @@ class Scanner(object):
         }
 
         result["networking"] = {}
-        for prot in ("tcp", "tcp6", "udp", "udp6", "unix"):
+        for prot in ("tcp", "tcp6", "udp", "udp6", "unix", "netlink"):
             self.collectProtocolInfo(prot)
             result["networking"][prot] = self.m_protocols[prot]
 
