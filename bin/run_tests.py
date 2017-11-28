@@ -45,8 +45,14 @@ class SscannerTest(object):
 
     def __init__(self):
         self._setupArgparse()
-        self.testcases = []
-        self.params = None
+        self.m_testcases = []
+        self.m_params = None
+        self.m_has_failed_tests = False
+        self.m_running = 0
+        self.m_testcount = 0
+
+    def hasFailed(self):
+        return self.m_has_failed_tests
 
     def _setupArgparse(self):
         description = "Testing tool for the security scanner. Runs the scanner in several configurations and returns " \
@@ -64,49 +70,52 @@ class SscannerTest(object):
         # description = "The amount of threads to use. Defaults to 8. Use 1 to disable threading."
         # parser.add_argument("-j", "-t", "--threads", type=int, help=description, default=8)
 
-        self.parser = parser
+        self.m_parser = parser
 
     def run(self, args=None):
-        self.params = self.parser.parse_args(args=args)
+        self.m_params = self.m_parser.parse_args(args=args)
         self.prepareTests()
         self.runTests()
         self.printResults()
 
     def prepareTests(self):
-        remote = self.params.remote
-        tdir = self.params.directory
+        remote = self.m_params.remote
+        tdir = self.m_params.directory
         counter = 10
 
         if not os.path.exists(tdir):
             os.mkdir(tdir)
 
         for variation in SscannerTest.PARAM_VARIATIONS:
-            self.testcases.append(TestCase(os.path.join(tdir, str(counter)), False, variation))
+            self.m_testcases.append(TestCase(os.path.join(tdir, str(counter)), False, variation))
             counter += 1
             if remote:
-                self.testcases.append(TestCase(os.path.join(tdir, str(counter)), remote, variation))
+                self.m_testcases.append(TestCase(os.path.join(tdir, str(counter)), remote, variation))
                 counter += 1
 
     def runTests(self):
-        amount = len(self.testcases)
+        self.m_testcount = len(self.m_testcases)
+        self.m_running = self.m_testcount
 
-        print("Running {} tests in {}.".format(amount, self.params.directory))
-
-        def runner(case):
-            case.run()
-            print("One test finished.")
+        print("Running {} tests in {}.".format(self.m_testcount, self.m_params.directory))
 
         threads = []
-        for tc in self.testcases:
-            t = threading.Thread(target=runner, args=[tc])
+        for tc in self.m_testcases:
+            t = threading.Thread(target=self.runTest, args=[self, tc])
             threads.append(t)
             t.start()
 
         for t in threads:
             t.join()
 
+    @staticmethod
+    def runTest(inst, case):
+        case.run()
+        inst.m_running -= 1
+        print("Test {}/{} finished.".format(inst.m_testcount - inst.m_running, inst.m_testcount))
+
     def printResults(self):
-        tests = [item for testcase in self.testcases for item in testcase.getRuns()]
+        tests = [item for testcase in self.m_testcases for item in testcase.getRuns()]
         amount = len(tests)
         failed_tests = [test for test in tests if test.hasFailed()]
         amount_failed = len(failed_tests)
