@@ -23,6 +23,7 @@ import stat
 import logging
 import socket
 import struct
+from functools import total_ordering
 
 
 class FdWrapper(object):
@@ -39,10 +40,11 @@ class FdWrapper(object):
         return self.toString()
 
     def toString(self, verbose=False):
-        lines = [fd.toString(verbose) for fd in self.m_file_descriptors]
+        lines = [fd.toString(verbose) for fd in sorted(self.m_file_descriptors)]
         return "\n".join(sorted(lines)) or ""
 
 
+@total_ordering
 class FileDescriptor(object):
     """Represents a file descriptor as open by a process."""
 
@@ -55,6 +57,25 @@ class FileDescriptor(object):
         self.m_daw_factory = daw_factory
         self.m_account_wrapper = daw_factory.getAccountWrapper()
         self.m_proc_wrapper = daw_factory.getProcWrapper()
+        self.symlink = self.m_info["symlink"]
+        self._extractInfo()
+
+    def __lt__(self, other):
+        if self.type != other.type:
+            return self.type.__lt__(other.type)
+        else:
+            return self.inode.__lt__(other.inode) if self.type != 'file' else self.fd_number.__lt__(other.fd_number)
+
+    def _extractInfo(self):
+        # since all paths a absolute, real paths start with /
+        self.is_pseudo_file = not self.symlink.startswith('/')
+
+        if self.is_pseudo_file:
+            self.type, self.inode = self.symlink.split(':', 1)
+        else:
+            self.type = 'file'
+            # it's actually the filedescriptor number
+            self.fd_number = self.m_socket
 
     def getPseudoFileDesc(self, pseudo_label):
         """
@@ -158,7 +179,6 @@ class FileDescriptor(object):
         return self.toString()
 
     def toString(self, verbose=False):
-        symlink = self.m_info["symlink"]
 
         flags = file_mode.getFdFlagLabels(self.m_info["file_flags"])
         file_perm = {
@@ -170,14 +190,10 @@ class FileDescriptor(object):
             [str(file_perm[key]) for key in ('Uid', 'Gid', 'other')]
         )
 
-        # since all paths a absolute, real paths start with /
-        is_pseudo_file = not symlink.startswith('/')
-
         # pseudo files: sockets, pipes, ...
-        if is_pseudo_file:
+        if self.is_pseudo_file:
 
-            type, inode = symlink.split(':', 1)
-            line = self.getPseudoFileDesc(symlink)
+            line = self.getPseudoFileDesc(self.symlink)
 
             if verbose:
                 line = "{:>5}: ".format(self.m_socket) + line
@@ -207,7 +223,7 @@ class FileDescriptor(object):
                 ):
                     color_it = True
 
-            line = symlink
+            line = self.symlink
             # if color_it:
             #     line = self.getColored(line)
 
