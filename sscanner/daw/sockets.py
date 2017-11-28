@@ -99,7 +99,8 @@ class FileDescriptor(object):
                 if endpoint['pid'] != self.m_pid:
                     # this adds a line for each other connected process, but cuts of long process names
                     result += "\n{}--> {} [{}]".format(' ' * (len(_type) + 2), endpoint['pid'],
-                         (endpoint['name'][:52] + '...') if endpoint['name'][55:] else endpoint['name'].strip())
+                                                       (endpoint['name'][:52] + '...') if endpoint['name'][55:] else
+                                                       endpoint['name'].strip())
 
         elif _type == "socket":
             result = "{}: {:>10}".format(
@@ -186,9 +187,6 @@ class FileDescriptor(object):
             "Gid": (self.m_info["file_perm"] & stat.S_IRWXG) >> 3,
             "other": (self.m_info["file_perm"] & stat.S_IRWXO) >> 0,
         }
-        perms_octal = ''.join(
-            [str(file_perm[key]) for key in ('Uid', 'Gid', 'other')]
-        )
 
         # pseudo files: sockets, pipes, ...
         if self.is_pseudo_file:
@@ -229,12 +227,14 @@ class FileDescriptor(object):
 
             if verbose:
                 line = "{:>5}: ".format(self.m_socket.fd) + line
-            line = "{} (permissions: {}, owned by {}:{})".format(line, perms_octal,
-                                                                 self.m_account_wrapper.getNameForUid(self.m_uid[0]),
-                                                                 self.m_account_wrapper.getNameForGid(self.m_gid[0]))
+            line = "{} {} {}:{}".format(line, file_mode.getModeString(self.m_info["file_perm"]),
+                                        self.m_account_wrapper.getNameForUid(self.m_uid[0]),
+                                        self.m_account_wrapper.getNameForGid(self.m_gid[0]))
 
             if flags:
-                line = "{} (flags: {})".format(line, "|".join(flags))
+                line = "{} w/ {}".format(line, "|".join(flags))
+
+            line = "{} [fd: {}]".format(line, self.fd_number)
 
             return line
 
