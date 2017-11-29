@@ -144,7 +144,9 @@ class FileDescriptor(object):
                 if inode_entry == "":  # unnamed unix domain socket
                     inode_entry = "<anonymous>"
                 else:  # named or abstract unix domain socket
-                    props = self.getFileProperties(inode_entry)
+                    props = self.getSocketProperties(inode_entry)
+                    import pprint
+                    pprint.pprint(props)
                     if props:
                         st_mode = props['st_mode']
                         # permissions = file_mode.getModeString(st_mode)
@@ -180,6 +182,13 @@ class FileDescriptor(object):
         fs_wrapper = self.m_daw_factory.getFsWrapper()
 
         return fs_wrapper.getFileProperties(filename)
+
+    def getSocketProperties(self, filename):
+        """Returns the properties of a given file path in the file system. Or
+        an empty dictionary on failure."""
+        fs_wrapper = self.m_daw_factory.getFsWrapper()
+
+        return fs_wrapper.getSocketProperties(filename)
 
     def __str__(self):
         return self.toString()

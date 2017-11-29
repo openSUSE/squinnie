@@ -35,6 +35,7 @@ class Filesystem(object):
         """
         self.m_dumpIO = dumpIO
         self.m_accessor = FsDatabase(self.m_dumpIO.getDumpDir())
+        self.m_socket_cache = SocketCache(self.m_accessor)
 
     def getAllFsData(self):
         """Returns all raw filesystem data."""
@@ -48,6 +49,10 @@ class Filesystem(object):
         """Returns the properties of a specific file on the filesystem."""
         data = self.m_accessor.getFileProperties(os.path.dirname(path), os.path.basename(path))
         return FsDatabase.dbTupleToArray(data)
+
+    def getSocketProperties(self, path):
+        """Returns the properties of a specific socket on the filesystem."""
+        return self.m_socket_cache.getSocketProperties(path)
 
 
 class FsDatabase(object):
@@ -295,3 +300,30 @@ class FilesystemIterator(object):
     def getTypeLabel(self):
         """Returns the full name of the file type."""
         return file_mode.getTypeLabel(self.mode)
+
+
+class SocketCache(object):
+    """
+    This class caches all Socket on the Filesystem. This allows querys for socket permissions to be a lot faster.
+    """
+
+    def __init__(self, fs_datbase):
+        self.m_fs_database = fs_datbase
+        self.m_built = False
+        self.m_cache = {}
+
+    def _buildCache(self):
+        """This method saves a list of all file properties of sockets in RAM."""
+        data = self.m_fs_database.findData('type = "s"')
+        for row in data:
+            fullname = os.path.join(row[8], row[7])
+            self.m_cache[fullname] = FsDatabase.dbTupleToArray(row)
+
+        self.m_built = True
+
+    def getSocketProperties(self, path):
+        """Returns the properties of a specific socket on the filesystem."""
+        if not self.m_built:
+            self._buildCache()
+
+        return self.m_cache[path] if path in self.m_cache else None
