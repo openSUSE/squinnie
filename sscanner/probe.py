@@ -127,6 +127,9 @@ class Scanner(object):
             if protocol == "netlink":
                 inode = parts[-1]
                 info[inode] = parts[1]  # the Eth
+            elif protocol == "packet":
+                inode = parts[-1]
+                info[inode] = parts
             # IP based protocols
             elif protocol != "unix":
                 l_host, l_port = parts[1].split(':')
@@ -395,7 +398,7 @@ class Scanner(object):
         }
 
         result["networking"] = {}
-        for prot in ("tcp", "tcp6", "udp", "udp6", "unix", "netlink"):
+        for prot in ("tcp", "tcp6", "udp", "udp6", "unix", "netlink", "packet"):
             self.collectProtocolInfo(prot)
             result["networking"][prot] = self.m_protocols[prot]
 

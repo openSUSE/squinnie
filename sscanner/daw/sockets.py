@@ -158,6 +158,9 @@ class FileDescriptor(object):
                 result.append("{}:{}".format(transport_protocol, inode_entry))
             elif transport_protocol == "netlink":
                 result.append("netlink socket {} on if {}".format(inode, inode_entry))
+            elif transport_protocol == "packet":
+                packet = PacketSocket.FromTuple(inode_entry)
+                result.append(str(packet))
             else:  # TCP or UDP socket with IP address and port
                 sc = NetworkSocket.fromTuple(inode_entry, transport_protocol)
 
@@ -239,6 +242,39 @@ class FileDescriptor(object):
             line = "{} [fd: {}]".format(line, self.fd_number)
 
             return line
+
+
+class PacketSocket(object):
+    """This class represents a packet socket (/proc/*/net/packet)."""
+
+    TYPES = {  # from bits/socket_type.h
+        2: 'COOKED',
+        3: 'RAW'
+    }
+
+    def __init__(self, type, iface, inode, ifaceResolver=None):
+        """
+        Create a new instance of PacketSocket
+        :param type: The type of the socket.
+        :param iface: The interface number.
+        :param inode: The inode number.
+        :param ifaceResolver: A lambda which resolves the interface number to an interface name. Can be None.
+        """
+        self.m_type = type
+        self.m_iface = iface
+        self.m_inode = inode
+        self.m_iface_name = str(ifaceResolver(iface)) if ifaceResolver is not None else str(iface)
+
+    def getSocketTypeStr(self):
+        """Return the type of the socket as string"""
+        return self.TYPES[self.m_type] if self.m_type in self.TYPES else '[UNKNOWN TYPE]'
+
+    def __str__(self):
+        return 'packet {} {} on interface {}'.format(self.m_inode, self.getSocketTypeStr(), self.m_iface_name)
+
+    @staticmethod
+    def FromTuple(inode_entry, ifaceResolver=None):
+        return PacketSocket(inode_entry[2], inode_entry[4], inode_entry[-1], ifaceResolver)
 
 
 class NetworkSocket(object):
