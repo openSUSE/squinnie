@@ -172,7 +172,7 @@ class FileDescriptor(object):
         if result:
             return result
         else:
-            return "<port not found, inode: {:>8}>".format(inode)
+            return "<unkown protocol/no information for {}>".format(inode)
 
     def getFileProperties(self, filename):
         """Returns the properties of a given file path in the file system. Or
