@@ -108,6 +108,9 @@ class SscannerTest(object):
         for t in threads:
             t.join()
 
+        failed_tests = [item for testcase in self.m_testcases for item in testcase.getRuns() if item.hasFailed()]
+        self.m_has_failed_tests = len(failed_tests) > 0
+
     @staticmethod
     def runTest(inst, case):
         case.run()
@@ -182,8 +185,8 @@ class TestRun(object):
         if not os.path.exists(self.dir):
             os.mkdir(self.dir)
 
-        with open(self.stdout, "w") as stdout:
-            with open(self.stderr, "w") as stderr:
+        with open(self.stdout, "w", 0o664) as stdout:
+            with open(self.stderr, "w", 0o664) as stderr:
                 self.exitcode = subprocess.call(
                     executable=SSCANNER_PATH,
                     args=[SSCANNER_PATH] + self.m_arguments,
@@ -210,3 +213,6 @@ stderr: {}
 if __name__ == "__main__":
     tester = SscannerTest()
     tester.run()
+
+    if tester.hasFailed():
+        exit(2)
