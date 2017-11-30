@@ -61,6 +61,14 @@ class ProcessData(object):
         """Get the data for a specific process"""
         return self.getProcData()[pid]
 
+    def processHasUid(self, pid, uid):
+        """This method checks whether a process contains the given UID."""
+        return uid in self.getProcData()[pid]["Uid"]
+
+    def processHasGid(self, pid, gid):
+        """This method checks whether a process contains the given GID."""
+        return gid in self.getProcData()[pid]["Gid"]
+
     def getChildrenForPid(self, searched_pid):
         """Returns all children for a given pid."""
         return [pid for pid, parent in self.getParents().items() if searched_pid == parent]

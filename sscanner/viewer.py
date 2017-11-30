@@ -453,7 +453,7 @@ class Viewer(object):
 
         return [self_row] + children_rows
 
-    def generateTable(self, column_headers, proc_tree, table_data):
+    def generateTable(self, column_headers, proc_tree, table_data, prefix='+---'):
         """
         Generates the actual table lines from the input parameters.
 
@@ -466,18 +466,18 @@ class Viewer(object):
                 <data>,
             },
         }
+        :param string prefix: The prefix to post in front of each pid.
         """
         indent = self.m_indentation_width * " "
-        result_table = []
-        result_table.append([
+        result_table = [[
             ProcColumns.getLabel(col) for col in column_headers
-        ])
+        ]]
 
         for pid, level in proc_tree:
             line = []
             for column in column_headers:
                 if column == ProcColumns.pid:
-                    tmp = (level * indent) + "+---" + str(pid)
+                    tmp = (level * indent) + prefix + str(pid)
                 else:
                     tmp = table_data[column][pid]
                 line.append(tmp)
@@ -496,7 +496,6 @@ class Viewer(object):
             num_procs,
             self.m_node_label
         ))
-        # print("")
 
         all_pids = proc_wrapper.getAllPids()
         children_provider = proc_wrapper.getChildrenForPid
@@ -533,6 +532,7 @@ class Viewer(object):
             column_headers.remove(empty_column)
 
         level = 0
+        prefix = '+---'
 
         # proc_tree
         # [ [1,0], [400,1], [945,1], [976,2], [1437, 3], ... ]
@@ -556,6 +556,13 @@ class Viewer(object):
                     level,
                     recursive
                 )
+        elif self.m_uid_filter >= 0 or self.m_gid_filter >= 0:
+            proc_tree = [
+                (pid, 0) for pid in all_pids
+                if ((not self.m_uid_filter) or proc_wrapper.processHasUid(pid, self.m_uid_filter)) and
+                   ((not self.m_gid_filter) or proc_wrapper.processHasGid(pid, self.m_gid_filter))
+            ]
+            prefix = ''
         else:
             root_pids = [1]
             if self.m_show_kthreads:
@@ -570,7 +577,7 @@ class Viewer(object):
                     True
                 )
 
-        table = self.generateTable(column_headers, proc_tree, table)
+        table = self.generateTable(column_headers, proc_tree, table, prefix=prefix)
 
         table = terminaltables.AsciiTable(table)
 
