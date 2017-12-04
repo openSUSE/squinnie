@@ -266,12 +266,6 @@ class Scanner(object):
                         "Gid": fd_identity_gid,
                     },
                     "file_perm": fd_perm_all,
-                    # "file_perm": {
-                    #     "Uid"  : (fd_perm_all & stat.S_IRWXU) >> 6,
-                    #     "Gid"  : (fd_perm_all & stat.S_IRWXG) >> 3,
-                    #     "other": (fd_perm_all & stat.S_IRWXO) >> 0,
-                    # },
-                    # the flags are represented in octal
                     "file_flags": int(fields["flags"], 8),
                     "symlink": target,
                 }
