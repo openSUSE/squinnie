@@ -67,7 +67,7 @@ class Scanner(object):
     def getCmdline(self, p):
         """Returns a tuple (cmdline, [parameters]) representing the command
         line belonging to the given process with PID `p`."""
-        with open("/proc/{}/cmdline".format(p), "r") as fi:
+        with open("/proc/{pid}/cmdline".format(pid = p), "r") as fi:
             cmdline_str = fi.read().strip()
             cmdline_items = [str(item) for item in cmdline_str.split("\x00")]
             executable = cmdline_items[0]
@@ -113,7 +113,7 @@ class Scanner(object):
         """Collects protocol state information for ``protocol`` in
         self.m_protocols[``protocol``]."""
 
-        with open("/proc/net/{}".format(protocol), "r") as f:
+        with open("/proc/net/{prot}".format(prot = protocol), "r") as f:
             table = [line.strip() for line in f.readlines()]
         # discard the column header
         table.pop(0)
@@ -179,7 +179,7 @@ class Scanner(object):
 
             try:
                 fields = {}
-                with open("/proc/{}/status".format(p), "r") as fi:
+                with open("/proc/{pid}/status".format(pid = p), "r") as fi:
                     for line in fi:
                         key, value = line.split(':', 1)
                         fields[key] = value.strip()
@@ -193,7 +193,7 @@ class Scanner(object):
                 exe, pars = self.getCmdline(p)
                 status_pid["executable"] = exe
                 status_pid["parameters"] = pars
-                status_pid["root"] = os.path.realpath("/proc/{}/root".format(p))
+                status_pid["root"] = os.path.realpath("/proc/{pid}/root".format(pid = p))
                 status_pid["open_files"] = self.getFdData(p)
 
                 status_pid["parent"] = int(fields["PPid"])
@@ -227,8 +227,8 @@ class Scanner(object):
         """
 
         result = {}
-        fd_dir = "/proc/{}/fd/".format(pid)
-        fdinfo_dir = "/proc/{}/fdinfo".format(pid)
+        fd_dir = "/proc/{pid}/fd/".format(pid = pid)
+        fdinfo_dir = "/proc/{pid}/fdinfo".format(pid = pid)
 
         for fd_str in os.listdir(fd_dir):
             file_path_name = os.path.join(fd_dir, fd_str)
@@ -254,7 +254,7 @@ class Scanner(object):
             # for open file description information we have to look here
             try:
                 fields = dict()
-                fdinfo = "{}/{}".format(fdinfo_dir, fd_str)
+                fdinfo = "{dir}/{base}".format(dir = fdinfo_dir, base = fd_str)
                 with open(fdinfo, "r") as fi:
                     for line in fi:
                         key, value = [ p.strip() for p in line.split(':', 1) ]
@@ -293,8 +293,8 @@ class Scanner(object):
             properties["st_gid"] = os_stat.st_gid
             properties["type"] = type
         except EnvironmentError as e:
-            print("Failed to lstat {}: {}".format(
-                    filename, e
+            print("Failed to lstat {path}: {reason}".format(
+                    path = filename, reason = e
                 ),
                 file=sys.stderr
             )
@@ -439,7 +439,10 @@ def main():
     try:
         out_file = pipe_out if args.output == "-" else open(args.output, 'wb')
     except EnvironmentError as e:
-        exit("Failed to open output file {}: {}".format(args.output, str(e)))
+        exit("Failed to open output file {path}: {reason}".format(
+            path = args.output,
+            reason = str(e))
+        )
 
     if os.isatty(out_file.fileno()):
         exit("Refusing to output binary data to stdout connected to a terminal")
