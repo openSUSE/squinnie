@@ -86,7 +86,7 @@ class SscannerTest(object):
         counter = 10
 
         if not os.path.exists(tdir):
-            os.mkdir(tdir)
+            os.mkdir(tdir, 0o755)
 
         for variation in SscannerTest.PARAM_VARIATIONS:
             self.m_testcases.append(TestCase(os.path.join(tdir, str(counter)), False, variation))
@@ -100,6 +100,8 @@ class SscannerTest(object):
         self.m_running = self.m_testcount
 
         print("Running {} tests in {}.".format(self.m_testcount, self.m_params.directory))
+
+        os.chmod(self.m_params.directory, 0o755)
 
         threads = []
         for tc in self.m_testcases:
@@ -168,7 +170,7 @@ class TestCase(object):
 
     def run(self):
         if not os.path.exists(self.dir):
-            os.mkdir(self.dir)  # not totally safe but safe enough
+            os.mkdir(self.dir, 0o755)  # not totally safe but safe enough
 
         for test in self.tests:
             test.run()
@@ -197,7 +199,7 @@ class TestRun(object):
 
     def run(self):
         if not os.path.exists(self.dir):
-            os.mkdir(self.dir)
+            os.mkdir(self.dir, 0o755)
 
         with open(self.stdout, "w", 0o664) as stdout:
             with open(self.stderr, "w", 0o664) as stderr:
