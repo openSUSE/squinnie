@@ -35,7 +35,7 @@ class ProcessData(object):
         # self.m_ll_children = CategoryLoader("children", self.m_dumpIO)
         self.m_ll_parents = CategoryLoader("parents", self.m_dumpIO)
         self.m_daw_factory = factory
-        self.m_pipe_cache = PipeCache()
+        self.m_socket_connection_cache = SocketCache()
 
     def getProcData(self):
         """Return general process data."""
@@ -80,20 +80,21 @@ class ProcessData(object):
 
     def getEndpointsForPipe(self, id):
         """Returns the endpoints for a pipe."""
-        self.m_pipe_cache.buildIfNecessary(self.getProcData)
-        return self.m_pipe_cache.getEndpointsForPipe(id)
+        self.m_socket_connection_cache.buildIfNecessary(self.getProcData)
+        return self.m_socket_connection_cache.getEndpointsForPipe(id)
 
     def getOtherPointOfPipe(self, pipe_id, pid):
         """Returns the first endpoint of a pipe which does not have the given pid."""
-        self.m_pipe_cache.buildIfNecessary(self.getProcData)
-        return self.m_pipe_cache.getOtherPointOfPipe(pipe_id, pid)
+        self.m_socket_connection_cache.buildIfNecessary(self.getProcData)
+        return self.m_socket_connection_cache.getOtherPointOfPipe(pipe_id, pid)
 
 
-class PipeCache:
-    """This class saves the connection endpoints for all pipes."""
+class SocketCache:
+    """This class saves the connection endpoints for all pipes and sockets."""
 
     def __init__(self):
         self.m_pipes = None
+        self.m_sockets = None
 
     def isBuilt(self):
         return self.m_pipes is not None
@@ -106,6 +107,7 @@ class PipeCache:
     def build(self, data):
         """Build the cache. The data should be the proc data."""
         self.m_pipes = {}
+        self.m_sockets = {}
         logging.debug('Building pipe cache.')
 
         # loop each process
@@ -117,7 +119,7 @@ class PipeCache:
 
                 # only pipes are of interest in this case
                 if self.isPipe(fd_info):
-                    id = int(fd_info['symlink'].split(':', 1)[1].strip('[]'))
+                    id = SocketCache.extractInodeFromFdInfo(fd_info)
 
                     if id not in self.m_pipes:
                         self.m_pipes[id] = []
@@ -126,14 +128,49 @@ class PipeCache:
                         'pid': pid,
                         'name': '{} {}'.format(process_data['executable'], process_data['parameters'])
                     })
+                elif self.isSocket(fd_info):
+                    id = SocketCache.extractInodeFromFdInfo(fd_info)
+
+                    if id not in self.m_sockets:
+                        self.m_sockets[id] = []
+
+                    self.m_sockets[id].append({
+                        'pid': pid,
+                        'name': '{} {}'.format(process_data['executable'], process_data['parameters'])
+                    })
+
+    @staticmethod
+    def extractInodeFromFdInfo(fd_info):
+        """Extracts the inode of a socket from the fdinfo tuple."""
+        return SocketCache.extractInodeFromSymlink(fd_info['symlink'])
+
+    @staticmethod
+    def extractInodeFromSymlink(target):
+        """Extracts the inode of a socket from the link target as seen in /proc/*/fd."""
+        return int(target.split(':', 1)[1].strip('[]'))
 
     @staticmethod
     def isPipe(fdinfo):
         """Checks whether the file descriptor is a pipe from the proc data set."""
         descr = fdinfo["symlink"]
+        return SocketCache.isInodeSocketWithName(descr, 'pipe')
 
+    @staticmethod
+    def isSocket(fdinfo):
+        """Returns whether a filedescriptor from /proc/*/fd is a socket."""
+        descr = fdinfo["symlink"]
+        return SocketCache.isInodeSocketWithName(descr, 'socket')
+
+    @staticmethod
+    def isInodeSocketWithName(link, socket_name):
+        """
+        Returns whether this is a socket with an inode and a specific name.
+        :param link: The link target (from proc) to parse.
+        :param socket_name: The searched socket name.
+        :return:
+        """
         # the value in symlink we search for is "pipe:1234", compared to i.e. '/var/lib/socket' or 'unix:123'
-        return (not descr.startswith('/')) and descr.split(':', 1)[0].strip("[]") == "pipe"
+        return (not link.startswith('/')) and link.split(':', 1)[0].strip("[]") == socket_name
 
     def getEndpointsForPipe(self, id):
         """Returns the endpoints for a pipe."""
