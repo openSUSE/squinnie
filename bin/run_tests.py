@@ -28,6 +28,7 @@ import argparse
 import os
 import subprocess
 import tempfile
+import shutil
 
 
 SSCANNER_PATH = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'security_scanner.py')
@@ -210,7 +211,8 @@ class TestRun(object):
 
     def clean(self):
         """Cleans up the scanner cache directories."""
-        os.rmdir(self.cachedir)
+        if os.path.isdir(self.cachedir):
+            shutil.rmtree(self.cachedir)
 
     def __str__(self):
         status = (str(self.hasFailed()) + '({})'.format(self.exitcode)) if self.ran else "(not yet run)"
