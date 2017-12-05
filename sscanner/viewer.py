@@ -596,7 +596,7 @@ class Viewer(object):
         table = self.getFilesystemTable()
 
         if len(table) == 0:
-            print("Nothing was found matching the given filters.".startswith())
+            print("Nothing was found matching the given filters.")
             return
 
         nm_lambda = lambda t: 'magenta' if t == '(unknown)' else None
