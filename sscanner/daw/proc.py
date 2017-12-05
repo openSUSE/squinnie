@@ -83,6 +83,11 @@ class ProcessData(object):
         self.m_socket_connection_cache.buildIfNecessary(self.getProcData)
         return self.m_socket_connection_cache.getEndpointsForPipe(id)
 
+    def getEndpointsForSocket(self, id):
+        """Returns the endpoints for a pipe."""
+        self.m_socket_connection_cache.buildIfNecessary(self.getProcData)
+        return self.m_socket_connection_cache.getEndpointsForSocket(id)
+
     def getOtherPointOfPipe(self, pipe_id, pid):
         """Returns the first endpoint of a pipe which does not have the given pid."""
         self.m_socket_connection_cache.buildIfNecessary(self.getProcData)
@@ -182,3 +187,7 @@ class SocketCache:
             if not endpoint['pid'] == pid:
                 return endpoint
         return None
+
+    def getEndpointsForSocket(self, id):
+        """Returns the endpoints for a sockets."""
+        return self.m_sockets[int(id)]

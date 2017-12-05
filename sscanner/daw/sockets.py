@@ -103,9 +103,19 @@ class FileDescriptor(object):
                                                        endpoint['name'].strip())
 
         elif _type == "socket":
-            result = "{}: {:>10}".format(
-                _type, self.inodeToIdentifier(_type, int(value))
-            )
+            logging.debug(pseudo_label)
+            endpoints = self.m_proc_wrapper.getEndpointsForSocket(value)
+            result = "{}: {:>6} {}".format(_type, value, '[unconnected]' if len(endpoints) < 2 else '')
+
+            for endpoint in endpoints:
+                if endpoint['pid'] != self.m_pid:
+                    # this adds a line for each other connected process, but cuts of long process names
+                    result += "\n{}--> {} [{}]".format(' ' * (len(_type) + 2), endpoint['pid'],
+                                                       (endpoint['name'][:52] + '...') if endpoint['name'][55:] else
+                                                       endpoint['name'].strip())
+            # result = "{}: {:>10}".format(
+            #     _type, self.inodeToIdentifier(_type, int(value))
+            # )
         elif _type == "anon_inode":
             result = "{}: {}".format(_type, value)
         else:
