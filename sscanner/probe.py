@@ -187,6 +187,10 @@ class Scanner(object):
                 status_pid = {}
 
                 for key in field_transforms.keys():
+                    val = fields.get(key, None)
+                    if val == None:
+                        # e.g. on SLES-11 there is no CapAmb
+                        continue
                     transform_fnct = field_transforms[key]
                     status_pid[key] = transform_fnct(fields[key])
 
