@@ -357,7 +357,7 @@ class Viewer(object):
 
         elif column == ProcColumns.features:
             features = []
-            if pid_data["Seccomp"]:
+            if "Seccomp" in pid_data:
                 features.append("seccomp")
             if pid_data.get("root", "/") != "/":
                 features.append("chroot")
@@ -373,9 +373,12 @@ class Viewer(object):
             boring_caps = [0, 274877906943]
             all_uids_are_root = all_uids_equal and pid_data["Uid"][0] == 0
             no_uids_are_root = pid_data["Uid"].count(0) == 0
-            capabilities = pid_data[column_label]
+            capabilities = pid_data.get(column_label, None)
 
-            if all_uids_are_root:
+            if capabilities == None:
+                # e.g. CapAmb on SLE-11
+                return ""
+            elif all_uids_are_root:
                 # is root anyways
                 result = ""
             elif not self.m_verbose and capabilities in boring_caps:
@@ -593,7 +596,7 @@ class Viewer(object):
         table = self.getFilesystemTable()
 
         if len(table) == 0:
-            print("Nothing was found matching the given filters.".startswith())
+            print("Nothing was found matching the given filters.")
             return
 
         nm_lambda = lambda t: 'magenta' if t == '(unknown)' else None
