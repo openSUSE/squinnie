@@ -12,7 +12,7 @@ class Modes(object):
     """enum-like class for holding the different security scanner modes we
     support"""
 
-    all_modes = ["local", "ssh", "susecloud"]
+    all_modes = ["local", "ssh", "susecloud", "auto"]
 
     @classmethod
     def fillModes(cls):

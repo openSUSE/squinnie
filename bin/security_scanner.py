@@ -88,7 +88,7 @@ class SecurityScanner(object):
 
         description = "The mode the scanner should be operating under. 'local' by default"
         dump_group.add_argument("-m", "--mode", choices=Modes.all_modes, type=str, help=description,
-                                default="local")
+                                default="auto")
 
         description = "The first hop scan host. The only target host for mode == 'ssh', the crowbar host for mode ==" \
                       " 'susecloud'"
@@ -127,6 +127,16 @@ class SecurityScanner(object):
                 raise sscanner.errors.ScannerError(
                     "For susecloud and ssh mode the --entry argument is requried"
                 )
+
+        elif self.m_args.mode == Modes.local and self.m_args.entry:
+            raise sscanner.errors.ScannerError(
+                "You've selected the mode local but gave a remote scan target. Please skip the target or use the mode"
+                " 'susecloud' or 'ssh'."
+            )
+        elif self.m_args.mode == Modes.auto:
+            # automagically determine the mode. That is, use ssh if -e is given and local otherwise
+            self.m_args.mode = Modes.ssh if self.m_args.entry else Modes.local
+            logging.info('Autoselecting mode {} due to given arguments.'.format(self.m_args.mode))
 
     def _collectDumps(self):
         """Collects the node dumps according to the selected mode and cached
