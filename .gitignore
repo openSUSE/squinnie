@@ -7,3 +7,6 @@ data/
 tags
 .tags
 .idea/
+*.o
+posix_ipc
+sysv_ipc

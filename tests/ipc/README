@@ -1,0 +1,5 @@
+Test programs for SysV and POSIX IPC objects. Can be simply built by calling
+`make`.
+
+They can be used for setting up client/server like IPC users for testing
+security-scanner logic regarding these types of IPC objects.
