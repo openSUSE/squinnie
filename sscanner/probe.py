@@ -404,9 +404,31 @@ class Scanner(object):
             self.collectFilesystem()
             result["filesystem"] = self.m_filesystem
 
+        self.collectSysVIpcInfo()
+        result["sysvipc"] = self.m_sysvipc
+
         # we're currently returning a single large dictionary containing all
         # collected information
         return result
+
+    def collectSysVIpcInfo(self):
+        self.m_sysvipc = {}
+
+        for ipctype in ['msg', 'sem', 'shm']:
+            with open("/proc/sysvipc/{f}".format(f=ipctype), "r") as f:
+                table = [line.strip() for line in f.readlines()]
+
+            header = table.pop(0).split()
+            self.m_sysvipc[ipctype] = []
+
+            for line in table:
+                lineparts = line.split()
+                linedata = {}
+
+                for i in range(len(lineparts)):
+                    linedata[header[i]] = lineparts[i]
+
+                self.m_sysvipc[ipctype].append(linedata)
 
 
 def main():
