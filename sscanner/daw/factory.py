@@ -22,6 +22,7 @@ from sscanner.daw import ProcessData
 from sscanner.daw.fs import Filesystem
 from sscanner.daw import AccountWrapper
 from sscanner.daw import NetworkingWrapper
+from sscanner.daw.sysv import SysVIPC
 
 
 class Factory(object):
@@ -38,6 +39,7 @@ class Factory(object):
         self.m_fs_wrapper = Filesystem(self.m_dumpIO)
         self.m_account_wrapper = AccountWrapper(self.m_dumpIO)
         self.m_networking_wrapper = NetworkingWrapper(self.m_dumpIO)
+        self.m_sysvipc = SysVIPC(self.m_dumpIO, self)
 
     def getProcWrapper(self):
         return self.m_proc_data
@@ -50,3 +52,6 @@ class Factory(object):
 
     def getNetworkingWrapper(self):
         return self.m_networking_wrapper
+
+    def getSysVIpcWrapper(self):
+        return self.m_sysvipc

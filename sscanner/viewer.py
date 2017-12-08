@@ -118,6 +118,9 @@ class Viewer(object):
         elif args.filesystem:
             # file-system view
             self.printFilesystemTable()
+        elif args.svipc:
+            # systemv ipc view
+            self.printSystemVIPC()
         else:
             # process tree view
             self.printProcessTree()
@@ -154,6 +157,9 @@ class Viewer(object):
 
         description = "Show only the open file descriptors in a dedicated view and nothing else."
         parser.add_argument("--onlyfd", action="store_true", help=description)
+
+        description = "Show the system V IPC data."
+        parser.add_argument("--svipc", action="store_true", help=description)
 
         description = "View all files on the file system, including their permissions."
         parser.add_argument("--filesystem", action="store_true", help=description)
@@ -663,6 +669,25 @@ class Viewer(object):
 
         if args.exclude and len(args.exclude) > 0:
             self.m_excluded = args.exclude.split(",")
+
+    def printSystemVIPC(self):
+        sysv = self.m_daw_factory.getSysVIpcWrapper()
+
+        # type\perms\user\group\key\id\ctime\cpid\atime\apid
+
+        formatter = TablePrinter(columns=[
+            Column('type', [], self.m_have_tty),
+            Column('perms', [], self.m_have_tty),
+            Column('user', [], self.m_have_tty),
+            Column('group', [], self.m_have_tty),
+            Column('key', [], self.m_have_tty),
+            Column('id', [], self.m_have_tty),
+            Column('ctime', [], self.m_have_tty),
+            Column('cpid', [], self.m_have_tty),
+            Column('atime', [], self.m_have_tty),
+            Column('apid', [], self.m_have_tty),
+        ], data=sysv.getFormattedData(), include=self.m_included, exclude=self.m_excluded)
+        formatter.writeOut()
 
 
 class TablePrinter(object):
