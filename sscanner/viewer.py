@@ -357,7 +357,7 @@ class Viewer(object):
 
         elif column == ProcColumns.features:
             features = []
-            if "Seccomp" in pid_data:
+            if pid_data.get("Seccomp", False):
                 features.append("seccomp")
             if pid_data.get("root", "/") != "/":
                 features.append("chroot")
