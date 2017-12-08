@@ -677,7 +677,10 @@ class Viewer(object):
 
         formatter = TablePrinter(columns=[
             Column('type', [], self.m_have_tty),
-            Column('perms', [], self.m_have_tty),
+            Column('perms', [
+                lambda v: 'magenta' if v[-2] == '0' else None,
+                lambda v: 'red' if v[-1] != '0' else None
+            ], self.m_have_tty),
             Column('user', [], self.m_have_tty),
             Column('group', [], self.m_have_tty),
             Column('key', [], self.m_have_tty),
