@@ -245,7 +245,10 @@ class SshDumper(Dumper):
             node = config['node']
             logging.info("Receiving data from {}".format(node))
             gateway = self._getExecnetGateway(node, config['via'])
-            group.makegateway(gateway)
+            try:
+                group.makegateway(gateway)
+            except execnet.HostNotFound as e:
+                raise ScannerError("Failed to connect to remote host: " + str(e))
 
             config['data'] = group[node].remote_exec(sscanner.probe).receive()
 
