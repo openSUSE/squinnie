@@ -178,27 +178,15 @@ class Scanner(object):
                 continue
 
             try:
-                fields = {}
-                with open("/proc/{pid}/status".format(pid = p), "r") as fi:
-                    for line in fi:
-                        key, value = line.split(':', 1)
-                        fields[key] = value.strip()
-
-                status_pid = {}
-
-                for key in field_transforms.keys():
-                    val = fields.get(key, None)
-                    if val == None:
-                        # e.g. on SLES-11 there is no CapAmb
-                        continue
-                    transform_fnct = field_transforms[key]
-                    status_pid[key] = transform_fnct(fields[key])
+                fields, status_pid = self.getProcessedProcessInfo(field_transforms, p)
 
                 exe, pars = self.getCmdline(p)
                 status_pid["executable"] = exe
                 status_pid["parameters"] = pars
                 status_pid["root"] = os.path.realpath("/proc/{pid}/root".format(pid = p))
                 status_pid["open_files"] = self.getFdData(p)
+
+                status_pid['threads'] = self.getProcessedThreadInfosForProcess(p, field_transforms)
 
                 status_pid["parent"] = int(fields["PPid"])
                 if 'Umask' in fields:
@@ -221,6 +209,68 @@ class Scanner(object):
         self.m_proc_info = {}
         self.m_proc_info["status"] = status
         self.m_proc_info["parents"] = parents
+
+    @staticmethod
+    def getProcessInfo(pid, tid=None):
+        """
+        Reads the process/thread info from proc. It uses /proc/pid/status for processes and /proc/pid/task/kid for
+        threads.
+        :param pid: The pid of the process.
+        :param tid: The thread id if thread data should be read.
+        :return: The list of fields in stat
+        """
+        is_thread = tid is not None
+        path = "/proc/{pid}".format(pid=pid)
+        if is_thread:
+            path = "{path}/task/{tid}".format(path=path, tid=tid)
+        path += "/status"
+
+        fields = {}
+        with open(path, "r") as fi:
+            for line in fi:
+                key, value = line.split(':', 1)
+                fields[key] = value.strip()
+
+        return fields
+
+    @staticmethod
+    def getProcessedProcessInfo(transforms, pid, tid=None):
+        """
+        Reads the process/thread info from proc. It uses /proc/pid/status for processes and /proc/pid/task/kid for
+        threads. After retrieving the data, it will be processed with the functions given in the transform parameter.
+        :param transforms: The transformation functions for the field data.
+        :param pid: The pid of the process.
+        :param tid: The thread id if thread data should be read.
+        :return: A tuple of (data, processed_data)
+        """
+        fields = Scanner.getProcessInfo(pid, tid)
+        processed_data = {}
+
+        for key in transforms.keys():
+            val = fields.get(key, None)
+            if val is None:
+                # e.g. on SLES-11 there is no CapAmb
+                continue
+            transform_fnct = transforms[key]
+            processed_data[key] = transform_fnct(fields[key])
+
+        return fields, processed_data
+
+    @staticmethod
+    def getProcessedThreadInfosForProcess(pid, transforms):
+        """
+        Collects thread information of a process.
+        :param transforms: The transform functions to refine the data for each thread.
+        :param pid: The pid of the target.
+        :return: A dict of tid -> processed_data
+        """
+        threadlist = os.listdir("/proc/{pid}/task".format(pid=pid))
+
+        data = {}
+        for tid in threadlist:
+            _, threadinfo = Scanner.getProcessedProcessInfo(transforms, pid, tid)
+            data[tid] = threadinfo
+        return data
 
     def getFdData(self, pid):
         """Returns a dictionary describing the currently opened files of
