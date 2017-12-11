@@ -63,6 +63,7 @@ class Viewer(object):
         self.m_pid_filter = []
         self.m_show_filter_parents = False
         self.m_show_filter_children = False
+        self.m_show_threads = False
         self.m_show_kthreads = False
         self.m_indentation_width = 4
         self.m_node_label = label
@@ -87,6 +88,7 @@ class Viewer(object):
         self.setShowFds(args.fd)
         self.setShowParams(args.params)
         self.setShowKthreads(args.kthreads)
+        self.setShowThreads(args.threads)
         self.setShowFilterChildren(args.children)
         self.setShowFilterParents(args.parent)
         self.parseOwnerFilters(args)
@@ -139,6 +141,9 @@ class Viewer(object):
 
         description = "Show parameters from the process's cmdline entry."
         parser.add_argument("--params", action="store_true", help=description)
+
+        description = "Include threads. Kernel threads are excluded by default."
+        parser.add_argument("--threads", action="store_true", help=description)
 
         description = "Include kernel threads. Kernel threads are excluded by default."
         parser.add_argument("-k", "--kthreads", action="store_true", help=description)
@@ -720,7 +725,7 @@ class Viewer(object):
                     highlight_cols.append(column)
 
             # if so, output the thread
-            if len(highlight_cols) > 0:
+            if len(highlight_cols) > 0 or self.m_show_threads:
                 line = []
                 for column in column_headers:
                     tmp = ''  # values which are not pid or not compared are ignored.
@@ -735,6 +740,9 @@ class Viewer(object):
                 output.append(line)
 
         return output
+
+    def setShowThreads(self, show_threads):
+        self.m_show_threads = show_threads
 
 
 class TablePrinter(object):
