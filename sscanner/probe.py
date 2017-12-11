@@ -269,8 +269,21 @@ class Scanner(object):
         data = {}
         for tid in threadlist:
             _, threadinfo = Scanner.getProcessedProcessInfo(transforms, pid, tid)
+            threadinfo['cmdline'] = Scanner.getCmdlineForThread(pid, tid)
             data[tid] = threadinfo
         return data
+
+    @staticmethod
+    def getCmdlineForThread(pid, tid):
+        """
+        Returns the cmdline for a thread.
+        :param pid: The pid of the parent process.
+        :param tid: The tid of the thread.
+        :return:
+        """
+        path = "/proc/{pid}/task/{tid}/cmdline".format(pid=pid, tid=tid)
+        with open(path, "r") as fi:
+            return fi.readline()
 
     def getFdData(self, pid):
         """Returns a dictionary describing the currently opened files of
