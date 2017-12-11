@@ -685,10 +685,10 @@ class Viewer(object):
             Column('group', [], self.m_have_tty),
             Column('key', [], self.m_have_tty),
             Column('id', [], self.m_have_tty),
-            Column('ctime', [], self.m_have_tty),
-            Column('cpid', [], self.m_have_tty),
-            Column('atime', [], self.m_have_tty),
-            Column('apid', [], self.m_have_tty),
+            Column('creation-time', [], self.m_have_tty),
+            Column('creator-pid', [], self.m_have_tty),
+            Column('last-access-time', [], self.m_have_tty),
+            Column('last-access-pid', [], self.m_have_tty),
         ], data=sysv.getFormattedData(), include=self.m_included, exclude=self.m_excluded)
         formatter.writeOut()
 
