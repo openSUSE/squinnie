@@ -161,7 +161,7 @@ def executeMain(call):
         call()
         return
     except errors.ScannerError as e:
-        logging.critical(e)
+        print(termcolor.colored(str(e), color = 'red'))
     except EnvironmentError as e:
         logging.critical(e)
     except Exception as e:
