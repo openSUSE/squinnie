@@ -181,7 +181,7 @@ class Scanner(object):
                 fields, status_pid = self.getProcessedProcessInfo(field_transforms, p)
 
                 exe, pars = self.getCmdline(p)
-                status_pid["executable"] = exe
+                status_pid["executable"] = exe if exe else '[{n}]'.format(n=fields['Name'])
                 status_pid["parameters"] = pars
                 status_pid["root"] = os.path.realpath("/proc/{pid}/root".format(pid = p))
                 status_pid["open_files"] = self.getFdData(p)
