@@ -40,7 +40,7 @@ class ProcColumns(object):
     # order of these matter, it defines the order of the columns in outputs
     all_columns = [
         "pid", "executable", "parameters", "user", "groups", "open_fds", "umask", "features", "cap_inherit", "cap_perm",
-        "cap_eff", "cap_bnd", "cap_ambient", "threads"
+        "cap_eff", "cap_bnd", "cap_ambient", "threads", "rtime"
     ]
 
     @classmethod
@@ -52,6 +52,7 @@ class ProcColumns(object):
             "cap_eff": "CapEff",
             "cap_bnd": "CapBnd",
             "cap_ambient": "CapAmb",
+            "rtime": 'running time'
         }
 
         cls.m_labels = dict()

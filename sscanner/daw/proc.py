@@ -96,6 +96,9 @@ class ProcessData(object):
     def getThreadsForPid(self, pid):
         return self.getProcData()[pid]['threads']
 
+    def getRuntimeOfProcess(self, pid):
+        return self.m_daw_factory.getSystemDataWrapper().getProcessUptime(self.getProcessInfo(pid)['starttime'])
+
 
 class SocketCache:
     """This class saves the connection endpoints for all pipes and sockets."""

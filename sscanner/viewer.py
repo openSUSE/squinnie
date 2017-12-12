@@ -373,6 +373,11 @@ class Viewer(object):
         elif column == ProcColumns.threads:
             result = str(len(pid_data['threads']))
 
+        elif column == ProcColumns.rtime:
+            sdata_wrapper = self.m_daw_factory.getSystemDataWrapper()
+            runtime = sdata_wrapper.getProcessUptime(pid_data['starttime'])
+            return str(runtime) + 's'
+
         elif column == ProcColumns.features:
             features = []
             if pid_data.get("Seccomp", False):
