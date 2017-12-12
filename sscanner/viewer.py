@@ -370,6 +370,9 @@ class Viewer(object):
             if not all_gids_equal:
                 result = self.getColored(result)
 
+        elif column == ProcColumns.threads:
+            result = str(len(pid_data['threads']))
+
         elif column == ProcColumns.features:
             features = []
             if pid_data.get("Seccomp", False):
@@ -539,6 +542,10 @@ class Viewer(object):
         # These values are generally uninteresting
         to_remove.add(ProcColumns.cap_ambient)
         to_remove.add(ProcColumns.cap_bnd)
+
+        # if we show the threads there's no need to show the count
+        if self.m_show_threads:
+            to_remove.add(ProcColumns.threads)
 
         # remove the umask column if no data is available
         if len(table[ProcColumns.umask]) < 1 or table[ProcColumns.umask].values()[0] == '':
