@@ -191,6 +191,9 @@ class Scanner(object):
 
                 status_pid['threads'] = self.getProcessedThreadInfosForProcess(p, field_transforms)
 
+                stat_data = self.getStatData(p)
+                status_pid.update(stat_data)  # merge all data we need from stat to status_pid
+
                 status_pid["parent"] = int(fields["PPid"])
                 if 'Umask' in fields:
                     status_pid['Umask'] = int(fields['Umask'], 8)
@@ -499,6 +502,31 @@ class Scanner(object):
                     linedata[header[i]] = lineparts[i]
 
                 self.m_sysvipc[ipctype].append(linedata)
+
+    @staticmethod
+    def getStatData(pid):
+        """
+        Collect the data from /proc/<pid>/stat
+        :param pid: The pid to get stats about.
+        :return: The known indices as dict.
+        """
+        # this dict maps the indices from the data in stat to names
+        # those are in `man 5 proc` (note that the numbers in there are 1-based while the dict is 0-based)
+        name_mapping = {
+            4: 'pgroup',
+            5: 'session',
+            21: 'starttime'
+        }
+
+        path = "/proc/{pid}/stat".format(pid=pid)
+        with open(path, "r") as fi:
+            raw_data = fi.read().strip().split()
+            data = {}
+
+            for index, name in name_mapping.items():
+                data[name] = raw_data[index]
+
+            return data
 
 
 def main():
