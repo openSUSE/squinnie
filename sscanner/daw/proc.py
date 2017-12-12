@@ -93,6 +93,9 @@ class ProcessData(object):
         self.m_socket_connection_cache.buildIfNecessary(self.getProcData)
         return self.m_socket_connection_cache.getOtherPointOfPipe(pipe_id, pid)
 
+    def getThreadsForPid(self, pid):
+        return self.getProcData()[pid]['threads']
+
 
 class SocketCache:
     """This class saves the connection endpoints for all pipes and sockets."""

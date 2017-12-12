@@ -64,15 +64,17 @@ class Scanner(object):
         self.m_have_root_priv = os.geteuid() == 0
         self.m_our_pid = os.getpid()
 
-    def getCmdline(self, p):
-        """Returns a tuple (cmdline, [parameters]) representing the command
-        line belonging to the given process with PID `p`."""
-        with open("/proc/{pid}/cmdline".format(pid = p), "r") as fi:
+    @staticmethod
+    def getCmdline(pid, tid=None):
+        """Returns a tuple (cmdline, [parameters], full_cmdline) representing the command line belonging to the given
+        process with PID pid. If tid is given, the command line of the thread with tid will be returned"""
+        path = "/proc/{pid}{task}/cmdline".format(pid=pid, task="/task/{id}".format(id=tid) if tid is not None else '')
+        with open(path, "r") as fi:
             cmdline_str = fi.read().strip()
             cmdline_items = [str(item) for item in cmdline_str.split("\x00")]
             executable = cmdline_items[0]
             parameters = " ".join(cmdline_items[1:])
-        return executable, parameters
+        return executable, parameters, cmdline_str
 
     def getAllPids(self):
         """Returns a list of all process PIDs currently seen in /proc."""
@@ -180,9 +182,10 @@ class Scanner(object):
             try:
                 fields, status_pid = self.getProcessedProcessInfo(field_transforms, p)
 
-                exe, pars = self.getCmdline(p)
+                exe, pars, cmdline = self.getCmdline(p)
                 status_pid["executable"] = exe if exe else '[{n}]'.format(n=fields['Name'])
                 status_pid["parameters"] = pars
+                status_pid["cmdline"] = cmdline  # this value is needed to compare it with the threads
                 status_pid["root"] = os.path.realpath("/proc/{pid}/root".format(pid = p))
                 status_pid["open_files"] = self.getFdData(p)
 
@@ -268,8 +271,12 @@ class Scanner(object):
 
         data = {}
         for tid in threadlist:
-            _, threadinfo = Scanner.getProcessedProcessInfo(transforms, pid, tid)
-            threadinfo['cmdline'] = Scanner.getCmdlineForThread(pid, tid)
+            fields, threadinfo = Scanner.getProcessedProcessInfo(transforms, pid, tid)
+
+            exe, pars, cmdline = Scanner.getCmdline(pid, tid)
+            threadinfo["executable"] = exe if exe else '[{n}]'.format(n=fields['Name'])
+            threadinfo["parameters"] = pars
+            threadinfo["cmdline"] = cmdline  # this value is needed to compare it with the threads
             data[tid] = threadinfo
         return data
 

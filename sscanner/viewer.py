@@ -319,12 +319,16 @@ class Viewer(object):
         """
 
         proc_wrapper = self.m_daw_factory.getProcWrapper()
-        account_wrapper = self.m_daw_factory.getAccountWrapper()
 
         pid_data = proc_wrapper.getProcessInfo(pid)
 
         if "Uid" not in pid_data.keys():
             return ""
+
+        return self.formatColumnValue(column, pid, pid_data)
+
+    def formatColumnValue(self, column, pid, pid_data, cap_color='red'):
+        account_wrapper = self.m_daw_factory.getAccountWrapper()
 
         column_label = ProcColumns.getLabel(column)
 
@@ -396,7 +400,7 @@ class Viewer(object):
                 new_cap_list = []
                 if no_uids_are_root:
                     for tmp_cap in tmp_cap_list:
-                        new_cap_list.append(self.getColored(tmp_cap))
+                        new_cap_list.append(termcolor.colored(tmp_cap, color=cap_color))
                 result = "\n".join(new_cap_list)
 
         elif column in (ProcColumns.executable, ProcColumns.parameters):
@@ -413,6 +417,7 @@ class Viewer(object):
                 result = len(pid_data["open_files"])
             else:
                 # in case we print the full fds we add a newline after each process to make it a bit more readable
+                proc_wrapper = self.m_daw_factory.getProcWrapper()
                 result = str(proc_wrapper.getFileDescriptorsForPid(pid)) + "\n"
 
         elif column == ProcColumns.umask:
@@ -492,6 +497,7 @@ class Viewer(object):
                 line.append(tmp)
 
             result_table.append(line)
+            result_table += self.generateThreadWarningsForPid(pid, column_headers, indent*level)
 
         return result_table
 
@@ -691,6 +697,44 @@ class Viewer(object):
             Column('last-access-pid', [], self.m_have_tty),
         ], data=sysv.getFormattedData(), include=self.m_included, exclude=self.m_excluded)
         formatter.writeOut()
+
+    def generateThreadWarningsForPid(self, pid, column_headers, indent):
+        proc_wrapper = self.m_daw_factory.getProcWrapper()
+        data = proc_wrapper.getProcessInfo(pid)
+
+        comparison_keys = {  # eff, inh, prm
+            ProcColumns.executable: 'cmdline',
+            ProcColumns.user: "Uid",
+            ProcColumns.groups: "Gid",
+            ProcColumns.cap_inherit: "CapInh",
+            ProcColumns.cap_eff: "CapEff",
+            ProcColumns.cap_perm: "CapPrm"
+        }
+        output = []
+
+        for tid, tdata in data['threads'].items():
+            # check if any values are different
+            highlight_cols = []
+            for column, key in comparison_keys.items():
+                if data[key] != tdata[key]:
+                    highlight_cols.append(column)
+
+            # if so, output the thread
+            if len(highlight_cols) > 0:
+                line = []
+                for column in column_headers:
+                    tmp = ''  # values which are not pid or not compared are ignored.
+                    if column == ProcColumns.pid:
+                        tmp = termcolor.colored(indent + 't---' + str(tid), "cyan")
+                    elif column in comparison_keys.keys():
+                        tmp = self.formatColumnValue(column, tid, tdata, cap_color='magenta')
+                        if column in highlight_cols:
+                            tmp = termcolor.colored(tmp, 'magenta')
+
+                    line.append(tmp)
+                output.append(line)
+
+        return output
 
 
 class TablePrinter(object):
