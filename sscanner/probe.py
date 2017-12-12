@@ -468,6 +468,8 @@ class Scanner(object):
             "gids": self.m_gid_map
         }
 
+        result['systemdata'] = self.collectSystemData()
+
         result["networking"] = {}
         for prot in ("tcp", "tcp6", "udp", "udp6", "unix", "netlink", "packet"):
             self.collectProtocolInfo(prot)
@@ -527,6 +529,25 @@ class Scanner(object):
                 data[name] = raw_data[index]
 
             return data
+
+    @staticmethod
+    def collectSystemData():
+        result = {}
+
+        with open("/proc/uptime", "r") as fi:
+            raw_data = fi.read().strip().split()
+            result['uptime'] = raw_data[0]
+
+        sysconf = {}
+        for key in os.sysconf_names.keys():
+            try:
+                sysconf[key] = os.sysconf(key)
+            except OSError:
+                # some keys can't be collected
+                pass
+
+        result['sysconf'] = sysconf
+        return result
 
 
 def main():
