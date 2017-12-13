@@ -161,7 +161,7 @@ class FileDescriptor(object):
                         # permissions = file_mode.getModeString(st_mode)
                         permissions = format(st_mode & 0x01FF, 'o')
                     else:
-                        permissions = "unkown"
+                        permissions = "unknown"
                     inode_entry = "{} (file permissions: {})".format(
                         inode_entry, permissions
                     )
@@ -184,7 +184,7 @@ class FileDescriptor(object):
         if result:
             return result
         else:
-            return "<unkown protocol/no information for {}>".format(inode)
+            return "<unknown protocol/no information for {}>".format(inode)
 
     def getFileProperties(self, filename):
         """Returns the properties of a given file path in the file system. Or
