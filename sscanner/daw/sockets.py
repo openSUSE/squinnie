@@ -168,7 +168,8 @@ class FileDescriptor(object):
 
                 result.append("{}:{}".format(transport_protocol, inode_entry))
             elif transport_protocol == "netlink":
-                result.append("netlink socket {} on if {}".format(inode, inode_entry))
+                result.append("netlink socket {} type:'{}'"
+                              .format(inode, Netlink.resolveNetlinkSubprotocolToHumanName(inode_entry)))
             elif transport_protocol == "packet":
                 packet = PacketSocket.FromTuple(inode_entry)
                 result.append(str(packet))
@@ -348,3 +349,45 @@ class NetworkEndpoint(object):
             return '{}:{}'.format(socket.inet_ntoa(struct.pack('<L', int(self.m_ip, 16))), str(self.m_port))
         else:
             return '[{}]:{}'.format(self.IPv6ToString(self.m_ip), str(self.m_port))
+
+
+class Netlink(object):
+    """This class provides some information related to netlink sockets."""
+
+    NETLINK_SUBPROTOCOLS = {
+        0: 'NETLINK_ROUTE',
+        1: 'NETLINK_UNUSED',
+        2: 'NETLINK_USERSOCK',
+        3: 'NETLINK_FIREWALL',
+        4: 'NETLINK_SOCK_DIAG',
+        5: 'NETLINK_NFLOG',
+        6: 'NETLINK_XFRM',
+        7: 'NETLINK_SELINUX',
+        8: 'NETLINK_ISCSI',
+        9: 'NETLINK_AUDIT',
+        10: 'NETLINK_FIB_LOOKUP',
+        11: 'NETLINK_CONNECTOR',
+        12: 'NETLINK_NETFILTER',
+        13: 'NETLINK_IP6_FW',
+        14: 'NETLINK_DNRTMSG',
+        15: 'NETLINK_KOBJECT_UEVENT',
+        16: 'NETLINK_GENERIC'
+    }
+
+    @staticmethod
+    def resolveNetlinkSubprotocolToName(protoid):
+        """
+        Returns the name of a netlink subprotocol.
+        :param protoid: The id of the subprotocol.
+        :return: The name of the subprotocol.
+        """
+        return Netlink.NETLINK_SUBPROTOCOLS[int(protoid)]
+
+    @staticmethod
+    def resolveNetlinkSubprotocolToHumanName(protoid):
+        """
+        Returns the name of a netlink subprotocol without the 'NETLINK_' prefix.
+        :param protoid: The id of the subprotocol.
+        :return: The name of the subprotocol without the 'NETLINK_' prefix.
+        """
+        return Netlink.resolveNetlinkSubprotocolToName(protoid).replace('NETLINK_', '')
