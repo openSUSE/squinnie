@@ -40,7 +40,7 @@ try:
     import execnet
     import termcolor
 except ImportError as e:
-    sscanner.helper.missingModule(ex = e)
+    sscanner.helper.missingModule(ex=e)
 
 
 class Dumper(object):
@@ -87,7 +87,7 @@ class Dumper(object):
                 continue
 
             node_data_dict = {
-                    config['node']: config['data']
+                config['node']: config['data']
             }
             dump_path = config['full_path']
 
@@ -142,7 +142,6 @@ class Dumper(object):
         self.m_nodes = []
 
         for node, parent in node_list:
-
             dump = self._getFilename(node)
 
             self.m_nodes.append({
@@ -201,11 +200,11 @@ class SshDumper(Dumper):
 
         ret = []
 
-        def gather_nodes(lst, data, parent = None):
+        def gather_nodes(lst, data, parent=None):
 
-            if type(data) in (OrderedDict,dict):
+            if type(data) in (OrderedDict, dict):
                 for key, val in data.items():
-                    lst.append((key,None))
+                    lst.append((key, None))
                     gather_nodes(lst, val, key)
             elif type(data) is list:
                 ret.extend([(node, parent) for node in data])
@@ -317,13 +316,13 @@ class LocalDumper(Dumper):
                     "probe.py"
                 )
             ],
-            stdout = subprocess.PIPE if use_pipe else tmpfile,
-            close_fds = True
+            stdout=subprocess.PIPE if use_pipe else tmpfile,
+            close_fds=True
         )
 
         if use_pipe:
             try:
-                node_data = sscanner.helper.readPickle(fileobj = slave_proc.stdout)
+                node_data = sscanner.helper.readPickle(fileobj=slave_proc.stdout)
             finally:
                 if slave_proc.wait() != 0:
                     raise Exception("Failed to run probe.py")
@@ -332,7 +331,7 @@ class LocalDumper(Dumper):
                 if slave_proc.wait() != 0:
                     raise Exception("Failed to run probe.py")
                 tmpfile.seek(0)
-                node_data = sscanner.helper.readPickle(fileobj = tmpfile)
+                node_data = sscanner.helper.readPickle(fileobj=tmpfile)
             finally:
                 tmpfile.close()
 
