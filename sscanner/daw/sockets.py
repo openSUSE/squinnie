@@ -105,7 +105,8 @@ class FileDescriptor(object):
         elif _type == "socket":
             logging.debug(pseudo_label)
             endpoints = self.m_proc_wrapper.getEndpointsForSocket(value)
-            result = "{}: {:>6} {}".format(_type, value, '[unconnected]' if len(endpoints) < 2 else '')
+            identifier = self.inodeToIdentifier(_type, int(value))
+            result = "{}: {:>10} {}".format(_type, identifier, '[unconnected]' if len(endpoints) < 2 else '')
 
             for endpoint in endpoints:
                 if endpoint['pid'] != self.m_pid:
