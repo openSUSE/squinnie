@@ -10,3 +10,4 @@ tags
 *.o
 posix_ipc
 sysv_ipc
+etc/network.json
