@@ -244,7 +244,11 @@ class FileDescriptor(object):
             if type == "socket":
                 line = "{} {}".format(line, file_mode.getModeString(self.m_info["file_perm"]))
             if flags:
-                line = "{} w/ {}".format(line, "|".join(flags))
+                # the flags need to be appended to the end of the first line. Pipes i.e. with their connection can span
+                # multiple lines, but having the flag after the last connection is confusing.
+                lines = line.split("\n", 2)
+                lines[0] = "{} w/ {}".format(lines[0], "|".join(flags))
+                line = "\n".join(lines)
 
             return line
         else:
