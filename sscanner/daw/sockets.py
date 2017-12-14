@@ -81,6 +81,7 @@ class FileDescriptor(object):
         """
         Returns a descriptive, formatted string for the given ``pseudo_label``
         which is the symlink content for pseudo files in /proc/<pid>/fd.
+        :param pseudo_label: The label of the fd (the target of the symlink in /proc/<pid>/fd).
         """
 
         # Convert fds to more easy-to-read strings
@@ -93,27 +94,33 @@ class FileDescriptor(object):
         if _type == "pipe":
             logging.debug(pseudo_label)
             endpoints = self.m_proc_wrapper.getEndpointsForPipe(value)
-            result = "{}: {:>6} {}".format(_type, value, '[no endpoint]' if len(endpoints) < 2 else '')
+
+            # we need to extract our fd number from the endpoints as it is not handed through to this class currently
+            fd = self.getFdFromEndpointDict(endpoints, self.m_pid)
+            result = "{}: {:>6} {} @fd {}".format(_type, value, '[no endpoint]' if len(endpoints) < 2 else '', fd)
 
             for endpoint in endpoints:
                 if endpoint['pid'] != self.m_pid:
                     # this adds a line for each other connected process, but cuts of long process names
-                    result += "\n{}--> {} [{}]".format(' ' * (len(_type) + 2), endpoint['pid'],
+                    result += "\n{}--> {} [{} @fd {}]".format(' ' * (len(_type) + 2), endpoint['pid'],
                                                        (endpoint['name'][:52] + '...') if endpoint['name'][55:] else
-                                                       endpoint['name'].strip())
+                                                       endpoint['name'].strip(), endpoint['fd'])
 
         elif _type == "socket":
             logging.debug(pseudo_label)
             endpoints = self.m_proc_wrapper.getEndpointsForSocket(value)
             identifier = self.inodeToIdentifier(_type, int(value))
-            result = "{}: {:>10}".format(_type, identifier)
+            
+            # we need to extract our fd number from the endpoints as it is not handed through to this class currently
+            fd = self.getFdFromEndpointDict(endpoints, self.m_pid)
+            result = "{}: {:>10} @fd {}".format(_type, identifier, fd)
 
             for endpoint in endpoints:
                 if endpoint['pid'] != self.m_pid:
                     # this adds a line for each other connected process, but cuts of long process names
-                    result += "\n{}--> {} [{}]".format(' ' * (len(_type) + 2), endpoint['pid'],
+                    result += "\n{}--> {} [{} @fd {}]".format(' ' * (len(_type) + 2), endpoint['pid'],
                                                        (endpoint['name'][:52] + '...') if endpoint['name'][55:] else
-                                                       endpoint['name'].strip())
+                                                       endpoint['name'].strip(), endpoint['fd'])
             # result = "{}: {:>10}".format(
             #     _type, self.inodeToIdentifier(_type, int(value))
             # )
@@ -122,6 +129,21 @@ class FileDescriptor(object):
         else:
             raise Exception("Unexpected pseudo file type " + _type)
         return result
+
+    @staticmethod
+    def getFdFromEndpointDict(endpoints, pid):
+        """
+        This functions takes an array of endpoint describing dictionaries (for pipes & sockets) and return the matching
+        file descriptor for a pid.
+        :param pid: The pid to search for.
+        :param endpoints: The data to search in.
+        :return: The file descriptor number on success, none otherwise
+        """
+        for epdata in endpoints:
+            if epdata['pid'] == pid:
+                return epdata['fd']
+
+        return None
 
     def inodeToIdentifier(self, _type, inode):
         """

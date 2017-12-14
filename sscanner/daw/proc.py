@@ -126,7 +126,7 @@ class SocketCache:
             fds = process_data['open_files']
 
             # check for each file descriptor
-            for fd_info in fds.values():
+            for fd, fd_info in fds.items():
 
                 # only pipes are of interest in this case
                 if self.isPipe(fd_info):
@@ -137,7 +137,8 @@ class SocketCache:
 
                     self.m_pipes[id].append({
                         'pid': pid,
-                        'name': '{} {}'.format(process_data['executable'], process_data['parameters'])
+                        'name': '{} {}'.format(process_data['executable'], process_data['parameters']),
+                        'fd': fd
                     })
                 elif self.isSocket(fd_info):
                     id = SocketCache.extractInodeFromFdInfo(fd_info)
@@ -147,7 +148,8 @@ class SocketCache:
 
                     self.m_sockets[id].append({
                         'pid': pid,
-                        'name': '{} {}'.format(process_data['executable'], process_data['parameters'])
+                        'name': '{} {}'.format(process_data['executable'], process_data['parameters']),
+                        'fd': fd
                     })
 
     @staticmethod
