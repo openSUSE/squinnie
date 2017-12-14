@@ -26,6 +26,8 @@ from __future__ import with_statement
 import logging
 import argparse
 import os
+import sys
+import shlex
 
 # allow importing the sscanner module from ..
 import module_helper
@@ -42,6 +44,9 @@ from sscanner.dio import DumpIO
 
 class SecurityScanner(object):
     """main class that implements this command-line utility."""
+
+    # the name for the environment variable containing parameters
+    ENVIRONMENT_PARAMETERS = "SECURITY_SCANNER"
 
     def __init__(self):
 
@@ -192,6 +197,9 @@ class SecurityScanner(object):
             viewer.performAction(self.m_args)
 
     def run(self, args=None):
+        if args is None:
+            args = self._collectScannerArguments()
+
         self.m_args = self.m_parser.parse_args(args=args)
         self._setupLogging()
         self._checkDirectoryArg()
@@ -199,6 +207,26 @@ class SecurityScanner(object):
 
         self._collectDumps()
         self._viewData()
+
+    def _collectScannerArguments(self):
+        """
+        This helper method collects parameters from the command line and from the SECURITY_SCANNER environment variable
+        and combines them.
+        :return: An array of arguments.
+        """
+        command_line_args = sys.argv[1:]  # skip $0 from the command line parameters
+        enviroment_args_str = os.environ['SECURITY_SCANNER'] if 'SECURITY_SCANNER' in os.environ else ''
+
+        if enviroment_args_str:
+            # lets notify the user why there are strange arguments going on
+            logging.info("Read string '{}' from enviroment variables.")
+
+        # argparse expects the arguments as array, so we need to split them up
+        # str.split() won't do as this would break with quoted strings
+        enviroment_args = shlex.split(enviroment_args_str)
+
+        # return the combined options. Note the order, as command line options should overwrite environment options
+        return enviroment_args + command_line_args
 
     def _setupLogging(self):
         if not self.m_args.verbose or self.m_args.verbose < 0:
