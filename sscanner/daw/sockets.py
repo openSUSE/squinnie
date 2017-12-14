@@ -93,7 +93,7 @@ class FileDescriptor(object):
         if _type == "pipe":
             logging.debug(pseudo_label)
             endpoints = self.m_proc_wrapper.getEndpointsForPipe(value)
-            result = "{}: {:>6} {}".format(_type, value, '[unconnected]' if len(endpoints) < 2 else '')
+            result = "{}: {:>6} {}".format(_type, value, '[no endpoint]' if len(endpoints) < 2 else '')
 
             for endpoint in endpoints:
                 if endpoint['pid'] != self.m_pid:
@@ -106,7 +106,7 @@ class FileDescriptor(object):
             logging.debug(pseudo_label)
             endpoints = self.m_proc_wrapper.getEndpointsForSocket(value)
             identifier = self.inodeToIdentifier(_type, int(value))
-            result = "{}: {:>10} {}".format(_type, identifier, '[unconnected]' if len(endpoints) < 2 else '')
+            result = "{}: {:>10}".format(_type, identifier)
 
             for endpoint in endpoints:
                 if endpoint['pid'] != self.m_pid:
@@ -321,7 +321,7 @@ class NetworkSocket(object):
 
         if self.m_remote_endpoint.isConnected():
             outp += ' <--> {}'.format(str(self.m_remote_endpoint))
-        else:
+        elif self.m_protocol == 'tcp':  # only tcp has a listening state
             outp += ' listening/waiting'
         return outp
 
