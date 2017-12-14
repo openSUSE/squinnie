@@ -8,6 +8,8 @@
 
 from collections import OrderedDict
 import json
+import logging
+
 
 class NetworkConfig(object):
     """This class is responsible for saving and loading network information
@@ -34,7 +36,7 @@ class NetworkConfig(object):
 
         try:
             with open(path, "w") as fi:
-                json.dump(path, fi, indent=4, sort_keys=True)
+                json.dump(self.m_network, fi, indent=4, sort_keys=True)
         except Exception as e:
             raise Exception("Failed to write JSON network configuration to {}: {}".format(path, str(e)))
 

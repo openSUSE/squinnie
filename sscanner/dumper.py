@@ -164,11 +164,15 @@ class SshDumper(Dumper):
         """Set an already existing network configuration dictionary for futher
         use during collect()."""
         self.m_network = nc
+        import pprint
+        logging.debug("been set network network: {}".format(pprint.pformat(nc)))
 
     def loadNetworkConfig(self, file_name):
         """Reads the target network configuration from the given JSON file and
         stores it in the object for further use during collect()."""
         self.m_network = sscanner.network_config.NetworkConfig().load(file_name)
+        import pprint
+        logging.debug("Parsing network: {}".format(pprint.pformat(self.m_network)))
 
     def collect(self, load_cached):
         """Collect data from the configured remote host, possibly further
@@ -197,23 +201,10 @@ class SshDumper(Dumper):
         """Flattens the nodes found in self.m_network and returns them as a
         list of (node, parent), where parent is an optional jump host to reach
         the node."""
-
         ret = []
-
-        def gather_nodes(lst, data, parent=None):
-
-            if type(data) in (OrderedDict, dict):
-                for key, val in data.items():
-                    lst.append((key, None))
-                    gather_nodes(lst, val, key)
-            elif type(data) is list:
-                ret.extend([(node, parent) for node in data])
-            else:
-                raise Exception("Bad network description data, unexpected type " + str(type(data)))
-
-            return ret
-
-        gather_nodes(ret, self.m_network)
+        for hop, network in self.m_network.items():
+            ret.append((hop, None))
+            ret.extend([(node, hop) for node in network])
 
         return ret
 

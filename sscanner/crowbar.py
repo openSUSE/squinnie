@@ -130,9 +130,9 @@ class Crowbar(object):
             self._fetchConfig()
 
     def _loadConfig(self):
-        logging.info("Using cached crowbar network data from", self.m_config_path)
+        logging.info("Using cached crowbar network data from {}".format(self.m_config_path))
         self.m_net_config.load(self.m_config_path)
-        self.m_info = next(iter(self.m_net_config.getNetwork()))
+        self.m_info = self.m_net_config.getNetwork()
 
     def _fetchConfig(self):
         self.m_info = self.getCrowbarConfig()
