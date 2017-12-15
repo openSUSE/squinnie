@@ -359,8 +359,7 @@ class Scanner(object):
         properties = {}
 
         try:
-            # returns an integer, like 36683988, which should be parsed as a
-            # binary bitmask
+            # returns an integer, like 36683988, which should be parsed as a binary bitmask
             properties["caps"] = self.m_libcap.cap_get_file(filename)
 
             if not os_stat:
@@ -371,7 +370,7 @@ class Scanner(object):
             properties["type"] = type
         except EnvironmentError as e:
             print("Failed to lstat {path}: {reason}".format(
-                    path = filename, reason = e
+                    path=filename, reason=e
                 ),
                 file=sys.stderr
             )
@@ -452,6 +451,17 @@ class Scanner(object):
 
                 path_dict["subitems"][name] = {
                     "properties": self.getProperties(file_path, type='f')
+                }
+
+            for link in [link for link in
+                         [os.path.join(os.path.realpath(path), _dir) for _dir in dirs]
+                         if os.path.islink(link)]:
+                # walk will only list symlinks to directorys in the 'dirs' variable. Since it's configured to not follow
+                # symlinks it will never appear anywhere else and therefore be ignored. So it get's some special
+                # treatment here ;)
+                path_dict["subitems"][link] = {
+                    "properties": self.getProperties(link, type='l'),
+                    "target": os.path.realpath(link)
                 }
 
     def collect(self):

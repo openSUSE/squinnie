@@ -22,6 +22,7 @@ from helper import CategoryLoader
 import sqlite3
 import os.path
 import stat
+import logging
 import json
 import sscanner.file_mode as file_mode
 
@@ -47,12 +48,27 @@ class Filesystem(object):
 
     def getFileProperties(self, path):
         """Returns the properties of a specific file on the filesystem."""
+        path = self.resolvePath(path)
         data = self.m_accessor.getFileProperties(os.path.dirname(path), os.path.basename(path))
         return FsDatabase.dbTupleToArray(data)
 
     def getSocketProperties(self, path):
         """Returns the properties of a specific socket on the filesystem."""
-        return self.m_socket_cache.getSocketProperties(path)
+        return self.m_socket_cache.getSocketProperties(self.resolvePath(path))
+
+    def resolvePath(self, path):
+        """
+        This method will resolve all symlinks in a path.
+        :param path: The path to resolve.
+        :return: The resolved path.
+        """
+        replacement = self.m_accessor.resolveLinkSingle(path)
+
+        while replacement is not None:
+            path = str(path).replace(replacement[0], replacement[1])
+            replacement = self.m_accessor.resolveLinkSingle(path)
+
+        return path
 
 
 class FsDatabase(object):
@@ -91,8 +107,13 @@ class FsDatabase(object):
         data = self.m_db.execute('SELECT * FROM inodes WHERE name=? AND path=?', (name, path))
         return data.fetchone()
 
-    def createTable(self):
+    def createTables(self):
         """Creates the database table, dropping it beforehand if it exists."""
+        self.createInodeTable()
+        self.createLinkTable()
+
+    def createInodeTable(self):
+        """Creates the inode table, dropping it beforehand if it exists."""
         sql = """
         CREATE TABLE "inodes" (
             "id" INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -110,9 +131,38 @@ class FsDatabase(object):
         self.m_db.execute('DROP TABLE IF EXISTS "inodes"')
         self.m_db.execute(sql)
 
+    def createLinkTable(self):
+        """Creates the links table, dropping it beforehand if it exists."""
+        sql = """
+        CREATE TABLE "links" (
+            "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+            "name" TEXT,
+            "target" TEXT
+        )
+        """
+
+        self.m_db.execute('DROP TABLE IF EXISTS "links"')
+        self.m_db.execute(sql)
+
+    def insertLink(self, path, target):
+        """Creates a new link entry in the database."""
+        sql = "INSERT INTO links (name, target) VALUES (?, ?)"
+        cursor = self.m_db.cursor()
+        cursor.execute(sql, (path, target))
+
+    def resolveLinkSingle(self, path):
+        """
+        Resolves the first symlink in path. Note that this will not fully resolve the path if it contains several
+        symlinks!
+        :param path: The path to check for
+        :return: A tuple of (link, replacement) if a symlink is found, None otherwise.
+        """
+        data = self.m_db.execute('SELECT name,target FROM links WHERE ? LIKE name||\'%\';', (path,))
+        return data.fetchone()
+
     def insertRawData(self, fsdata):
         """Inserts the raw data into a new database."""
-        self.createTable()
+        self.createTables()
 
         cursor = self.m_db.cursor()
         self._processDirectory('/', '/', fsdata, 1, cursor)
@@ -132,6 +182,9 @@ class FsDatabase(object):
                 self._processDirectory(name, dir_path, item, dir_id, cursor)
             else:
                 file_data.append(self._createDataArrayFromProperties(item['properties'], name, dir_path, dir_id))
+
+                if 'target' in item:  # symlink
+                    self.insertLink(os.path.join(dir_path, name), item['target'])
 
         cursor.executemany(self._getInsertSql(), tuple(file_data))
 
