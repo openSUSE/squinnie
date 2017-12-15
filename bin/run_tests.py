@@ -23,13 +23,11 @@
 # Standard library modules
 from __future__ import print_function
 from __future__ import with_statement
-import threading
 import argparse
 import os
 import subprocess
 import tempfile
 import shutil
-
 
 SSCANNER_PATH = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'security_scanner.py')
 
@@ -49,8 +47,6 @@ class SscannerTest(object):
         self.m_testcases = []
         self.m_params = None
         self.m_has_failed_tests = False
-        self.m_running = 0
-        self.m_testcount = 0
 
     def hasFailed(self):
         return self.m_has_failed_tests
@@ -70,9 +66,8 @@ class SscannerTest(object):
         description = "The remote to use (root@some-vm). If empty, remote test will be skipped."
         parser.add_argument("-r", "--remote", type=str, help=description, default='')
 
-        # TODO
-        # description = "The amount of threads to use. Defaults to 8. Use 1 to disable threading."
-        # parser.add_argument("-j", "-t", "--threads", type=int, help=description, default=8)
+        description = "The amount of parallel scans to perform. By default only one scan at a time is performed. Tests showed that parallel scanning takes considerably longer time."
+        parser.add_argument("-p", "--parallel", type=int, help=description, default=1)
 
         self.m_parser = parser
 
@@ -111,21 +106,28 @@ class SscannerTest(object):
                 counter += 1
 
     def runTests(self):
-        self.m_testcount = len(self.m_testcases)
-        self.m_running = self.m_testcount
 
-        print("Running {} tests in {}.".format(self.m_testcount, self.m_params.directory))
+        num_tests = len(self.m_testcases)
+        print("Running {} tests in {}.".format(num_tests, self.m_params.directory))
 
         os.chmod(self.m_params.directory, 0o755)
+        import multiprocessing.pool
+        import threading
 
-        threads = []
-        for tc in self.m_testcases:
-            t = threading.Thread(target=self.runTest, args=[self, tc])
-            threads.append(t)
-            t.start()
+        # a lock needed for printing to stdout in a sane fashion
+        self.m_lock = threading.Lock()
+        pool = multiprocessing.pool.ThreadPool(
+                processes = self.m_params.parallel)
 
-        for t in threads:
-            t.join()
+        # NOTE: the multi-threading turned out to be counter productive and
+        # is way slower than serial operation (for remote tests on a local VM
+        # it took ~10 minutes with multi-threading vs. 2.5 minutes without).
+        pool.map(
+                self.runTest,
+                [ (index + 1, value) for index, value in enumerate(self.m_testcases) ]
+        )
+        pool.close()
+        pool.join()
 
         failed_tests = [item for testcase in self.m_testcases for item in testcase.getRuns() if item.hasFailed()]
         self.m_has_failed_tests = len(failed_tests) > 0
@@ -137,11 +139,14 @@ class SscannerTest(object):
             test.clean()
         print("done")
 
-    @staticmethod
-    def runTest(inst, case):
+    def runTest(self, args):
+        nr, case = args
+
+        with self.m_lock:
+            print("Starting test nr. ", nr, ": ", case.getLabel(), sep = '')
         case.run()
-        inst.m_running -= 1
-        print("Test {}/{} finished.".format(inst.m_testcount - inst.m_running, inst.m_testcount))
+        with self.m_lock:
+            print("Finished test nr.", nr)
 
     def printResults(self):
         tests = [item for testcase in self.m_testcases for item in testcase.getRuns()]
@@ -177,6 +182,13 @@ class TestCase(object):
             TestRun(os.path.join(self.dir, 'nocache'), self._getModeArguments() + self.arguments + ['--nocache'], False,
                     'nocache')
         ]
+
+    def getLabel(self):
+
+        args = ' '.join(self.arguments) if self.arguments else "<no args>"
+        args = '"{}"'.format(args)
+        where = "on " + self.remote if self.remote else "on local machine"
+        return args + " " + where
 
     def _getModeArguments(self):
         """Gets the mode arguments for this test."""
