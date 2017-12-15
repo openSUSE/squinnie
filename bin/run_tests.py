@@ -64,6 +64,9 @@ class SscannerTest(object):
         parser.add_argument("-d", "--directory", type=str, help=description,
                             default=tempfile.mkdtemp(prefix='sscanner-test'))
 
+        description = "Whether to run local tests (requires root access)"
+        parser.add_argument("-l", "--local", action='store_true', help=description)
+
         description = "The remote to use (root@some-vm). If empty, remote test will be skipped."
         parser.add_argument("-r", "--remote", type=str, help=description, default='')
 
@@ -75,12 +78,20 @@ class SscannerTest(object):
 
     def run(self, args=None):
         self.m_params = self.m_parser.parse_args(args=args)
+        self.checkParams()
         self.prepareTests()
         self.runTests()
         self.printResults()
         self.cleanUp()
 
+    def checkParams(self):
+
+        if not self.m_params.local and not self.m_params.remote:
+            print("Nothing to do (pass --local and/or --remote)")
+            exit(1)
+
     def prepareTests(self):
+        local = self.m_params.local
         remote = self.m_params.remote
         tdir = self.m_params.directory
         counter = 10
@@ -89,8 +100,9 @@ class SscannerTest(object):
             os.mkdir(tdir, 0o755)
 
         for variation in SscannerTest.PARAM_VARIATIONS:
-            self.m_testcases.append(TestCase(os.path.join(tdir, str(counter)), False, variation))
-            counter += 1
+            if local:
+                self.m_testcases.append(TestCase(os.path.join(tdir, str(counter)), None, variation))
+                counter += 1
             if remote:
                 self.m_testcases.append(TestCase(os.path.join(tdir, str(counter)), remote, variation))
                 counter += 1
