@@ -62,7 +62,7 @@ class SscannerTest(object):
 
         description = "The directory to store the testdata in. Defaults to a random directory in /tmp."
         parser.add_argument("-d", "--directory", type=str, help=description,
-                            default=tempfile.mkdtemp(prefix='sscanner-test'))
+                            default=None)
 
         description = "Whether to run local tests (requires root access)"
         parser.add_argument("-l", "--local", action='store_true', help=description)
@@ -89,6 +89,9 @@ class SscannerTest(object):
         if not self.m_params.local and not self.m_params.remote:
             print("Nothing to do (pass --local and/or --remote)")
             exit(1)
+
+        if self.m_params.directory == None:
+            self.m_params.directory = tempfile.mkdtemp(prefix='sscanner-test')
 
     def prepareTests(self):
         local = self.m_params.local
@@ -157,6 +160,8 @@ Failed: {}
         if amount_failed > 0:
             print("\nReports of failed tests:\n")
             print("\n--\n".join([str(test) for test in failed_tests]))
+
+        print("You can find the test logs in", self.m_params.directory)
 
 
 class TestCase(object):
