@@ -63,18 +63,27 @@ class DumpIO(object):
         Saves all dump data to the specified directory.
         :param data: The dumped data.
         """
+        self._createDumpDirIfItDoesNotExist()
+
+        # the filesystem needs to be handled in a special way as it's a database instead of a regular dump
+        if 'filesystem' in data:
+            self.writeOutFilesystem(data.pop('filesystem'))
+
         for category in data:
             self.writeCategory(category, data[category])
 
+    def writeOutFilesystem(self, data):
+        """
+        This helper writes out the filesystem database.
+        :param data: The fs data.
+        """
+        logging.debug("Inserting data into fs")
+        fsdb = FsDatabase(self.getDumpDir())
+        fsdb.insertRawData(data)
+        fsdb.close()
+
     def writeCategory(self, category, data):
         """This method writes a dump category to a file."""
-
-        if category == "filesystem":
-            logging.debug("Inserting data into fs")
-            fsdb = FsDatabase(self.getDumpDir())
-            fsdb.insertRawData(data)
-            fsdb.close()
-            return
 
         file_basename = helper.makeValidDirname(category)
         if file_basename != category:
