@@ -386,6 +386,16 @@ class Scanner(object):
 
         return properties
 
+    @staticmethod
+    def collectFilesystems():
+        """
+        Collect information about mounted filesystems from /etc/mtab
+        :return: A list of dicts, each describing a mountpoint
+        """
+        keys = ['device', 'mountpoint', 'type', 'options', 'dumpindex', 'fsckindex']
+        with open("/etc/mtab", "r") as f:
+            return [dict(zip(keys, line.strip().split())) for line in f.readlines()]
+
     def collectFilesystem(self):
         """Collects information about all file system objects and stores them
         in the self.m_filesystem dictionary."""
@@ -555,6 +565,7 @@ class Scanner(object):
                 pass
 
         result['sysconf'] = sysconf
+        result['mounts'] = Scanner.collectFilesystems()
         return result
 
 
