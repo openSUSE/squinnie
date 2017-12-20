@@ -390,8 +390,6 @@ class Scanner(object):
         """Collects information about all file system objects and stores them
         in the self.m_filesystem dictionary."""
 
-        # TODO: determine file system types and mount table
-
         # paths to exclude from the collection
         exclude = ["/.snapshots", "/proc", "/mounts", "/suse"]
 

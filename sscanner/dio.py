@@ -69,7 +69,6 @@ class DumpIO(object):
     def writeCategory(self, category, data):
         """This method writes a dump category to a file."""
 
-        # TODO: This should probably be split better
         if category == "filesystem":
             logging.debug("Inserting data into fs")
             fsdb = FsDatabase(self.getDumpDir())

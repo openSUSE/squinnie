@@ -16,8 +16,6 @@ This file contains the children for each existing process in the format `pid: [ 
 
 This file contains information on active and listening sockets for each network and socket protocol (tcp, udp for IPv4 and IPv6 as well as unix sockets).
 
-TODO: Describe the format of the table.
-
 ### parents.p.gz
 
 This file contains the parent pid for each process in the format `pid: parent`.
