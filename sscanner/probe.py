@@ -389,12 +389,32 @@ class Scanner(object):
     @staticmethod
     def collectFilesystems():
         """
-        Collect information about mounted filesystems from /etc/mtab
+        Collect information about mounted filesystems from /proc/self/mountinfo
         :return: A list of dicts, each describing a mountpoint
         """
-        keys = ['device', 'mountpoint', 'type', 'options', 'dumpindex', 'fsckindex']
-        with open("/etc/mtab", "r") as f:
-            return [dict(zip(keys, line.strip().split())) for line in f.readlines()]
+        # see man 5 proc for info about those fields
+        # super options are missing
+        keys = [
+            'mountid', 'parent', 'st_dev', 'root', 'mountpoint', 'options', 'type', 'device', 'fsckindex', 'fs_options'
+        ]
+        ret = []
+
+        with open("/proc/self/mountinfo", "r") as f:
+            for line in f.readlines():
+                data = line.strip().split()
+
+                # So, just to delight the people who write parsers for this file, the kernel has decided that mountinfo
+                # needs to contain several 'optional fields' which can be either be 0 or up to several. And, instead of
+                # putting those in the end, those are from position 7 (6 if zero-based) on and are delimited by a field
+                # containing only '-'. That's why parsing this file takes 20 lines instead of three.
+                separator_index = data.index('-')
+                optional_fields = dict([field.split(':', 1) for field in data[6:separator_index]])
+
+                dc = dict(zip(keys, data[:5] + data[separator_index:]))
+                dc['optional_fields'] = optional_fields
+                ret.append(dc)
+
+        return ret
 
     def collectFilesystem(self):
         """Collects information about all file system objects and stores them
