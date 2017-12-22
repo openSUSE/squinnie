@@ -45,6 +45,12 @@ class SystemData(object):
         """
         return float(self.m_ll_data.getData()['uptime'])
 
+    def getMountinfo(self):
+        """
+        Returns information about all mounted filesystems.
+        """
+        return self.m_ll_data.getData()['mounts']
+
     def getProcessUptime(self, ticks):
         """
         Returns the time a process has been running for in seconds.

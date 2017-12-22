@@ -63,6 +63,7 @@ class Scanner(object):
         self.m_libcap.cap_to_text.restype = ctypes.c_char_p
         self.m_have_root_priv = os.geteuid() == 0
         self.m_our_pid = os.getpid()
+        self.m_mqueue_fs = []  # list of mqueue mounts. This is required to determine mqueue file descriptors
 
     @staticmethod
     def getCmdline(pid, tid=None):
@@ -331,7 +332,8 @@ class Scanner(object):
             # for open file description information we have to look here
             try:
                 fields = dict()
-                fdinfo = "{dir}/{base}".format(dir = fdinfo_dir, base = fd_str)
+                fdinfo = "{dir}/{base}".format(dir=fdinfo_dir, base=fd_str)
+                fdpath = "{dir}/{base}".format(dir=fd_dir, base=fd_str)
                 with open(fdinfo, "r") as fi:
                     for line in fi:
                         key, value = [ p.strip() for p in line.split(':', 1) ]
@@ -346,6 +348,17 @@ class Scanner(object):
                     "file_flags": int(fields["flags"], 8),
                     "symlink": target,
                 }
+
+                # all mqueue symlinks look like '/test'
+                if os.path.dirname(target) == '/':
+
+                    # let's check if the linked file is on an mqueue file system
+                    st_dev = os.stat(fdpath).st_dev
+
+                    # we need to cast major/miner to string as it's parsed that way from mountinfo
+                    if (str(os.major(st_dev)), str(os.minor(st_dev))) in self.m_mqueue_fs:
+                        fd_data['queue'] = os.path.basename(target)
+
             except EnvironmentError as e:
                 # probably the file was closed in the meantime
                 continue
@@ -386,8 +399,7 @@ class Scanner(object):
 
         return properties
 
-    @staticmethod
-    def collectFilesystems():
+    def collectFilesystems(self):
         """
         Collect information about mounted filesystems from /proc/self/mountinfo
         :return: A list of dicts, each describing a mountpoint
@@ -413,6 +425,9 @@ class Scanner(object):
                 dc = dict(zip(keys, data[:5] + data[separator_index:]))
                 dc['optional_fields'] = optional_fields
                 ret.append(dc)
+
+                if dc['type'] == 'mqueue':
+                    self.m_mqueue_fs.append(tuple(dc['st_dev'].split(':', 1)))
 
         return ret
 
@@ -496,6 +511,9 @@ class Scanner(object):
 
         result = {}
 
+        # we need to collect the systemdata first in order to have the data for detecting mqueue sockets
+        result['systemdata'] = self.collectSystemData()
+
         self.collectProcessInfo()
         result["proc_data"] = self.m_proc_info["status"]
         result["parents"] = self.m_proc_info["parents"]
@@ -505,8 +523,6 @@ class Scanner(object):
             "uids": self.m_uid_map,
             "gids": self.m_gid_map
         }
-
-        result['systemdata'] = self.collectSystemData()
 
         result["networking"] = {}
         for prot in ("tcp", "tcp6", "udp", "udp6", "unix", "netlink", "packet"):
@@ -568,8 +584,7 @@ class Scanner(object):
 
             return data
 
-    @staticmethod
-    def collectSystemData():
+    def collectSystemData(self):
         result = {}
 
         with open("/proc/uptime", "r") as fi:
@@ -585,7 +600,7 @@ class Scanner(object):
                 pass
 
         result['sysconf'] = sysconf
-        result['mounts'] = Scanner.collectFilesystems()
+        result['mounts'] = self.collectFilesystems()
         return result
 
 
