@@ -58,6 +58,11 @@ class FileDescriptor(object):
         self.m_account_wrapper = daw_factory.getAccountWrapper()
         self.m_proc_wrapper = daw_factory.getProcWrapper()
         self.symlink = self.m_info["symlink"]
+
+        # since all paths a absolute, real paths start with / , but queues do as well
+        self.is_pseudo_file = not self.symlink.startswith('/') or 'queue' in self.m_info
+        self.is_queue = 'queue' in self.m_info
+
         self._extractInfo()
 
     def __lt__(self, other):
@@ -67,10 +72,11 @@ class FileDescriptor(object):
             return self.inode.__lt__(other.inode) if self.type != 'file' else self.fd_number.__lt__(other.fd_number)
 
     def _extractInfo(self):
-        # since all paths a absolute, real paths start with /
-        self.is_pseudo_file = not self.symlink.startswith('/')
 
-        if self.is_pseudo_file:
+        if self.is_queue:
+            self.type = 'queue'
+            self.inode = self.m_info['queue']
+        elif self.is_pseudo_file:
             self.type, self.inode = self.symlink.split(':', 1)
         else:
             self.type = 'file'
@@ -88,7 +94,7 @@ class FileDescriptor(object):
 
         # this is a string like "<type>:<value>", where <value> is either an
         # inode of the form "[num]" or a subtype field like "inotify".
-        _type, value = pseudo_label.split(':', 1)
+        _type, value = (self.type, self.inode)
         value = value.strip("[]")
 
         if _type == "pipe":
@@ -126,6 +132,19 @@ class FileDescriptor(object):
             # )
         elif _type == "anon_inode":
             result = "{}: {}".format(_type, value)
+        elif _type == "queue":
+            endpoints = self.m_proc_wrapper.getEndpointsForQueue(value)
+            fd = self.getFdFromEndpointDict(endpoints, self.m_pid)
+
+            result = "{} '{}' @fd {}".format(_type, value, fd)
+
+            for endpoint in endpoints:
+                if endpoint['pid'] != self.m_pid:
+                    # this adds a line for each other connected process, but cuts of long process names
+                    result += "\n{}--> {} [{} @fd {}]".format(' ' * (len(_type) + 2), endpoint['pid'],
+                                                              (endpoint['name'][:52] + '...') if endpoint['name'][
+                                                                                                 55:] else
+                                                              endpoint['name'].strip(), endpoint['fd'])
         else:
             raise Exception("Unexpected pseudo file type " + _type)
         return result

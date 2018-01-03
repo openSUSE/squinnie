@@ -88,6 +88,11 @@ class ProcessData(object):
         self.m_socket_connection_cache.buildIfNecessary(self.getProcData)
         return self.m_socket_connection_cache.getEndpointsForSocket(id)
 
+    def getEndpointsForQueue(self, id):
+        """Returns the endpoints for a pipe."""
+        self.m_socket_connection_cache.buildIfNecessary(self.getProcData)
+        return self.m_socket_connection_cache.getEndpointsForQueue(id)
+
     def getOtherPointOfPipe(self, pipe_id, pid):
         """Returns the first endpoint of a pipe which does not have the given pid."""
         self.m_socket_connection_cache.buildIfNecessary(self.getProcData)
@@ -106,6 +111,7 @@ class SocketCache:
     def __init__(self):
         self.m_pipes = None
         self.m_sockets = None
+        self.m_queues = None
 
     def isBuilt(self):
         return self.m_pipes is not None
@@ -119,6 +125,7 @@ class SocketCache:
         """Build the cache. The data should be the proc data."""
         self.m_pipes = {}
         self.m_sockets = {}
+        self.m_queues = {}
         logging.debug('Building pipe cache.')
 
         # loop each process
@@ -151,6 +158,18 @@ class SocketCache:
                         'name': '{} {}'.format(process_data['executable'], process_data['parameters']),
                         'fd': fd
                     })
+                elif 'queue' in fd_info:
+                    queue = fd_info['queue']
+
+                    if queue not in self.m_queues:
+                        self.m_queues[queue] = []
+
+                    self.m_queues[queue].append({
+                        'pid': pid,
+                        'name': '{} {}'.format(process_data['executable'], process_data['parameters']),
+                        'fd': fd
+                    })
+
 
     @staticmethod
     def extractInodeFromFdInfo(fd_info):
@@ -199,3 +218,7 @@ class SocketCache:
     def getEndpointsForSocket(self, id):
         """Returns the endpoints for a sockets."""
         return self.m_sockets[int(id)]
+
+    def getEndpointsForQueue(self, id):
+        """Returns the endpoints for a queue."""
+        return self.m_queues[id]
