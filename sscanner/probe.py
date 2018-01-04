@@ -189,6 +189,7 @@ class Scanner(object):
                 status_pid["cmdline"] = cmdline  # this value is needed to compare it with the threads
                 status_pid["root"] = os.path.realpath("/proc/{pid}/root".format(pid = p))
                 status_pid["open_files"] = self.getFdData(p)
+                status_pid["maps"] = self.getMapsForProcess(p)
 
                 status_pid['threads'] = self.getProcessedThreadInfosForProcess(p, field_transforms)
 
@@ -618,6 +619,33 @@ class Scanner(object):
                 })
 
         return ret
+
+    def getMapsForProcess(self, pid):
+        """
+        This helper reads and parses /dev/$PID/maps
+        :param pid: The PID of the process to check.
+        :return:
+        """
+        # see man 5 proc for info about those fields
+        # super options are missing
+        keys = [
+            'address', 'perms', 'offset', 'dev', 'inode', 'pathname'
+        ]
+        ret = []
+
+        with open("/proc/{pid}/maps".format(pid=pid), "r") as f:
+            for line in f.readlines():
+                data = line.strip().split()
+
+                # in case you wonder what this does: This takes the key array and the data array and makes an array of
+                # tuples from the values at the same index, i.e. [(key[0], data[0]), (key[1], data[1]) ... ]. This array
+                # can the be directly given to the dict constructor, which takes the first value of a tuple as key and
+                # the second as value. Therefore we're lazily generating a dict from the data with simply a key array :)
+                dc = dict(zip(keys, data))
+                ret.append(dc)
+
+        return ret
+
 
 def main():
     import argparse
