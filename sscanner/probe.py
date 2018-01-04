@@ -601,8 +601,23 @@ class Scanner(object):
 
         result['sysconf'] = sysconf
         result['mounts'] = self.collectFilesystems()
+        result['shm'] = self.collectShmData()
         return result
 
+    def collectShmData(self):
+        """
+        This class collects all the files in /dev/shm with inode.
+        :return:
+        """
+        ret = []
+        for shm in os.listdir('/dev/shm'):
+            if not os.path.isdir('/dev/shm/' + shm):
+                ret.append({
+                    "name": shm,
+                    "inode": os.stat('/dev/shm/' + shm).st_ino
+                })
+
+        return ret
 
 def main():
     import argparse
