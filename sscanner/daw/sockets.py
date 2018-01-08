@@ -34,14 +34,33 @@ class FdWrapper(object):
         self.m_fdinfo = fdinfo
         self.m_uid = uid
         self.m_gid = gid
+        self.m_daw_factory = daw_factory
         self.m_file_descriptors = [FileDescriptor(fd, pid, info, uid, gid, daw_factory) for fd, info in fdinfo.items()]
 
     def __str__(self):
         return self.toString()
 
     def toString(self, verbose=False):
-        lines = [fd.toString(verbose) for fd in sorted(self.m_file_descriptors)]
+        lines = [fd.toString(verbose) for fd in sorted(self.m_file_descriptors)] + self.getShm()
         return "\n".join(sorted(lines)) or ""
+
+    def getShm(self):
+        proc_wrapper = self.m_daw_factory.getProcWrapper()
+        endpoints = proc_wrapper.getShmsForPid(self.m_pid)
+        lines = []
+
+        for inode, shm in endpoints.items():
+            result = "shm '{}'".format(shm['name'])
+
+            for pid, endpoint in shm['pids'].items():
+                if pid != self.m_pid:
+                    # this adds a line for each other connected process, but cuts of long process names
+                    logging.debug(endpoint)
+                    result += "\n  --> {} [{}]".format(endpoint['pid'],
+                                                  (endpoint['name'][:52] + '...') if endpoint['name'][55:]
+                                                  else endpoint['name'].strip())
+            lines.append(result)
+        return lines
 
 
 @total_ordering
