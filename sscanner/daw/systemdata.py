@@ -63,3 +63,21 @@ class SystemData(object):
 
         # so now, we need to substract the starttime from the uptime to get the actual runtime
         return self.getSystemUptime() - seconds_at_start
+
+    def getShmData(self):
+        """
+        Returns the shm data as dict array with inode and names.
+        :return:
+        """
+        return self.m_ll_data.getData()['shm']
+
+    def getNameForShmInode(self, inode):
+        """
+        Returns the name of a shm or semaphore in /dev/shm by inode.
+        :param inode: The inode to search for.
+        :return: The name as a string.
+        """
+        for item in self.getShmData():
+            if item['inode'] == int(inode):
+                return item['name']
+        return None

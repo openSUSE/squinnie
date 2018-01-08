@@ -36,6 +36,7 @@ class ProcessData(object):
         self.m_ll_parents = CategoryLoader("parents", self.m_dumpIO)
         self.m_daw_factory = factory
         self.m_socket_connection_cache = SocketCache()
+        self.m_shm_cache = ShmCache()
 
     def getProcData(self):
         """Return general process data."""
@@ -103,6 +104,16 @@ class ProcessData(object):
 
     def getRuntimeOfProcess(self, pid):
         return self.m_daw_factory.getSystemDataWrapper().getProcessUptime(self.getProcessInfo(pid)['starttime'])
+
+    def getShmsForPid(self, pid):
+        """
+        Returns all shm entries a pid has.
+        :param pid: The pid to search for.
+        :return:
+        """
+        self.m_shm_cache.buildIfNecessary(self.getProcData,
+                                          lambda: self.m_daw_factory.getSystemDataWrapper().getShmData())
+        return self.m_shm_cache.getShmsForPid(pid)
 
 
 class SocketCache:
@@ -222,3 +233,43 @@ class SocketCache:
     def getEndpointsForQueue(self, id):
         """Returns the endpoints for a queue."""
         return self.m_queues[id]
+
+
+class ShmCache:
+    """This class saves the connection endpoints for all pipes and sockets."""
+
+    def __init__(self):
+        self.m_shm = None
+
+    def isBuilt(self):
+        return self.m_shm is not None
+
+    def buildIfNecessary(self, proc_source, shm_source):
+        """Build the cache if necessary. data_source must be a lambda that supplies the data."""
+        if not self.isBuilt():
+            self.build(proc_source(), shm_source())
+
+    def build(self, procdata, shmdata):
+        """Build the cache. The data should be the proc data."""
+        self.m_shm = dict([(int(data['inode']), {
+            'name': data['name'],
+            'inode': data['inode'],
+            'pids': {}
+        }) for data in shmdata])
+        logging.debug('Building shm cache.')
+
+        for pid, process_data in procdata.items():
+            for map in process_data['maps']:
+                if int(map['inode']) in self.m_shm:
+                    self.m_shm[int(map['inode'])]['pids'][pid] = {
+                        'pid': pid,
+                        'name': '{} {}'.format(process_data['executable'], process_data['parameters']),
+                    }
+
+    def getShmsForPid(self, pid):
+        """
+        Returns all shm entries a pid has.
+        :param pid: The pid to search for.
+        :return:
+        """
+        return dict([(inode, shm) for inode, shm in self.m_shm.items() if (pid in shm['pids'])])
