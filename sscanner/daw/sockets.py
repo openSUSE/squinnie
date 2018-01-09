@@ -50,7 +50,12 @@ class FdWrapper(object):
         lines = []
 
         for inode, shm in endpoints.items():
-            result = "shm '{}'".format(shm['name'])
+            type = 'shm'
+            if shm['name'].startswith('sem.'):
+                shm['name'] = shm['name'][4:]  # strip the sem. prefix
+                type = 'semaphore'
+
+            result = "{}: '{}'".format(type, shm['name'])
 
             for pid, endpoint in shm['pids'].items():
                 if pid != self.m_pid:
