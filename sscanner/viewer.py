@@ -760,6 +760,10 @@ class Viewer(object):
         output = []
 
         for tid, tdata in data['threads'].items():
+            # we don't show the main thread as it's attributes are the same as those of the process
+            if int(tid) == int(pid):
+                continue
+
             # check if any values are different
             highlight_cols = []
             for column, key in comparison_keys.items():
