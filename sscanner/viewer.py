@@ -781,6 +781,8 @@ class Viewer(object):
                         tmp = self.formatColumnValue(column, tid, tdata, cap_color='magenta')
                         if column in highlight_cols:
                             tmp = termcolor.colored(tmp, 'magenta')
+                        else:  # unimportant values are not shown
+                            tmp = termcolor.colored('*', 'white')
 
                     line.append(tmp)
                 output.append(line)
