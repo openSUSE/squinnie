@@ -27,6 +27,7 @@ import os
 import stat
 import subprocess
 import logging
+import textwrap
 from collections import OrderedDict
 # Local modules.
 import sscanner.cap_translator as cap_translator
@@ -366,7 +367,19 @@ class Viewer(object):
                 else:
                     group_label = account_wrapper.getNameForGid(groupid)
                 groups.add(group_label)
-            result = "|".join([str(x) for x in groups])
+
+            groups = list(groups)
+            # wrap around long group lines by not having more than four groups
+            # on a line
+            result = ""
+            for i in range(len(groups)):
+                if i != 0:
+                    result += "|"
+                    result += "\n" if (i % 4) == 0 else ""
+                result += str(groups[i])
+
+            result = result.rstrip("|")
+
             if not all_gids_equal:
                 result = self.getColored(result)
 
@@ -417,11 +430,10 @@ class Viewer(object):
                 result = "\n".join(new_cap_list)
 
         elif column in (ProcColumns.executable, ProcColumns.parameters):
-            # don't show excess length parameters, only a prefix
+            # split up process command lines to avoid excess length columns
             max_len = 40
-            cmdline = pid_data[column_label]
-            cmdline_chunks = [cmdline[i:i + max_len] for i in range(0, len(cmdline), max_len)]
-            result = "\n".join(cmdline_chunks)
+            text = pid_data[column_label]
+            result = textwrap.fill(text, width = max_len)
 
         elif column == ProcColumns.open_fds:
             if "open_files" not in pid_data:
