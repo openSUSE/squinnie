@@ -517,6 +517,21 @@ class Viewer(object):
     def printProcessTree(self):
         """Prints a complete process tree according to currently active view
         settings."""
+
+        def excludeProcColumn(column):
+            """Returns a boolean whether the given column index should be
+            excluded from the view according to command line arguments."""
+            label = ProcColumns.getLabel(column)
+
+            if label in self.m_excluded:
+                print(label, "excluded")
+                return True
+            elif self.m_included and label not in self.m_included:
+                print(label, "not included")
+                return True
+
+            return False
+
         proc_wrapper = self.m_daw_factory.getProcWrapper()
 
         num_procs = proc_wrapper.getProcessCount()
@@ -543,6 +558,9 @@ class Viewer(object):
             column_values = list(table[column].values())
             if len(set(column_values)) == 1 and column_values[0] == "":
                 to_remove.add(column)
+            elif excludeProcColumn(column):
+                to_remove.add(column)
+                continue
 
         # These values are generally uninteresting
         to_remove.add(ProcColumns.cap_ambient)
