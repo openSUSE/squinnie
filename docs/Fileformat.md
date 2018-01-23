@@ -97,6 +97,10 @@ This is a collection of some data static to the systems as a dict with four keys
   *device* (the mounted device), *fsckindex*, *mountid*, *mountpoint*, *optional_fields*, *options*, *parent*, *root* and *st_dev*.
   The data is from `/proc/$$/mounts`, more info can be found in `man 5 fstab`.
 
+### sysvipc.p.gz
+
+This file contains data on SystemV IPC communication. It is a dict containing data on the three types there are, *msg*, *sem* and *shm*. Each category is an array of dicts. The name of the details is the same as in the structs; more infos can be found in `man svipc`.
+
 ### userdata.p.gz
 
 This file contains the names for each user and group matched to uid/gid. It looks like this:
