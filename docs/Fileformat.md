@@ -8,10 +8,6 @@ The data is saved in the directory given via `-d`, which will contain a subdirec
 
 ## The different files
 
-### children.p.gz
-
-This file contains the children for each existing process in the format `pid: [ childpid, childpid, ... ]`.
-
 ### networking.p.gz
 
 This file contains information on active and listening sockets for each network and socket protocol (tcp, udp for IPv4 and IPv6 as well as unix sockets). The file itself is a dict of protocols. 
