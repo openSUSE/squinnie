@@ -119,7 +119,7 @@ This file contains the names for each user and group matched to uid/gid. It look
 
 ### filesystem.db
 
-This is an sqlite3 database for storing the filesystem. It has a single table called `inodes` which contains all files and directories. It has the following columns:
+This is an sqlite3 database for storing the filesystem. It has a table called `inodes` which contains all files and directories. It has the following columns:
 
 - `id`: The primary key, replacing `rowid`.
 - `parent`: The id of the directory the file/directory/... is contained in.
@@ -130,4 +130,8 @@ This is an sqlite3 database for storing the filesystem. It has a single table ca
 - `name`: The filename.
 - `path`: The path to the file with leading slash and without filename or trailing slash. This can in theory be reconstructed by recursively querying the parents, but having this field makes the queries a lot easier.
 
+There is also a table describing symlinks in the filesystem with the following structure:
 
+- `id`: The primary key, replacing `rowid`.
+- `name`: The full path of the link without trailing slash; i.e. `/lib/udev`.
+- `target`: The full path of the target of the link without trailing slash; i.e. `/usr/lib/udev`.
