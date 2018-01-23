@@ -32,16 +32,30 @@ This file contains the parent pid for each process in the format `pid: parent`.
 The data for each process in the format `pid: { data, ... }`. Example data for a process:
 
 ```
-  22849: { 'CapAmb': 0,
+  22849: { 'CapAmb': 0,  # the capabilities the process has
            'CapBnd': 274877906943,
            'CapEff': 274877906943,
            'CapInh': 0,
            'CapPrm': 274877906943,
-           'Gid': (0, 0, 0, 0),
+           'Gid': (0, 0, 0, 0),  # the process gids
            'Groups': [],
            'Seccomp': False,
-           'Uid': (0, 0, 0, 0),
-           'executable': '/sbin/dhclient',
+           'Uid': (0, 0, 0, 0),  # the process uids
+           'cmdline': '/usr/lib/systemd/systemd\x00--switched-root',  # the cmdline as found in /proc/$pid/cmdline
+           'executable': '/sbin/dhclient',  # the name of the executable
+           # the memory mappings as found in the /proc/$pid/maps file
+           'maps': [ { 'address': '557b4df66000-557b4e0c8000',
+                   'dev': '00:27',
+                   'inode': '374429',
+                   'offset': '00000000',
+                   'pathname': '/usr/lib/systemd/systemd',
+                   'perms': 'r-xp'},
+                 { 'address': '557b4e2c8000-557b4e2ea000',
+                   'dev': '00:27',
+                   'inode': '374429',
+                   'offset': '00162000',
+                   'pathname': '/usr/lib/systemd/systemd',
+                   'perms': 'r--p'}, ... ]
            'open_files': { '0': {...},
                            '1': {...},
                            '2': {...},
@@ -51,8 +65,28 @@ The data for each process in the format `pid: { data, ... }`. Example data for a
                            '4': {...},
                            '5': {...},
                            '6': {...}},
-           'parameters': '-d -q -sf /usr/lib/nm-dhcp-helper -pf /var/run/dhclient-eth0.pid -lf /var/lib/NetworkManager/dhclient-12345-eth0.lease -cf /var/lib/NetworkManager/dhclient-eth0.c' }
-```
+           'parameters': '-d -q -sf /usr/lib/nm-dhcp-helper -pf /var/run/dhclient-eth0.pid -lf /var/lib/NetworkManager/dhclient-12345-eth0.lease -cf /var/lib/NetworkManager/dhclient-eth0.c',  # commandline parameters
+           'parent': 0,  # pid of the parent process
+           'pgroup': '1',(  # the process group
+           'root': '/',  # the root (can be different if in chroot
+           'session': '1',
+           'starttime': '8',  # when the process started (ms since boot)
+           # this is a dict of all threads the process has. The key is the thread id.
+           # threads have a subset of the parameters a process has
+           'threads': { '1': { 'CapAmb': 0,
+                           'CapBnd': 274877906943,
+                           'CapEff': 274877906943,
+                           'CapInh': 0,
+                           'CapPrm': 274877906943,
+                           'Gid': (...),
+                           'Groups': [],
+                           'Seccomp': False,
+                           'Uid': (...),
+                           'cmdline': '/usr/lib/systemd/systemd\x00--switched-root\x00--system\x00--deserialize\x0024\x00',
+                           'executable': '/usr/lib/systemd/systemd',
+                           'parameters': '--switched-root --system --deserialize 24 '}}}, ```
+
+If the kernel is new enough, the umask will be included as well.
 
 ### userdata.p.gz
 
