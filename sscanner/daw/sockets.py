@@ -423,6 +423,7 @@ class NetworkEndpoint(object):
 class Netlink(object):
     """This class provides some information related to netlink sockets."""
 
+    # as found in /usr/include/linux/netlink.h
     NETLINK_SUBPROTOCOLS = {
         0: 'NETLINK_ROUTE',
         1: 'NETLINK_UNUSED',
