@@ -89,6 +89,14 @@ The data for each process in the format `pid: { data, ... }`. Example data for a
 
 If the kernel is new enough, the umask will be included as well.
 
+### systemdata.p.gz
+
+This is a collection of some data static to the systems as a dict with four keys:
+
+- *mounts*: This is a list of all mountpoints the system has. Each mountpoint is a dict with several keys:
+  *device* (the mounted device), *fsckindex*, *mountid*, *mountpoint*, *optional_fields*, *options*, *parent*, *root* and *st_dev*.
+  The data is from `/proc/$$/mounts`, more info can be found in `man 5 fstab`.
+
 ### userdata.p.gz
 
 This file contains the names for each user and group matched to uid/gid. It looks like this:
