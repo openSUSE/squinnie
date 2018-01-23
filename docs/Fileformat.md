@@ -84,7 +84,8 @@ The data for each process in the format `pid: { data, ... }`. Example data for a
                            'Uid': (...),
                            'cmdline': '/usr/lib/systemd/systemd\x00--switched-root\x00--system\x00--deserialize\x0024\x00',
                            'executable': '/usr/lib/systemd/systemd',
-                           'parameters': '--switched-root --system --deserialize 24 '}}}, ```
+                           'parameters': '--switched-root --system --deserialize 24 '}}},
+```
 
 If the kernel is new enough, the umask will be included as well.
 
