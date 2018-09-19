@@ -30,7 +30,6 @@ import os
 # local modules
 import sscanner.helper
 import sscanner.probe
-import sscanner.enrich
 import sscanner.network_config
 from sscanner.dio import DumpIO
 from sscanner.errors import ScannerError
