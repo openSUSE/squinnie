@@ -622,7 +622,7 @@ class Scanner(object):
 
     def getMapsForProcess(self, pid):
         """
-        This helper reads and parses /dev/$PID/maps
+        This helper reads and parses /proc/$PID/maps
         :param pid: The PID of the process to check.
         :return:
         """
@@ -639,7 +639,7 @@ class Scanner(object):
 
                 # in case you wonder what this does: This takes the key array and the data array and makes an array of
                 # tuples from the values at the same index, i.e. [(key[0], data[0]), (key[1], data[1]) ... ]. This array
-                # can the be directly given to the dict constructor, which takes the first value of a tuple as key and
+                # can then be directly given to the dict constructor, which takes the first value of a tuple as key and
                 # the second as value. Therefore we're lazily generating a dict from the data with simply a key array :)
                 dc = dict(zip(keys, data))
                 ret.append(dc)

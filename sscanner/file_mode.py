@@ -97,7 +97,7 @@ def getTypeLabel(mode):
     elif stat.S_ISBLK(mode):
         return "block special device file"
     else:
-        return "unkn(own/undetermined"
+        return "unknown/undetermined"
 
 
 def getTypeChar(mode):
