@@ -1,7 +1,9 @@
 #!/usr/bin/env python2
 # vim: ts=4 et sw=4 sts=4 :
 
-# dumphelper.py - this program prints the contents of a dumpfile via sscanner.helper
+# security scanner - scan a system's security related information
+# this program prints the contents of a dumpfile
+
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
 # Author: Sebastian Kaim

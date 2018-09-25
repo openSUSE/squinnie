@@ -2,6 +2,8 @@
 # vim: ts=4 et sw=4 sts=4 :
 
 # security scanner - scan a system's security related information
+# contains different supporting methods mainly around pickle
+
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
 # Authors: Matthias Gerstner, Sebastian Kaim
@@ -42,8 +44,11 @@ def eprint(*args, **kwargs):
 
 
 def missingModule(which=None, ex=None):
-    """Prints an error message about a missing module and exits."""
-
+    """
+    Prints an error message about a missing module and exits.
+    :param string which: name of the missing module
+    :param exception ex: exception thrown
+    """
     if which is None:
         which = ex.message.split()[-1]
 
@@ -149,8 +154,8 @@ def readPickle(path=None, fileobj=None):
 
 def executeMain(call):
     """Runs the given function call wrapped in try/except clauses that provide
-    sensible error handling and output."""
-
+    sensible error handling and output.
+    """
     try:
         import termcolor
         from . import errors

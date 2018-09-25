@@ -1,6 +1,7 @@
 # vim: ts=4 et sw=4 sts=4 :
 
 # security scanner - scan a system's security related information
+
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
 # Author:     Benjamin Deuter
@@ -78,7 +79,6 @@ else:
 
 def getTypeLabel(mode):
     """Returns a label for the file type found in ``mode``."""
-
     if mode is None:
         return "!MODEERROR!"
 
@@ -101,8 +101,9 @@ def getTypeLabel(mode):
 
 
 def getTypeChar(mode):
-    """Returns a char for the file type found in ``mode``. The characters are from ``man 1p ls``."""
-
+    """Returns a char for the file type found in ``mode``. The
+    characters are from ``man 1p ls``.
+    """
     if mode is None:
         return "?"
 
@@ -147,7 +148,6 @@ def permReadable(file_perm):
     Get access permission as integer
     Output boolean whether access permissions grant read access
     """
-
     return (file_perm & 4) != 0
 
 
@@ -159,7 +159,6 @@ def canAccessFile(user_perms, file_perms, file_mode):
     :param dict file_perms: For example {"Uid": 378, "Gid": 547}
     :param dict file_mode: For example {"Uid": 123, "Gid": 456, "other": 789}
     """
-
     # uid
     if file_perms["Uid"] == user_perms["Uid"]:
         if permReadable(file_mode["Uid"]):
@@ -180,7 +179,8 @@ def canAccessFile(user_perms, file_perms, file_mode):
 
 def getFdFlagLabels(flags):
     """Returns a list of labels corresponding to the file descriptors
-    flags."""
+    flags.
+    """
     result = []
 
     # Only available since Python 3.3

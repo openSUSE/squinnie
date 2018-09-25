@@ -33,7 +33,11 @@ class NetworkConfig(object):
         return self.m_network
 
     def save(self, path):
-
+        """
+        Saves network information from member variable to disk 
+        :param string path: path to output file
+        stored to
+        """
         try:
             with open(path, "w") as fi:
                 json.dump(self.m_network, fi, indent=4, sort_keys=True)
@@ -41,7 +45,12 @@ class NetworkConfig(object):
             raise Exception("Failed to write JSON network configuration to {}: {}".format(path, str(e)))
 
     def load(self, path):
-
+        """
+        Loads network information from disk to member variable
+        :param string path: path of the file the network information is
+        read from
+        :return dictionary: The JSON encoded network information
+        """
         try:
             with open(path, "r") as fi:
                 self.m_network = json.load(fi, object_pairs_hook=OrderedDict)

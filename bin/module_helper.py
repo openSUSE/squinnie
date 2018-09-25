@@ -2,6 +2,9 @@
 # vim: ts=4 et sw=4 sts=4 :
 
 # security scanner - scan a system's security related information
+# helper module to execute security scanner programs without having to
+# fully install the accompanying python modules
+
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
 # Author: Sebastian Kaim
@@ -28,7 +31,10 @@ import pkgutil
 
 
 def tryFindModule(module):
-    """Adds .. to the current module path, tries to import $module and exits if it is not found."""
+    """
+    Adds .. to the current module path, tries to import $module and
+    exits if it is not found.
+    """
     # get the full path of the parent directory and append the name
     parent_dir = os.path.realpath(os.path.dirname(os.path.dirname(__file__)))
     sys.path.append(parent_dir)

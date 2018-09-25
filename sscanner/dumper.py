@@ -2,6 +2,7 @@
 # vim: ts=4 et sw=4 sts=4 :
 
 # security scanner - scan a system's security related information
+
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
 # Author: Benjamin Deuter, Sebastian Kaim
@@ -48,7 +49,8 @@ class Dumper(object):
     needs to be specialized to actually work.
 
     By contract a collect() method needs to be implemented like done in
-    SshDumper and LocalDumper."""
+    SshDumper and LocalDumper.
+    """
 
     def __init__(self):
 
@@ -63,7 +65,8 @@ class Dumper(object):
 
     def printCachedDumps(self):
         """Prints an informational line for each dump that was not freshly
-        collected due to caching."""
+        collected due to caching.
+        """
         if not self.m_use_cache:
             return
 
@@ -74,13 +77,14 @@ class Dumper(object):
     def getNodeData(self):
         """Returns the currently collected node data. Only valid after a call
         to collect(). The returned data is a list of dictionaries describing
-        each individual node dump."""
+        each individual node dump.
+        """
         return self.m_nodes
 
     def save(self):
         """Save collected node dumps in their respective dump files, if
-        they're not cached."""
-
+        they're not cached.
+        """
         for config in self.m_nodes:
             if config['cached']:
                 continue
@@ -107,8 +111,8 @@ class Dumper(object):
 
     def _discardCachedDumps(self):
         """Discards any cached dump files for the nodes currently setup in
-        self.m_nodes"""
-
+        self.m_nodes
+        """
         for config in self.m_nodes:
 
             if config['cached']:
@@ -118,8 +122,8 @@ class Dumper(object):
 
     def _loadCachedDumps(self):
         """Loads any dumps for nodes in self.m_nodes that are marked as cached
-        from their respective dump file paths."""
-
+        from their respective dump file paths.
+        """
         for config in self.m_nodes:
 
             if not config['cached'] or 'data' in config:
@@ -137,7 +141,6 @@ class Dumper(object):
         """Stores a list in self.m_nodes containing dictionaries describing
         the nodes and their respective dump paths for future operations.
         """
-
         self.m_nodes = []
 
         for node, parent in node_list:
@@ -161,14 +164,16 @@ class SshDumper(Dumper):
 
     def setNetworkConfig(self, nc):
         """Set an already existing network configuration dictionary for futher
-        use during collect()."""
+        use during collect().
+        """
         self.m_network = nc
         import pprint
         logging.debug("been set network network: {}".format(pprint.pformat(nc)))
 
     def loadNetworkConfig(self, file_name):
         """Reads the target network configuration from the given JSON file and
-        stores it in the object for further use during collect()."""
+        stores it in the object for further use during collect().
+        """
         self.m_network = sscanner.network_config.NetworkConfig().load(file_name)
         import pprint
         logging.debug("Parsing network: {}".format(pprint.pformat(self.m_network)))
@@ -199,7 +204,8 @@ class SshDumper(Dumper):
     def _getNetworkNodes(self):
         """Flattens the nodes found in self.m_network and returns them as a
         list of (node, parent), where parent is an optional jump host to reach
-        the node."""
+        the node.
+        """
         ret = []
         for hop, network in self.m_network.items():
             ret.append((hop, None))
@@ -209,7 +215,8 @@ class SshDumper(Dumper):
 
     def _getExecnetGateway(self, node, via):
         """Returns a configuration string for execnet's makegatway() function
-        for dumping the given node."""
+        for dumping the given node.
+        """
         data = {
             "ssh": "root@{}".format(node) if "@" not in node else node,
             "id": "{}".format(node),
@@ -251,8 +258,8 @@ class LocalDumper(Dumper):
     def collect(self, load_cached):
         """See SshDumper.collect(), only this variant will only collect from
         the localhost, possibly involving a call to 'sudo' if root permissions
-        are missing."""
-
+        are missing.
+        """
         if not self.m_outdir:
             raise ScannerError("Missing output directory")
 
@@ -277,12 +284,17 @@ class LocalDumper(Dumper):
 
     def _getLocalNode(self):
         """Returns a node list containing just the localhost for local
-        dumping."""
+        dumping.
+        """
         import socket
         node = socket.gethostname()
         return [(node, None)]
 
     def _subprocessCollect(self, use_sudo=True):
+        """
+        calls the standalone scanning script as subprocess
+        :return: node-data from Pickle
+        """
         import subprocess
 
         # gzip has a bug in python2, it can't stream, because it tries
