@@ -1,0 +1,21 @@
+{
+    "ALLMULTI": 9, 
+    "AUTOMEDIA": 14, 
+    "BROADCAST": 1, 
+    "DEBUG": 2, 
+    "DORMANT": 17, 
+    "DYNAMIC": 15, 
+    "ECHO": 18, 
+    "LOOPBACK": 3, 
+    "LOWER_UP": 16, 
+    "MASTER": 10, 
+    "MULTICAST": 12, 
+    "NOARP": 7, 
+    "NOTRAILERS": 5, 
+    "POINTOPOINT": 4, 
+    "PORTSEL": 13, 
+    "PROMISC": 8, 
+    "RUNNING": 6, 
+    "SLAVE": 11, 
+    "UP": 0
+}
