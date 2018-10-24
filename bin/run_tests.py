@@ -2,6 +2,9 @@
 # vim: ts=4 et sw=4 sts=4 :
 
 # security scanner - scan a system's security related information
+# tests the security scanner with different parameters on local and/or
+# remote hosts
+
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
 # Author: Benjamin Deuter, Sebastian Kaim
@@ -34,6 +37,7 @@ SSCANNER_PATH = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'secur
 
 class SscannerTest(object):
 
+    # The different parameters the tests will run with
     PARAM_VARIATIONS = [
         [],  # default - show processes
         ['--params'],  # show processes w/ parameters
@@ -89,6 +93,7 @@ class SscannerTest(object):
             self.m_params.directory = tempfile.mkdtemp(prefix='sscanner-test')
 
     def prepareTests(self):
+        """Appends the test-parameters to member variable"""
         local = self.m_params.local
         remote = self.m_params.remote
         tdir = self.m_params.directory
@@ -170,7 +175,10 @@ Failed: {}
 
 
 class TestCase(object):
-    """This class represents a Testcase with a cached, an uncached and a --nocache run."""
+    """
+    This class represents a Testcase with a cached, an uncached and a
+    --nocache run.
+    """
 
     def __init__(self, directory, remote, arguments):
         self.dir = directory
@@ -212,9 +220,11 @@ class TestCase(object):
         for test in self.tests:
             test.clean()
 
-
 class TestRun(object):
-    """This class represents a run of the scanner."""
+    """
+    This class represents a run of the scanner, running the actual tests.
+    """
+
     def __init__(self, dir, arguments, cached, name):
         self.ran = False
         self.exitcode = 0
@@ -227,6 +237,9 @@ class TestRun(object):
         self.m_arguments = ['-d', self.cachedir] + arguments
 
     def run(self):
+        """
+        running security scanner with parameters and output to logfile
+        """
         if not os.path.exists(self.dir):
             os.mkdir(self.dir, 0o755)
 

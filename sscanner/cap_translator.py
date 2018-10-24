@@ -2,6 +2,8 @@
 # vim: ts=4 et sw=4 sts=4 :
 
 # security scanner - scan a system's security related information
+# helper functions for accessing capability name and bit value information
+
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
 # Author:     Benjamin Deuter
@@ -37,10 +39,13 @@ class CapTranslator(object):
         self.cap_data = self.getCapData()
 
     def isBitSet(self, val, n):
+        # check if the n-th bit is set in val
         return 0 != val & (1 << n)
 
     def getCapStrings(self, cap_integer):
-
+        """
+        returns capfile-data as an array
+        """
         result = []
 
         for cap_name, index in self.cap_data.items():

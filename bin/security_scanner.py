@@ -2,6 +2,7 @@
 # vim: ts=4 et sw=4 sts=4 :
 
 # security scanner - scan a system's security related information
+
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
 # Author: Benjamin Deuter, Sebastian Kaim
@@ -54,7 +55,9 @@ class SecurityScanner(object):
         self.setupParser()
 
     def setupParser(self):
-
+        """
+        Sets available command-line arguments and parses them via argparse
+        """
         description = "Main security scanner tool. Collect and display security data of local and remote hosts."
         parser = argparse.ArgumentParser(description=description)
 
@@ -113,7 +116,7 @@ class SecurityScanner(object):
         self.m_parser = parser
 
     def _checkDirectoryArg(self):
-
+        """Creates temp directory, if none is specified"""
         self.m_discard_data = False
 
         if not self.m_args.directory:
@@ -145,8 +148,8 @@ class SecurityScanner(object):
 
     def _collectDumps(self):
         """Collects the node dumps according to the selected mode and cached
-        data use. The result is stored in self.m_node_data"""
-
+        data use. The result is stored in self.m_node_data
+        """
         if self.m_args.mode == Modes.susecloud:
             dumper = sscanner.dumper.SshDumper()
             nwconfig_path = self.m_args.network
@@ -162,11 +165,14 @@ class SecurityScanner(object):
 
             nwconfig = crowbar.loadNetworkInfo()
             dumper.setNetworkConfig(crowbar.getNetworkInfo())
+
         elif self.m_args.mode == Modes.ssh:
             dumper = sscanner.dumper.SshDumper()
             dumper.setNetworkConfig({self.m_args.entry: []})
+
         elif self.m_args.mode == Modes.local:
             dumper = sscanner.dumper.LocalDumper()
+
 
         dumper.setOutputDir(self.m_args.directory)
         dumper.setUseCache(not self.m_args.nocache)
@@ -178,8 +184,8 @@ class SecurityScanner(object):
 
     def _viewData(self):
         """Performs the view operation according to command line parameters.
-        The node data needs to have been collected for this to work."""
-
+        The node data needs to have been collected for this to work.
+        """
         # iterate over only the single node or all nodes depending on mode and
         # command line switches
         # nodes = self.m_node_data if self.m_args.all else [ self.m_node_data[0] ]
@@ -210,8 +216,8 @@ class SecurityScanner(object):
 
     def _collectScannerArguments(self):
         """
-        This helper method collects parameters from the command line and from the SECURITY_SCANNER environment variable
-        and combines them.
+        This helper method collects parameters from the command line and
+        from the SECURITY_SCANNER environment variable and combines them.
         :return: An array of arguments.
         """
         command_line_args = sys.argv[1:]  # skip $0 from the command line parameters

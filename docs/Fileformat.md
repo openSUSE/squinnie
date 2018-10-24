@@ -14,7 +14,7 @@ This file contains information on active and listening sockets for each network 
 
 The structure of the protocols is as following:
 
-- *tcp*, *tcp6*, *udp* & *udp6*: `inode: [[local ip in hex, local port in hex], [remote ipor zero in hex, remote port or zero in hex`
+- *tcp*, *tcp6*, *udp* & *udp6*: `inode: [[local ip in hex, local port in hex], [remote ip or zero in hex, remote port or zero in hex`
 - *netlink*: dict of `inode: type`, where type is the type of the socket as found in `/usr/include/linux/netlink.h`.
 - *unix*: a dict of the format `inode: location`, where location is the location in the filesystem. The location might be prefixed with an `@` or empty if it's not a filesystem socket.
 - *packet*: a dict in the format `inode: array of netlink attributes`. The attributes are ordered in the way they are found in `/proc/net/packet`. The headers are included in the file; they are _k, RefCnt, Type, Proto, Iface, R, Rmem, User, Inode_.

@@ -2,6 +2,9 @@
 # vim: ts=4 et sw=4 sts=4 :
 
 # security scanner - scan a system's security related information
+# get available names and corresponding bit values from C headers and
+# store it in a JSON encoded format
+
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
 # Author:     Benjamin Deuter
@@ -62,6 +65,8 @@ def main():
 
     assert file_data
 
+    # read all system-available capabilities from the input file into the dictionary
+
     regex = re.compile("#define (CAP_[A-Z_]+)\s+(\d+)", re.MULTILINE)
 
     cap_data = OrderedDict()
@@ -73,6 +78,7 @@ def main():
     if not cap_data:
         exit("No capability information found in {}".format(in_path))
 
+    # writes cap_data dictionary to output file in JSON encoded format
     try:
         with open(args.output, "w") as fi:
             json.dump(cap_data, fi, indent=4, sort_keys=True)

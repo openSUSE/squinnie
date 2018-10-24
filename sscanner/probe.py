@@ -2,6 +2,7 @@
 # vim: ts=4 et sw=4 sts=4 :
 
 # security scanner - scan a system's security related information
+
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
 # Author: Benjamin Deuter, Sebastian Kaim
@@ -68,7 +69,8 @@ class Scanner(object):
     @staticmethod
     def getCmdline(pid, tid=None):
         """Returns a tuple (cmdline, [parameters], full_cmdline) representing the command line belonging to the given
-        process with PID pid. If tid is given, the command line of the thread with tid will be returned"""
+        process with PID pid. If tid is given, the command line of the thread with tid will be returned.
+        """
         path = "/proc/{pid}{task}/cmdline".format(pid=pid, task="/task/{id}".format(id=tid) if tid is not None else '')
         with open(path, "r") as fi:
             cmdline_str = fi.read().strip()
@@ -98,8 +100,8 @@ class Scanner(object):
     def collectUserGroupMappings(self):
         """Collects dictionaries in self.m_uid_map and self.m_gid_map
         containing the name->id mappings of users and groups found in the
-        system."""
-
+        system.
+        """
         import pwd
         import grp
 
@@ -114,8 +116,9 @@ class Scanner(object):
 
     def collectProtocolInfo(self, protocol):
         """Collects protocol state information for ``protocol`` in
-        self.m_protocols[``protocol``]."""
-
+        self.m_protocols[``protocol``].
+        """
+        # /proc/net contains different network protocol status information
         with open("/proc/net/{prot}".format(prot = protocol), "r") as f:
             table = [line.strip() for line in f.readlines()]
         # discard the column header
@@ -135,7 +138,9 @@ class Scanner(object):
                 info[inode] = parts
             # IP based protocols
             elif protocol != "unix":
+                # local address
                 l_host, l_port = parts[1].split(':')
+                # remote address
                 r_host, r_port = parts[2].split(':')
                 inode = parts[9]
                 info[inode] = [[l_host, l_port], [r_host, r_port]]
@@ -304,7 +309,6 @@ class Scanner(object):
         The dictionary will consists of <FD> -> dict() pairs, where the dict()
         value contains the details of the file descriptor.
         """
-
         result = {}
         fd_dir = "/proc/{pid}/fd/".format(pid = pid)
         fdinfo_dir = "/proc/{pid}/fdinfo".format(pid = pid)
@@ -369,7 +373,12 @@ class Scanner(object):
         return result
 
     def getProperties(self, filename, type, os_stat=None):
-        """Gets the properties from the file object found in ``filename``"""
+        """
+        Gets the properties from the file object found in ``filename``
+        :filename: path and filename of the file object
+        :type: single character representing file object type, like
+        directory d, file f, link l
+        """
         properties = {}
 
         try:
@@ -434,8 +443,8 @@ class Scanner(object):
 
     def collectFilesystem(self):
         """Collects information about all file system objects and stores them
-        in the self.m_filesystem dictionary."""
-
+        in the self.m_filesystem dictionary.
+        """
         # paths to exclude from the collection
         exclude = ["/.snapshots", "/proc", "/mounts", "/suse"]
 
@@ -454,8 +463,8 @@ class Scanner(object):
 
         def getParentDict(path):
             """Find the correct dictionary in self.m_filesystem for inserting
-            the directory info for ``path``."""
-
+            the directory info for ``path``.
+            """
             ret = self.m_filesystem
 
             for node in os.path.dirname(path[1:]).split(os.path.sep):
@@ -622,7 +631,7 @@ class Scanner(object):
 
     def getMapsForProcess(self, pid):
         """
-        This helper reads and parses /dev/$PID/maps
+        This helper reads and parses /proc/$PID/maps
         :param pid: The PID of the process to check.
         :return:
         """
@@ -639,7 +648,7 @@ class Scanner(object):
 
                 # in case you wonder what this does: This takes the key array and the data array and makes an array of
                 # tuples from the values at the same index, i.e. [(key[0], data[0]), (key[1], data[1]) ... ]. This array
-                # can the be directly given to the dict constructor, which takes the first value of a tuple as key and
+                # can then be directly given to the dict constructor, which takes the first value of a tuple as key and
                 # the second as value. Therefore we're lazily generating a dict from the data with simply a key array :)
                 dc = dict(zip(keys, data))
                 ret.append(dc)

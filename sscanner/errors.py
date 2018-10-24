@@ -11,7 +11,8 @@
 
 class ScannerError(Exception):
     """Specialized exception type for usage and logical errors detected
-    during execution of the scanner."""
+    during execution of the scanner.
+    """
 
     def __init__(self, *args, **kwargs):
 

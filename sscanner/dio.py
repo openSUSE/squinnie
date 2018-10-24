@@ -2,6 +2,7 @@
 # vim: ts=4 et sw=4 sts=4 :
 
 # security scanner - scan a system's security related information
+
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
 # Author: Sebastian Kaim
@@ -30,7 +31,10 @@ import logging
 
 
 class DumpIO(object):
-    """This class manages saving and loading whole dumps and parts to and from the filesystem."""
+    """This class manages saving and loading whole dumps and parts to
+    and from the filesystem.
+    """
+
     FILE_EXTENSION = ".p.gz"
     LOCK_FILE_NAME = '.security-scanner.data'
 
@@ -39,7 +43,6 @@ class DumpIO(object):
         :param target: The name of target scanned (for naming the storage folders).
         :param path: The path to use for the dump data.
         """
-
         self.m_target_name = target
         self.m_path_prefix = path
         self.cache = {}
@@ -84,7 +87,6 @@ class DumpIO(object):
 
     def writeCategory(self, category, data):
         """This method writes a dump category to a file."""
-
         file_basename = helper.makeValidDirname(category)
         if file_basename != category:
             logging.warning("Category %s has an invalid name, it will be written as %s instead."
@@ -103,8 +105,8 @@ class DumpIO(object):
 
     def loadFullDump(self):
         """
-        This method loads a full dump from the hard disk. This method is only for legacy code support and should not be
-        used for any other purpose.
+        This method loads a full dump from the hard disk. This method is
+        only for legacy code support and should not be used for any other purpose.
         :return: The raw dump data.
         """
         data = {}

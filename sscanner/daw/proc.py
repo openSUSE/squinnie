@@ -85,12 +85,12 @@ class ProcessData(object):
         return self.m_socket_connection_cache.getEndpointsForPipe(id)
 
     def getEndpointsForSocket(self, id):
-        """Returns the endpoints for a pipe."""
+        """Returns the endpoints for a socket."""
         self.m_socket_connection_cache.buildIfNecessary(self.getProcData)
         return self.m_socket_connection_cache.getEndpointsForSocket(id)
 
     def getEndpointsForQueue(self, id):
-        """Returns the endpoints for a pipe."""
+        """Returns the endpoints for a queue."""
         self.m_socket_connection_cache.buildIfNecessary(self.getProcData)
         return self.m_socket_connection_cache.getEndpointsForQueue(id)
 

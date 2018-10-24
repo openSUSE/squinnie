@@ -21,6 +21,7 @@
 
 class CategoryLoader(object):
     """Loads a category from the filesystem via a DumpIO instance."""
+
     def __init__(self, category, dumpIO):
         """
         :param category: The name of the category.

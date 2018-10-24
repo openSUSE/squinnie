@@ -2,6 +2,7 @@
 # vim: ts=4 et sw=4 sts=4 :
 
 # security scanner - scan a system's security related information
+
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
 # Author:     Benjamin Deuter
@@ -44,7 +45,8 @@ except ImportError:
 
 class Crowbar(object):
     """This class can collect the crowbar network configuration from a SUSE
-    cloud master node and store it as a network_config file."""
+    cloud master node and store it as a network_config file.
+    """
 
     def __init__(self):
 
@@ -63,12 +65,14 @@ class Crowbar(object):
 
     def setEntryNode(self, node):
         """Set the hostname or IP of the crowbar entry node for scanning the
-        network configuration."""
+        network configuration.
+        """
         self.m_entry_node = node
 
     def getNetworkInfo(self):
         """Returns the currently loaded network info. Only valid if
-        loadNetworkInfo() was successfully called."""
+        loadNetworkInfo() was successfully called.
+        """
         return self.m_info
 
     def getCrowbarConfig(self):
@@ -80,7 +84,6 @@ class Crowbar(object):
             "entry": ["machine1", "machine2", ...]
         }
         """
-
         if not self.m_entry_node:
             raise sscanner.errors.ScannerError("entry node for scanning crowbar network is required")
 
@@ -123,7 +126,6 @@ class Crowbar(object):
         The obtained data will be saved in the object and can be obtained via
         getNetworkInfo().
         """
-
         if self._haveCache():
             self._loadConfig()
         else:
