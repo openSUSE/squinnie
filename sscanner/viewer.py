@@ -4,7 +4,7 @@
 # security scanner - scan a system's security related information
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
-# Author: Benjamin Deuter, Sebastian Kaim
+# Author: Benjamin Deuter, Sebastian Kaim, Jannik Main
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -34,6 +34,7 @@ import sscanner.cap_translator as cap_translator
 import sscanner.helper as helper
 import sscanner.file_mode as file_mode
 import sscanner.errors
+import sscanner.nwiface_translator as nwiface_translator
 from sscanner.types import ProcColumns
 from sscanner.daw.fs import FsQuery
 from sscanner.dio import DumpIO
@@ -70,18 +71,28 @@ class Viewer(object):
         self.m_node_label = label
         self.m_show_numeric = False
 
-        cap_json = os.path.sep.join([
-            os.path.abspath(os.path.dirname(__file__)),
-            os.path.pardir,
-            "etc",
-            "cap_data.json"
-        ])
-        self.m_cap_translator = cap_translator.CapTranslator(cap_json)
+        self.m_cap_translator = cap_translator.CapTranslator(
+                self._getJsonFile("cap_data")
+        )
+        self.m_nwiface_translator = nwiface_translator.NwIfaceTranslator(
+                nwi_name=self._getJsonFile("bitflag_data"),
+                type_name=self._getJsonFile("type_data")
+        )
 
         self.m_daw_factory = daw_factory
 
         self.m_excluded = []
         self.m_included = []
+
+    def _getJsonFile(self, filename):
+        json_file = os.path.sep.join([
+            os.path.abspath(os.path.dirname(__file__)),
+            os.path.pardir,
+            "etc",
+            "{}.json".format(filename)
+        ])
+        return json_file
+
 
     def activateSettings(self, args):
         """Activates the settings found in the given argparse.Namespace
@@ -125,6 +136,9 @@ class Viewer(object):
         elif args.svipc:
             # systemv ipc view
             self.printSystemVIPC()
+        elif args.network_interfaces:
+            # network interface information view
+            self.printNetworkInterfaces()
         else:
             # process tree view
             self.printProcessTree()
@@ -200,6 +214,8 @@ class Viewer(object):
         description = "Show only files of a specific type."
         parser.add_argument("--type", "-t", type=str, default=None, help=description,
                             choices=file_mode.getPossibleFileChars())
+        description = "Show network interface information"
+        parser.add_argument("--network-interfaces", action="store_true", help=description)
 
         description = "Show values in numeric format"
         parser.add_argument("--numeric", action="store_true", help=description)
@@ -452,7 +468,6 @@ class Viewer(object):
                 # in case we print the full fds we add a newline after each process to make it a bit more readable
                 proc_wrapper = self.m_daw_factory.getProcWrapper()
                 result = str(proc_wrapper.getFileDescriptorsForPid(pid)) + "\n"
-
         elif column == ProcColumns.umask:
             result = "{0:o}".format(pid_data['Umask']).rjust(4, '0') if 'Umask' in pid_data else ''
 
@@ -806,6 +821,44 @@ class Viewer(object):
     def setShowThreads(self, show_threads):
         self.m_show_threads = show_threads
 
+    def hideEmptyColumns(self, data, cnames):
+        """
+        Goes through data and adds empty columns to self.m_excluded
+        :list data: twodimensional list to filter
+        :list cnames: contains column-names in order
+        """
+        empty = [0]*len(cnames)
+        for iface in data:
+            for index in range(0, len(iface)):
+                if iface[index] == '':
+                    empty[index] += 1
+        for index in range(0, len(empty)):
+            if empty[index] == len(data):
+                self.m_excluded.append(cnames[index])
+
+    def printNetworkInterfaces(self):
+        # list for keys in data-dictionary, order must be matching the
+        # column_name's below
+        identifier = [
+            'ifindex', 'iface', 'operstate', 'mtu', 'flags', 'type',
+            'uevent', 'address', 'ipv4', 'ipv6', 'attached'
+        ]
+        column_names = [
+            'ifindex', 'name', 'operational_status', 'mtu',
+            'flags', 'device_type', 'uevent_DEVTYPE', 'MAC_address',
+            'IPv4_address', 'IPv6_address', 'attached'
+        ]
+        nwinterfaces = self.m_daw_factory.getNwIfaceInfoWrapper()
+        data = nwinterfaces.getAllNwIfaceData()
+        output = self.m_nwiface_translator.getFormattedData(data,
+                                                       identifier)
+        self.hideEmptyColumns(output, column_names)
+        columns = []
+        for name in column_names:
+            columns.append(Column(name, [], self.m_have_tty))
+        formatter = TablePrinter(columns, data=output,
+                include=self.m_included, exclude=self.m_excluded)
+        formatter.writeOut()
 
 class TablePrinter(object):
     """This class prints a table to the terminal"""

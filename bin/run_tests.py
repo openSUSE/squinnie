@@ -43,7 +43,8 @@ class SscannerTest(object):
         ['--params'],  # show processes w/ parameters
         ['--fd'],  # show processes w/ file descriptors
         ['--onlyfd'],  # only show file descriptors
-        ['--filesystem', '-s']  # show interesting files on filesystem
+        ['--filesystem', '-s'], # show interesting files on filesystem
+        ['--network-interfaces'] # show available network interfaces
     ]
 
     def __init__(self):
