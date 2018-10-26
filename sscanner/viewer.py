@@ -68,6 +68,7 @@ class Viewer(object):
         self.m_show_kthreads = False
         self.m_indentation_width = 4
         self.m_node_label = label
+        self.m_show_numeric = False
 
         cap_json = os.path.sep.join([
             os.path.abspath(os.path.dirname(__file__)),
@@ -199,6 +200,9 @@ class Viewer(object):
         description = "Show only files of a specific type."
         parser.add_argument("--type", "-t", type=str, default=None, help=description,
                             choices=file_mode.getPossibleFileChars())
+
+        description = "Show values in numeric format"
+        parser.add_argument("--numeric", action="store_true", help=description)
 
     def addPidFilter(self, pid):
         """Don't show all PIDs but just the given PID in the table.
@@ -389,7 +393,11 @@ class Viewer(object):
         elif column == ProcColumns.rtime:
             sdata_wrapper = self.m_daw_factory.getSystemDataWrapper()
             runtime = sdata_wrapper.getProcessUptime(pid_data['starttime'])
-            return str(runtime) + 's'
+            #human readable time format
+            if (not self.m_show_numeric and runtime > float(60)):
+                return helper.changeTimeFormat(runtime)
+            #runtime rounded to two numbers after decimal point
+            return str("{0:.2f}".format(runtime)) + 's'
 
         elif column == ProcColumns.features:
             features = []
@@ -648,6 +656,9 @@ class Viewer(object):
         table.inner_column_border = False
         table.inner_heading_row_border = False
 
+        #set running time column to be right-aligned
+        table.justify_columns[table.table_data[0].index("running time")] = 'right'
+
         print(table.table)
 
     def printFilesystemTable(self):
@@ -709,6 +720,9 @@ class Viewer(object):
 
         if args.filemode > 0:
             self.m_fsquery.filterFileMode(args.filemode)
+
+        if args.numeric:
+            self.m_show_numeric = True
 
         if args.type is not None:
             # files are stored in the database with the type '-', but 'f' is more intuitive to the user

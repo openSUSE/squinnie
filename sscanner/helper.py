@@ -187,3 +187,24 @@ def makeValidDirname(s):
 def getLogger():
     """Returns the logger for the project."""
     logging.getLogger("sscanner")
+
+def changeTimeFormat(runtime):
+    """Improves the readability of process-runtime.
+
+    Only useful, if runtime is greater than 60s.
+    :float runtime: the runtime in seconds
+    :string return: runtime divided in hours, minutes and seconds
+    """
+    result = ""
+    runtime_int = int(runtime)
+    runtime_orig = runtime_int
+    #extract hours
+    if runtime_int > 3600:
+        result += str(runtime_int / 3600) + 'h:'
+        runtime_int = runtime_int % 3600
+    #extract minutes
+    result += str('{:02}'.format(runtime_int / 60)) + 'm:'
+    runtime_int = runtime_int % 60
+    #pre-decimal-point value must eqal runtime_int
+    runtime -= float(runtime_orig - runtime_int)
+    return result + str("{:05.2f}".format(runtime)) + 's'
