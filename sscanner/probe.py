@@ -153,6 +153,23 @@ class Scanner(object):
                 inode = parts[6]
                 info[inode] = parts[7]
 
+    def getNamespaces(self, pid):
+        """
+        Goes through all referenced namespaces and returns their inode
+        number
+        :int pid: the pid to look at
+        """
+        # not so interesting, since we already have the pid hierarchy
+        ignore_list = ['pid_for_children']
+        result = {}
+        for symlink in os.listdir("/proc/{}/ns".format(pid)):
+            if symlink in ignore_list:
+                continue
+            result[symlink] = os.path.realpath("/".join((
+                    "/proc/{}/ns".format(pid), symlink
+                    ))).split("[")[-1][:-1]
+        return result
+
     def collectProcessInfo(self):
         """
         Collect information about all running processes in the
@@ -181,6 +198,7 @@ class Scanner(object):
         parents = {}
 
         pids_to_remove = set()
+        namespaces = {}
         for p in self.getAllPids():
             if p == self.m_our_pid:
                 # exclude ourselves, we're not so interesting ;)
@@ -206,6 +224,19 @@ class Scanner(object):
                 if 'Umask' in fields:
                     status_pid['Umask'] = int(fields['Umask'], 8)
                 parents[p] = status_pid["parent"]
+
+                ns = self.getNamespaces(p)
+                # get namespace info grouped by namespaces
+                for type_name in ns:
+                    if ns[type_name] in namespaces:
+                        namespaces[ns[type_name]]["pids"].append(p)
+                    else:
+                        ns_curr = {}
+                        ns_curr["type"] = type_name
+                        ns_curr["pids"] = [p]
+                        ns_curr["uid"] = status_pid["Uid"][3]
+                        ns_curr["nbr"] = len(namespaces)+1
+                        namespaces[ns[type_name]] = ns_curr
                 status[p] = status_pid
 
             except EnvironmentError as e:
@@ -223,6 +254,7 @@ class Scanner(object):
         self.m_proc_info = {}
         self.m_proc_info["status"] = status
         self.m_proc_info["parents"] = parents
+        self.m_proc_info["namespaces"] = namespaces
 
     @staticmethod
     def getProcessInfo(pid, tid=None):
@@ -627,6 +659,7 @@ class Scanner(object):
         self.collectProcessInfo()
         result["proc_data"] = self.m_proc_info["status"]
         result["parents"] = self.m_proc_info["parents"]
+        result["namespaces"] = self.m_proc_info["namespaces"]
         self.collectUserGroupMappings()
 
         result['userdata'] = {
