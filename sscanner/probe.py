@@ -5,7 +5,7 @@
 
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
-# Author: Benjamin Deuter, Sebastian Kaim
+# Author: Benjamin Deuter, Sebastian Kaim, Jannik Main
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -44,6 +44,7 @@ from __future__ import with_statement
 import os
 import sys
 import errno
+import subprocess
 
 
 def isPython2():
@@ -517,11 +518,110 @@ class Scanner(object):
                     "target": os.path.realpath(link)
                 }
 
-    def collect(self):
+    def collectIPv4(self):
+        """
+        This helper collects all IPv4 addresses by parsing the
+        "ip -4 addr" shell-command
 
+        This is done, because unlike /proc/net/if_inet6, there is no
+        according IPv4 file to parse.
+        """
         result = {}
+        try:
+            value = subprocess.check_output(
+                    ['ip', '-4', '-o', 'addr'], shell=False, close_fds=True
+                    ).split("\n")
+        except OSError as e:
+            print("Failed to run ip -4 addr shell-command: {}".format(e),
+                  file=sys.stderr
+            )
+            return result
+        for val in value:
+            val = val.split()
+            if val:
+                if val[1] in result:
+                    result[val[1]].append([val[3]])
+                else:
+                    result[val[1]] = [val[3]]
+        return result
 
-        # we need to collect the systemdata first in order to have the data for detecting mqueue sockets
+    def collectIPv6(self):
+        """
+        This helper collects all IPv6 addresses assigned to the network
+        interfaces by parsing /proc/net/if_inet6.
+        """
+        result = {}
+        path = "/proc/net/if_inet6"
+        try:
+            with open(path, "r") as fi:
+                for line in fi:
+                    values = line.split()
+                    if not values[5] in result:
+                        result[values[5]] = [values[0], values[2]]
+                    else:
+                        result[values[5]].append(values[0])
+                        result[values[5]].append(values[2])
+            return result
+        except IOError as e:
+            print("Failed to open {} : {}".format(path, e), file=sys.stderr)
+            return result
+
+    def collectNwInterface(self):
+        """
+        This helper goes through all available general network devices and
+        receives information about them.
+        :dictionary return: the interface-name values pairs.
+        """
+        result = {}
+        files = [
+            'ifindex', 'address', 'type', 'operstate', 'carrier', 'dormant',
+            'flags', 'mtu', 'uevent'
+        ]
+        ipv4 = self.collectIPv4()
+        ipv6 = self.collectIPv6()
+        try:
+            for nwd in os.listdir('/sys/class/net'):
+                data = {}
+                data["iface"] = [nwd]
+                for curr_file in files:
+                    file_data = []
+                    try:
+                        with open(
+                                "/sys/class/net/{}/{}".format(nwd, curr_file), "r"
+                                ) as f:
+                            for line in f.readlines():
+                                file_data.append(line.strip())
+                    except IOError as e:
+                        # carrier file is not readable, if interface is
+                        # not enabled.
+                        if curr_file != 'carrier':
+                            print("Failed to open {} : {}".format(curr_file, e),
+                                    file=sys.stderr
+                            )
+                        file_data.append(None)
+                    data[curr_file] = file_data
+                result[nwd] = data
+                if nwd in ipv4:
+                    result[nwd]["ipv4"] = ipv4[nwd]
+                if nwd in ipv6:
+                    result[nwd]["ipv6"] = ipv6[nwd]
+                #find symlinks to attached devices
+                attached = []
+                for fi in os.listdir('/sys/class/net/' + nwd):
+                    parts = fi.split('_')
+                    if parts[0] == "lower":
+                        attached.append('_'.join(parts[1:]))
+                if attached:
+                    result[nwd]["attached"] = attached
+        except OSError as e:
+            print("Directory {} does not exist!({})".format('/sys/class/net',
+                    e, file=sys.stderr))
+        return result
+
+    def collect(self):
+        result = {}
+        # we need to collect the systemdata first in order to have the
+        # data for detecting mqueue sockets
         result['systemdata'] = self.collectSystemData()
 
         self.collectProcessInfo()
@@ -546,6 +646,7 @@ class Scanner(object):
         self.collectSysVIpcInfo()
         result["sysvipc"] = self.m_sysvipc
 
+        result["nwifaces"] = self.collectNwInterface()
         # we're currently returning a single large dictionary containing all
         # collected information
         return result
@@ -654,7 +755,6 @@ class Scanner(object):
                 ret.append(dc)
 
         return ret
-
 
 def main():
     import argparse

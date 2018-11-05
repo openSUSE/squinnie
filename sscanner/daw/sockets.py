@@ -240,9 +240,16 @@ class FileDescriptor(object):
                 result.append(str(packet))
             else:  # TCP or UDP socket with IP address and port
                 sc = NetworkSocket.fromTuple(inode_entry, transport_protocol)
+                res = "{}".format(str(sc))
 
-                result.append(str(sc))
-                logging.debug(str(sc))
+                nwiface_wrapper = self.m_daw_factory.getNwIfaceInfoWrapper()
+                data = nwiface_wrapper.getAllNwIfaceData()
+                nwiface = sc.getNwIface(data)
+
+                if nwiface:
+                       res = "{} if {}".format(str(sc), nwiface)
+                result.append(res)
+                logging.debug(res)
 
         result = "|".join(result)
 
@@ -394,6 +401,9 @@ class NetworkSocket(object):
             outp += ' listening/waiting'
         return outp
 
+    def getNwIface(self, data):
+        return self.m_local_endpoint.getNwIface(data)
+
 
 class NetworkEndpoint(object):
     """Represents a network endpoint with IP and port."""
@@ -413,12 +423,29 @@ class NetworkEndpoint(object):
         addr = struct.pack('@IIII', *packed)
         return socket.inet_ntop(socket.AF_INET6, addr)
 
+    def getNwIface(self, data):
+        """
+        tries to match an ip address from an interface with the
+        network endpoint's ip address
+        :dictionary data: the collected interface data
+        """
+        for iface in data:
+            if self.m_ip_version == 4 and 'ipv4' in data[iface]:
+                if data[iface]['ipv4'][0].split('/')[0] == str(
+                        self).split(':')[0]:
+                    return iface
+            elif self.m_ip_version == 6 and 'ipv6' in data[iface]:
+                if self.IPv6ToString(
+                        data[iface]['ipv6'][0]
+                        ).split('.')[0] == str(self).split(']')[0][1:]:
+                    return iface
+        return ""
+
     def __str__(self):
         if self.m_ip_version == 4:
             return '{}:{}'.format(socket.inet_ntoa(struct.pack('<L', int(self.m_ip, 16))), str(self.m_port))
         else:
             return '[{}]:{}'.format(self.IPv6ToString(self.m_ip), str(self.m_port))
-
 
 class Netlink(object):
     """This class provides some information related to netlink sockets."""

@@ -19,12 +19,12 @@
 # MA 02110-1301 USA.
 
 from sscanner.daw import ProcessData
+from sscanner.daw.sysv import SysVIPC
 from sscanner.daw.fs import Filesystem
 from sscanner.daw import AccountWrapper
 from sscanner.daw import NetworkingWrapper
-from sscanner.daw.sysv import SysVIPC
 from sscanner.daw.systemdata import SystemData
-
+from sscanner.daw import NetworkInterfaceWrapper
 
 class Factory(object):
     """
@@ -42,6 +42,7 @@ class Factory(object):
         self.m_networking_wrapper = NetworkingWrapper(self.m_dumpIO)
         self.m_sysvipc = SysVIPC(self.m_dumpIO, self)
         self.m_systemdata = SystemData(self.m_dumpIO)
+        self.m_nwdeviceiface = NetworkInterfaceWrapper(self.m_dumpIO)
 
     def getProcWrapper(self):
         return self.m_proc_data
@@ -60,3 +61,6 @@ class Factory(object):
 
     def getSystemDataWrapper(self):
         return self.m_systemdata
+
+    def getNwIfaceInfoWrapper(self):
+        return self.m_nwdeviceiface
