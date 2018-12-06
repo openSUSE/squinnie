@@ -118,6 +118,7 @@ class FileDescriptor(object):
 
         # this is a string like "<type>:<value>", where <value> is either an
         # inode of the form "[num]" or a subtype field like "inotify".
+        namespaces = ['net', 'ipc', 'mnt', 'pid', 'uts']
         _type, value = (self.type, self.inode)
         value = value.strip("[]")
 
@@ -169,6 +170,9 @@ class FileDescriptor(object):
                                                               (endpoint['name'][:52] + '...') if endpoint['name'][
                                                                                                  55:] else
                                                               endpoint['name'].strip(), endpoint['fd'])
+        elif _type in namespaces:
+            # permissions, file flags and identities should not matter
+            result = "namespace: type {} inode {}".format(_type, value)
         else:
             raise Exception("Unexpected pseudo file type " + _type)
         return result
