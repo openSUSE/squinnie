@@ -969,6 +969,10 @@ class Viewer(object):
                 if entry[0] == 'net':
                     print("Network scan {}".format(printstr))
                     self.printNetworkInterfaces(data=inode[1])
+                elif entry[0] == 'uts':
+                    print("Host- and Domainname {}".format(printstr))
+                    print("Hostname: {}".format(inode[1][0]))
+                    print("Domainname: {}".format(inode[1][1]))
 
 class TablePrinter(object):
     """This class prints a table to the terminal"""
