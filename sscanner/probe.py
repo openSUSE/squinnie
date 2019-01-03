@@ -43,7 +43,9 @@ from __future__ import print_function
 from __future__ import with_statement
 import os
 import sys
+import json
 import errno
+import ctypes
 import subprocess
 
 
@@ -58,7 +60,6 @@ class Scanner(object):
         self.m_collect_files = collect_files
         self.m_protocols = {}
 
-        import ctypes
         # for reading capabilities from the file system without relying on
         # existing external programs we need to directly hook into the libcap
         self.m_libcap = ctypes.cdll.LoadLibrary("libcap.so.2")
@@ -152,6 +153,97 @@ class Scanner(object):
                     parts.append("")
                 inode = parts[6]
                 info[inode] = parts[7]
+
+    def getSubProcessInNs(self, ns, func):
+        """
+        runs the function inside a subprocess and the specified namespace
+        :tuple ns: the namespace to join
+        :function func: the code to run inside the namespace
+        :return: return value of the given function, None if empty
+        """
+        res = None
+        read, write = os.pipe()
+        libc = ctypes.CDLL("libc.so.6")
+        pid = ns[1]['pids'][0]
+        nstype = ns[1]['type']
+        # get the file descriptor
+        fd = open("/proc/{}/ns/{}".format(pid, nstype))
+        # create subprocess bevore altering with namespaces
+        child = os.fork()
+        if child:
+            # parent process
+            os.close(write)
+            read = os.fdopen(read)
+            if read:
+                res = json.loads(read.read())
+        else:
+            # child process
+            if libc.setns(fd.fileno(), 0) == -1:
+                e = ctypes.get_errno()
+                print("Errno: {}".format(os.strerror(e)))
+            os.close(read)
+            res = func()
+            res_json = json.dumps(res)
+            write = os.fdopen(write, 'w')
+            write.write(res_json)
+            write.close()
+            os._exit(0)
+        return res
+
+
+    def getNetNsInfo(self, pid, fd):
+        """
+        Wrapper for collector-method
+        :int pid: the pid referencing the target namespaces
+        :str fd: the file-descriptor of the net-namespace
+        """
+        def getNetNsSub():
+            """
+            Collects network-namespace specific network-interfaces
+            :return dict: the return value of collect Network Interface
+            Function
+            """
+            sys_path = r"/tmp/netns_{}".format(str(pid))
+            if not os.path.exists(sys_path):
+                os.makedirs(sys_path)
+            else:
+                # the temporary directory already exists
+                msg = ("Could not get Network Namespace Info, Folder"
+                        " {} already exists!".format(sys_path)
+                )
+                print(msg, file = sys.stderr)
+                return None
+            args = ['/bin/mount', '-t', 'sysfs', 'none', sys_path]
+            subprocess.call(args, shell=False, close_fds=True)
+            net_path = "{}/class/net".format(sys_path)
+            res = self.collectNwInterface(nw_dir=net_path)
+            subprocess.call(['umount', sys_path], shell=False, close_fds=True)
+            os.rmdir(sys_path)
+            return [fd, res]
+        return self.getSubProcessInNs(pid, getNetNsSub, ['net'])
+
+    def getAdditionalNsInfo(self, namespaces):
+        """
+        This function calls the according functions to receive
+        additional information about the namespaces by type
+        """
+        res = {}
+        for ns in namespaces.items():
+            pid = ns[1]['pids'][0]
+            if pid == 1:
+                # root-namespaces already collected
+                continue
+            fd = ns[0]
+            ns_type = ns[1]['type']
+            if ns_type == 'net':
+                val = self.getNetNsInfo(pid, fd)
+                if 'net' in res:
+                    res["net"][val[0]] = val[1]
+                else:
+                    val_dict = {}
+                    val_dict[val[0]] = val[1]
+                    res["net"] = val_dict
+        return res
 
     def getNamespaces(self, pid):
         """
@@ -598,7 +690,7 @@ class Scanner(object):
             print("Failed to open {} : {}".format(path, e), file=sys.stderr)
             return result
 
-    def collectNwInterface(self):
+    def collectNwInterface(self, nw_dir='/sys/class/net'):
         """
         This helper goes through all available general network devices and
         receives information about them.
@@ -612,14 +704,14 @@ class Scanner(object):
         ipv4 = self.collectIPv4()
         ipv6 = self.collectIPv6()
         try:
-            for nwd in os.listdir('/sys/class/net'):
+            for nwd in os.listdir(nw_dir):
                 data = {}
                 data["iface"] = [nwd]
                 for curr_file in files:
                     file_data = []
                     try:
                         with open(
-                                "/sys/class/net/{}/{}".format(nwd, curr_file), "r"
+                                "{}/{}/{}".format(nw_dir, nwd, curr_file), "r"
                                 ) as f:
                             for line in f.readlines():
                                 file_data.append(line.strip())
@@ -639,14 +731,14 @@ class Scanner(object):
                     result[nwd]["ipv6"] = ipv6[nwd]
                 #find symlinks to attached devices
                 attached = []
-                for fi in os.listdir('/sys/class/net/' + nwd):
+                for fi in os.listdir("{}/{}".format(nw_dir, nwd)):
                     parts = fi.split('_')
                     if parts[0] == "lower":
                         attached.append('_'.join(parts[1:]))
                 if attached:
                     result[nwd]["attached"] = attached
         except OSError as e:
-            print("Directory {} does not exist!({})".format('/sys/class/net',
+            print("Directory {} does not exist!({})".format(nw_dir,
                     e, file=sys.stderr))
         return result
 
@@ -660,6 +752,7 @@ class Scanner(object):
         result["proc_data"] = self.m_proc_info["status"]
         result["parents"] = self.m_proc_info["parents"]
         result["namespaces"] = self.m_proc_info["namespaces"]
+        result["namespaces_deep"] = self.getAdditionalNsInfo(result["namespaces"])
         self.collectUserGroupMappings()
 
         result['userdata'] = {
