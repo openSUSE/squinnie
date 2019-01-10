@@ -39,6 +39,7 @@ from sscanner.types import ProcColumns
 from sscanner.daw.fs import FsQuery
 from sscanner.dio import DumpIO
 from sscanner.daw import factory
+from sscanner.ldump import LocalFactory
 
 pickle = helper.importPickle()
 
@@ -71,6 +72,7 @@ class Viewer(object):
         self.m_node_label = label
         self.m_show_numeric = False
         self.m_used_namespaces = []
+        self.m_ns_pid = None
         self.m_account_helper = None
 
         self.m_cap_translator = cap_translator.CapTranslator(
@@ -82,6 +84,7 @@ class Viewer(object):
         )
 
         self.m_daw_factory = daw_factory
+        self.m_proc_wrapper = self.m_daw_factory.getProcWrapper()
 
         self.m_excluded = []
         self.m_included = []
@@ -278,7 +281,7 @@ class Viewer(object):
         """Prints all file descriptors of all processes found in the current
         data set."""
 
-        proc_wrapper = self.m_daw_factory.getProcWrapper()
+        proc_wrapper = self.m_proc_wrapper
         descriptorless_pids = []
 
         for pid, info in OrderedDict(proc_wrapper.getProcData()).items():
@@ -368,7 +371,7 @@ class Viewer(object):
         process with ``pid``.
         """
 
-        proc_wrapper = self.m_daw_factory.getProcWrapper()
+        proc_wrapper = self.m_proc_wrapper
 
         pid_data = proc_wrapper.getProcessInfo(pid)
 
@@ -490,7 +493,7 @@ class Viewer(object):
                 result = len(pid_data["open_files"])
             else:
                 # in case we print the full fds we add a newline after each process to make it a bit more readable
-                proc_wrapper = self.m_daw_factory.getProcWrapper()
+                proc_wrapper = self.m_proc_wrapper
                 result = str(proc_wrapper.getFileDescriptorsForPid(pid)) + "\n"
         elif column == ProcColumns.umask:
             result = "{0:o}".format(pid_data['Umask']).rjust(4, '0') if 'Umask' in pid_data else ''
@@ -507,8 +510,15 @@ class Viewer(object):
             for index in range(0, len(self.m_used_namespaces)):
                 ns = self.m_used_namespaces[index]
                 ns_type = ns[1]['type']
-                if pid in ns[1]['pids'] and not pid_data["parent"] in ns[1]['pids']:
-                    val = "{}({})".format(index+1, ns[1]['type'])
+                # check for pid namespace
+                if self.m_ns_pid:
+                    real_pid = self.m_ns_pid[pid]
+                    real_parent = self.m_ns_pid[pid_data["parent"]]
+                else:
+                    real_pid = pid
+                    real_parent = pid_data["parent"]
+                if real_pid in ns[1]['pids'] and not real_parent in ns[1]['pids']:
+                    val = "{}({})".format(ns[1]['nbr'], ns[1]['type'])
                     result = '\n'.join((result, val))
 
         else:
@@ -604,7 +614,7 @@ class Viewer(object):
 
             return False
 
-        proc_wrapper = self.m_daw_factory.getProcWrapper()
+        proc_wrapper = self.m_proc_wrapper
 
         num_procs = proc_wrapper.getProcessCount()
         logging.info("There are {} processes running on {}.".format(
@@ -686,7 +696,15 @@ class Viewer(object):
             ]
             prefix = ''
         else:
-            root_pids = [1]
+            root_pids = []
+            if self.m_ns_pid:
+                # more than one root pid could exist, if a process
+                # joins into the pid namespace
+                for parent in parents.items():
+                    if parent[1] == 0:
+                        root_pids.append(parent[0])
+            else:
+                root_pids = [1]
             if self.m_show_kthreads:
                 # for kernel threads PID2 is the root
                 root_pids.append(2)
@@ -812,7 +830,7 @@ class Viewer(object):
         formatter.writeOut()
 
     def generateThreadWarningsForPid(self, pid, column_headers, indent):
-        proc_wrapper = self.m_daw_factory.getProcWrapper()
+        proc_wrapper = self.m_proc_wrapper
         data = proc_wrapper.getProcessInfo(pid)
 
         comparison_keys = {  # eff, inh, prm
@@ -906,6 +924,20 @@ class Viewer(object):
                                                        identifier)
         self.printFilteredColumns(output, column_names)
 
+    def dictKeyIntify(self, overwrite, data):
+        """
+        Small converter for converting dictionary keys back to
+        integers.
+        :list overwrite: tuples with (original name, result name) pairs
+        :dict data: the data with subdictionaries with wrong keytypes
+        """
+        res = {}
+        for intify in overwrite:
+            res[intify[1]] = {}
+            for str_val in data[intify[0]].items():
+                res[intify[1]][int(str_val[0])] = str_val[1]
+        return res
+
     def printNamespaces(self):
         identifier = [
             'nbr', 'ns', 'type', 'nprocs', 'pid', 'uid', 'command'
@@ -919,12 +951,17 @@ class Viewer(object):
         if not self.m_used_namespaces:
             self.getUsedNamespaces()
         accounts = self.getAccountHelper()
-        proc_wrapper = self.m_daw_factory.getProcWrapper()
         output = []
+        pid_filter = self.m_pid_filter
         for line in self.m_used_namespaces:
             column = []
-            if self.m_pid_filter:
-                if not line[1]['pids'][0] in self.m_pid_filter:
+            if pid_filter:
+                valid_col = True
+                for filtered_pid in pid_filter:
+                    if not filtered_pid in line[1]['pids']:
+                        valid_col = False
+                        break
+                if not valid_col:
                     continue
             for index in range(0, len(identifier)):
                 col_name = identifier[index]
@@ -946,7 +983,7 @@ class Viewer(object):
                     column.append(user)
                 elif col_name == 'command':
                     col_pid = col_list['pids'][0]
-                    proc_data = proc_wrapper.getProcessInfo(col_pid)
+                    proc_data = self.m_proc_wrapper.getProcessInfo(col_pid)
                     cmdline = proc_data["cmdline"].replace('\x00', ' ').strip()
                     column.append(cmdline)
             output.append(column)
@@ -993,6 +1030,36 @@ class Viewer(object):
                         curr_output = inode[1][curr_type]
                         print("{} mapping for {}".format(curr_type, printstr))
                         self.printFilteredColumns(curr_output, col_names)
+                elif entry[0] == 'pid' and pid_filter:
+                    if not inode[1]['pids_info']:
+                        # no internal process tree available
+                        continue
+                    # pid filter interfers if set globally
+                    self.m_pid_filter = None
+                    ext_pids = element[1][1]['pids']
+                    overwrite = [("status", "proc_data"),
+                            ("parents", "parents")
+                    ]
+                    data_dict = self.dictKeyIntify(overwrite,
+                            inode[1]['pids_info']
+                    )
+                    pid_handler = LocalFactory(data_dict).getProcWrapper()
+                    print("PID mappings for {}".format(printstr))
+                    # set variables for pid-ns mode
+                    if len(ext_pids) != len(data_dict["proc_data"]):
+                        raise ValueError(
+                                "Pid mapping of pid namespace {} is invalid!"
+                                .format(inode[0])
+                    )
+                    # create pid-ns mapping dict
+                    self.m_ns_pid = {0 : 0}
+                    pids_sorted = sorted(data_dict["proc_data"])
+                    for pid_index in range(0, len(pids_sorted)):
+                        self.m_ns_pid[
+                                pids_sorted[pid_index]
+                        ] = ext_pids[pid_index]
+                    self.m_proc_wrapper = pid_handler
+                    self.printProcessTree()
 
 class TablePrinter(object):
     """This class prints a table to the terminal"""
