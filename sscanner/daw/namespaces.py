@@ -1,6 +1,9 @@
-# Copyright (C) 2017 SUSE LINUX GmbH
+#!/usr/bin/env python2
+# vim: ts=4 et sw=4 sts=4 :
+
+# Copyright (C) 2018 SUSE LINUX GmbH
 #
-# Author: Sebastian Kaim
+# Author: Jannik Main
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -15,14 +18,19 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA 02110-1301 USA.
-"""
-This module abstracts the access to the raw data (it's Data Access Wrapper)
-"""
+from sscanner.daw.helper import CategoryLoader
 
-from proc import ProcessData
-from fs import Filesystem
-from accounts import AccountWrapper
-from networking import NetworkingWrapper
-from networkInterfaces import NetworkInterfaceWrapper
-from namespaces import NamespaceWrapper
-from factory import Factory
+class NamespaceWrapper(object):
+    """
+    This class abstracts all information about available namespaces.
+    """
+
+    def __init__(self, dumpIO):
+        """
+        :param dumpIO: An instance of sscanner.dio.DumpIO
+        """
+        self.m_dumpIO = dumpIO
+        self.m_data = CategoryLoader("namespaces", self.m_dumpIO)
+
+    def getAllNamespaceData(self):
+        return self.m_data.getData()

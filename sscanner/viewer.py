@@ -70,6 +70,7 @@ class Viewer(object):
         self.m_indentation_width = 4
         self.m_node_label = label
         self.m_show_numeric = False
+        self.m_used_namespaces = []
 
         self.m_cap_translator = cap_translator.CapTranslator(
                 self._getJsonFile("cap_data")
@@ -249,6 +250,15 @@ class Viewer(object):
     def setShowKthreads(self, show):
         """Also include kernel thread PIDs in the table."""
         self.m_show_kthreads = show
+
+    def getUsedNamespaces(self):
+        """
+        Reorders collected namespace data.
+        :list self.m_used_namespaces: contains inode/data tuples.
+        """
+        namespaces = self.m_daw_factory.getNamespacesWrapper()
+        data = namespaces.getAllNamespaceData()
+        self.m_used_namespaces = sorted(data.items(), key=lambda k: k[1]['nbr'])
 
     def printFileDescriptors(self):
         """Prints all file descriptors of all processes found in the current
@@ -474,6 +484,19 @@ class Viewer(object):
         elif column in pid_data:
             # take data as is
             result = pid_data[column_label]
+
+        elif column == ProcColumns.namespace:
+            # check if namespaces differ from parent one
+            result = ''
+            if not self.m_used_namespaces:
+                self.getUsedNamespaces()
+            for index in range(0, len(self.m_used_namespaces)):
+                ns = self.m_used_namespaces[index]
+                ns_type = ns[1]['type']
+                if pid in ns[1]['pids'] and not pid_data["parent"] in ns[1]['pids']:
+                    val = "{}({})".format(index+1, ns[1]['type'])
+                    result = '\n'.join((result, val))
+
         else:
             raise Exception("Unexpected column " + column_label + " encountered")
 
