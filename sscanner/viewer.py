@@ -140,6 +140,9 @@ class Viewer(object):
         elif args.network_interfaces:
             # network interface information view
             self.printNetworkInterfaces()
+        elif args.namespaces:
+            # namespace information view
+            self.printNamespaces()
         else:
             # process tree view
             self.printProcessTree()
@@ -217,6 +220,8 @@ class Viewer(object):
                             choices=file_mode.getPossibleFileChars())
         description = "Show network interface information"
         parser.add_argument("--network-interfaces", action="store_true", help=description)
+        desc = "Show information about available namespaces"
+        parser.add_argument("--namespaces", action="store_true", help=desc)
 
         description = "Show values in numeric format"
         parser.add_argument("--numeric", action="store_true", help=description)
@@ -859,6 +864,20 @@ class Viewer(object):
             if empty[index] == len(data):
                 self.m_excluded.append(cnames[index])
 
+    def printFilteredColumns(self, output, column_names):
+        """
+        Remove empty columns bevore printing
+        :list column_names: the column names
+        :list output: the data to print
+        """
+        self.hideEmptyColumns(output, column_names)
+        columns = []
+        for name in column_names:
+            columns.append(Column(name, [], self.m_have_tty))
+        formatter = TablePrinter(columns, data=output,
+                include=self.m_included, exclude=self.m_excluded)
+        formatter.writeOut()
+
     def printNetworkInterfaces(self):
         # list for keys in data-dictionary, order must be matching the
         # column_name's below
@@ -875,13 +894,50 @@ class Viewer(object):
         data = nwinterfaces.getAllNwIfaceData()
         output = self.m_nwiface_translator.getFormattedData(data,
                                                        identifier)
-        self.hideEmptyColumns(output, column_names)
-        columns = []
-        for name in column_names:
-            columns.append(Column(name, [], self.m_have_tty))
-        formatter = TablePrinter(columns, data=output,
-                include=self.m_included, exclude=self.m_excluded)
-        formatter.writeOut()
+        self.printFilteredColumns(output, column_names)
+
+    def printNamespaces(self):
+        identifier = [
+            'nbr', 'ns', 'type', 'nprocs', 'pid', 'uid', 'command'
+        ]
+        # names to be displayed to data-dictionary-keys above, order must
+        # be matching.
+        column_names = [
+            'number', 'namespace', 'type', 'number of processes', 'pid',
+            'user', 'command'
+        ]
+        if not self.m_used_namespaces:
+            self.getUsedNamespaces()
+        accounts = self.m_daw_factory.getAccountWrapper()
+        proc_wrapper = self.m_daw_factory.getProcWrapper()
+        output = []
+        for line in self.m_used_namespaces:
+            column = []
+            for index in range(0, len(identifier)):
+                col_name = identifier[index]
+                col_list = line[1]
+                if col_name == "nbr":
+                    column.append(str(col_list[col_name]))
+                elif col_name == 'ns':
+                    column.append(line[0])
+                elif col_name == "type":
+                    column.append(str(col_list[col_name]))
+                elif col_name == "nprocs":
+                    column.append(str(len(col_list['pids'])))
+                elif col_name == 'pid':
+                    column.append(str(col_list['pids'][0]))
+                elif col_name == 'uid':
+                    user = accounts.getNameForUid(
+                            col_list['uid'], default="unknown"
+                    )
+                    column.append(user)
+                elif col_name == 'command':
+                    col_pid = col_list['pids'][0]
+                    proc_data = proc_wrapper.getProcessInfo(col_pid)
+                    cmdline = proc_data["cmdline"].replace('\x00', ' ').strip()
+                    column.append(cmdline)
+            output.append(column)
+        self.printFilteredColumns(output, column_names)
 
 class TablePrinter(object):
     """This class prints a table to the terminal"""
@@ -942,9 +998,12 @@ class TablePrinter(object):
         for i in range(len(self.m_data)):
             row = self.m_data[i]
 
-            for k in range(len(self.m_columns)):
-                if maxlen[k] < len(row[k]):
-                    maxlen[k] = len(row[k])
+            try:
+                for k in range(len(self.m_columns)):
+                    if maxlen[k] < len(row[k]):
+                        maxlen[k] = len(row[k])
+            except IndexError as e:
+                exit("Error, looks like the amount of elements given in columns and data varies:\n{}".format(e))
 
         for k in range(len(self.m_columns)):
             if maxlen[k] < len(self.m_columns[k].name):
