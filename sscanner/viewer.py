@@ -264,6 +264,7 @@ class Viewer(object):
         namespaces = self.m_daw_factory.getNamespacesWrapper()
         data = namespaces.getAllNamespaceData()
         self.m_used_namespaces = sorted(data.items(), key=lambda k: k[1]['nbr'])
+        self.m_deep_namespace_data = namespaces.getAllDeepNsData()
 
     def printFileDescriptors(self):
         """Prints all file descriptors of all processes found in the current

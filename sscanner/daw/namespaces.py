@@ -31,6 +31,10 @@ class NamespaceWrapper(object):
         """
         self.m_dumpIO = dumpIO
         self.m_data = CategoryLoader("namespaces", self.m_dumpIO)
+        self.m_data_deep = CategoryLoader("namespaces_deep", self.m_dumpIO)
 
     def getAllNamespaceData(self):
         return self.m_data.getData()
+
+    def getAllDeepNsData(self):
+        return self.m_data_deep.getData()
