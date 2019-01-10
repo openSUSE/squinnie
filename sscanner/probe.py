@@ -209,6 +209,8 @@ class Scanner(object):
                     print("Errno: {}".format(os.strerror(e)))
             os.close(read)
             res = func()
+            if not res:
+                res = self.m_proc_info
             res_json = json.dumps(res)
             write = os.fdopen(write, 'w')
             write.write(res_json)
@@ -315,6 +317,16 @@ class Scanner(object):
                             ['user', 'mnt']
                     )
                 value[1].update(val)
+            elif ns_type == 'pid':
+                if pid in mnt_pids:
+                    # return no pid tree if no mnt-namespace is available
+                    val = None
+                else:
+                    val = self.getSubProcessInNs(
+                            pid, self.collectProcessInfo,
+                            ['pid', 'mnt']
+                    )
+                value = [fd, {'pids_info': val}]
             else:
                 continue
             if ns_type in res:
