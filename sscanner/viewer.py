@@ -879,7 +879,7 @@ class Viewer(object):
                 include=self.m_included, exclude=self.m_excluded)
         formatter.writeOut()
 
-    def printNetworkInterfaces(self):
+    def printNetworkInterfaces(self, data=None):
         # list for keys in data-dictionary, order must be matching the
         # column_name's below
         identifier = [
@@ -891,8 +891,9 @@ class Viewer(object):
             'flags', 'device_type', 'uevent_DEVTYPE', 'MAC_address',
             'IPv4_address', 'IPv6_address', 'attached'
         ]
-        nwinterfaces = self.m_daw_factory.getNwIfaceInfoWrapper()
-        data = nwinterfaces.getAllNwIfaceData()
+        if not data:
+            nwinterfaces = self.m_daw_factory.getNwIfaceInfoWrapper()
+            data = nwinterfaces.getAllNwIfaceData()
         output = self.m_nwiface_translator.getFormattedData(data,
                                                        identifier)
         self.printFilteredColumns(output, column_names)
@@ -914,6 +915,9 @@ class Viewer(object):
         output = []
         for line in self.m_used_namespaces:
             column = []
+            if self.m_pid_filter:
+                if not line[1]['pids'][0] in self.m_pid_filter:
+                    continue
             for index in range(0, len(identifier)):
                 col_name = identifier[index]
                 col_list = line[1]
@@ -939,6 +943,32 @@ class Viewer(object):
                     column.append(cmdline)
             output.append(column)
         self.printFilteredColumns(output, column_names)
+        # start namespace-internal printing
+        data = self.m_deep_namespace_data
+        for entry in data.items():
+            for inode in entry[1].items():
+                element = []
+                # get column of current namespace
+                col = []
+                for val in output:
+                    if inode[0] == val[1]:
+                        col = val
+                        break
+                if not col:
+                    # pid-filter probably removed column
+                    continue
+                for index in range(0, len(self.m_used_namespaces)):
+                    if self.m_used_namespaces[index][0] == inode[0]:
+                        element = [index, self.m_used_namespaces[index]]
+                        break
+                if not element:
+                    raise ValueError(
+                            'namespace not included in namespace-list!'
+                    )
+                printstr = "for namespace {}(PID {}):".format(col[0], col[4])
+                if entry[0] == 'net':
+                    print("Network scan {}".format(printstr))
+                    self.printNetworkInterfaces(data=inode[1])
 
 class TablePrinter(object):
     """This class prints a table to the terminal"""
