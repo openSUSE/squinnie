@@ -52,7 +52,9 @@ class Factory(object):
     def getFsWrapper(self):
         return self.m_fs_wrapper
 
-    def getAccountWrapper(self):
+    def getAccountWrapper(self, uid_gid=None):
+        if uid_gid:
+            return AccountWrapper(self.m_dumpIO, uid_gid)
         return self.m_account_wrapper
 
     def getNetworkingWrapper(self):

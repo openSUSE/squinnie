@@ -71,6 +71,7 @@ class Viewer(object):
         self.m_node_label = label
         self.m_show_numeric = False
         self.m_used_namespaces = []
+        self.m_account_helper = None
 
         self.m_cap_translator = cap_translator.CapTranslator(
                 self._getJsonFile("cap_data")
@@ -95,6 +96,13 @@ class Viewer(object):
         return json_file
 
 
+    def getAccountHelper(self):
+        if not self.m_account_helper:
+            ns_helper = self.m_daw_factory.getNamespacesWrapper()
+            uid_gid = ns_helper.getNamespaceUidGid()
+            self.m_account_helper = self.m_daw_factory.getAccountWrapper(uid_gid)
+        return self.m_account_helper
+
     def activateSettings(self, args):
         """Activates the settings found in the given argparse.Namespace
         object."""
@@ -110,7 +118,7 @@ class Viewer(object):
         self.setExcludeInclude(args)
 
     def parseOwnerFilters(self, args):
-        account_helper = self.m_daw_factory.getAccountWrapper()
+        account_helper = self.getAccountHelper()
 
         if args.user:
             self.m_uid_filter = account_helper.getUidForName(args.user)
@@ -330,7 +338,7 @@ class Viewer(object):
         fshandler = self.m_daw_factory.getFsWrapper()
         iterator = fshandler.queryFilesystem(self.m_fsquery)
 
-        account_wrapper = self.m_daw_factory.getAccountWrapper()
+        account_wrapper = self.getAccountHelper()
 
         ret = []
 
@@ -370,7 +378,7 @@ class Viewer(object):
         return self.formatColumnValue(column, pid, pid_data)
 
     def formatColumnValue(self, column, pid, pid_data, cap_color='red'):
-        account_wrapper = self.m_daw_factory.getAccountWrapper()
+        account_wrapper = self.getAccountHelper()
 
         column_label = ProcColumns.getLabel(column)
 
@@ -910,7 +918,7 @@ class Viewer(object):
         ]
         if not self.m_used_namespaces:
             self.getUsedNamespaces()
-        accounts = self.m_daw_factory.getAccountWrapper()
+        accounts = self.getAccountHelper()
         proc_wrapper = self.m_daw_factory.getProcWrapper()
         output = []
         for line in self.m_used_namespaces:
@@ -973,6 +981,18 @@ class Viewer(object):
                     print("Host- and Domainname {}".format(printstr))
                     print("Hostname: {}".format(inode[1][0]))
                     print("Domainname: {}".format(inode[1][1]))
+                elif entry[0] == 'user':
+                    if not inode[1]['gid'] or not inode[1]['uid']:
+                        # empty set
+                        continue
+                    col_names = ["startvalue inside namespace",
+                        "startvalue outside namespace(parent view)",
+                        "length"
+                    ]
+                    for curr_type in ["uid", "gid"]:
+                        curr_output = inode[1][curr_type]
+                        print("{} mapping for {}".format(curr_type, printstr))
+                        self.printFilteredColumns(curr_output, col_names)
 
 class TablePrinter(object):
     """This class prints a table to the terminal"""

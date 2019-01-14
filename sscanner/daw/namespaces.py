@@ -33,6 +33,13 @@ class NamespaceWrapper(object):
         self.m_data = CategoryLoader("namespaces", self.m_dumpIO)
         self.m_data_deep = CategoryLoader("namespaces_deep", self.m_dumpIO)
 
+    def getNamespaceUidGid(self):
+        result = None
+        data = self.m_data_deep.getData()
+        if 'user' in data:
+            result = data['user']
+        return result
+
     def getAllNamespaceData(self):
         return self.m_data.getData()
 
