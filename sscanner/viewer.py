@@ -267,7 +267,7 @@ class Viewer(object):
         """Also include kernel thread PIDs in the table."""
         self.m_show_kthreads = show
 
-    def getUsedNamespaces(self):
+    def collectUsedNamespaces(self):
         """
         Reorders collected namespace data.
         :list self.m_used_namespaces: contains inode/data tuples.
@@ -506,7 +506,7 @@ class Viewer(object):
             # check if namespaces differ from parent one
             result = ''
             if not self.m_used_namespaces:
-                self.getUsedNamespaces()
+                self.collectUsedNamespaces()
             for index in range(0, len(self.m_used_namespaces)):
                 ns = self.m_used_namespaces[index]
                 ns_type = ns[1]['type']
@@ -893,7 +893,7 @@ class Viewer(object):
 
     def printFilteredColumns(self, output, column_names):
         """
-        Remove empty columns bevore printing
+        Remove empty columns before printing
         :list column_names: the column names
         :list output: the data to print
         """
@@ -939,55 +939,56 @@ class Viewer(object):
         return res
 
     def printNamespaces(self):
-        identifier = [
-            'nbr', 'ns', 'type', 'nprocs', 'pid', 'uid', 'command'
+        # namespace data keys and their associated column labels
+        columns = [
+            ('nbr', 'number'),
+            ('ns', 'namespace'),
+            ('type', 'type'),
+            ('nprocs', 'number of processes'),
+            ('pid', 'pid'),
+            ('uid', 'user'),
+            ('command', 'command')
         ]
-        # names to be displayed to data-dictionary-keys above, order must
-        # be matching.
-        column_names = [
-            'number', 'namespace', 'type', 'number of processes', 'pid',
-            'user', 'command'
-        ]
+        labels = [ c[1] for c in columns]
         if not self.m_used_namespaces:
-            self.getUsedNamespaces()
+            self.collectUsedNamespaces()
         accounts = self.getAccountHelper()
         output = []
         pid_filter = self.m_pid_filter
-        for line in self.m_used_namespaces:
+        for ns_inode, ns_info in self.m_used_namespaces:
             column = []
             if pid_filter:
                 valid_col = True
                 for filtered_pid in pid_filter:
-                    if not filtered_pid in line[1]['pids']:
+                    if not filtered_pid in ns_info['pids']:
                         valid_col = False
                         break
                 if not valid_col:
                     continue
-            for index in range(0, len(identifier)):
-                col_name = identifier[index]
-                col_list = line[1]
-                if col_name == "nbr":
-                    column.append(str(col_list[col_name]))
-                elif col_name == 'ns':
-                    column.append(line[0])
-                elif col_name == "type":
-                    column.append(str(col_list[col_name]))
-                elif col_name == "nprocs":
-                    column.append(str(len(col_list['pids'])))
-                elif col_name == 'pid':
-                    column.append(str(col_list['pids'][0]))
-                elif col_name == 'uid':
+            for index in range(0, len(columns)):
+                col_key = columns[index][0]
+                if col_key == "nbr":
+                    column.append(str(ns_info[col_key]))
+                elif col_key == 'ns':
+                    column.append(ns_inode)
+                elif col_key == "type":
+                    column.append(str(ns_info[col_key]))
+                elif col_key == "nprocs":
+                    column.append(str(len(ns_info['pids'])))
+                elif col_key == 'pid':
+                    column.append(str(ns_info['pids'][0]))
+                elif col_key == 'uid':
                     user = accounts.getNameForUid(
-                            col_list['uid'], default="unknown"
+                            ns_info['uid'], default="unknown"
                     )
                     column.append(user)
-                elif col_name == 'command':
-                    col_pid = col_list['pids'][0]
+                elif col_key == 'command':
+                    col_pid = ns_info['pids'][0]
                     proc_data = self.m_proc_wrapper.getProcessInfo(col_pid)
                     cmdline = proc_data["cmdline"].replace('\x00', ' ').strip()
                     column.append(cmdline)
             output.append(column)
-        self.printFilteredColumns(output, column_names)
+        self.printFilteredColumns(output, labels)
         # start namespace-internal printing
         data = self.m_deep_namespace_data
         for entry in data.items():
@@ -1043,6 +1044,10 @@ class Viewer(object):
                     data_dict = self.dictKeyIntify(overwrite,
                             inode[1]['pids_info']
                     )
+                    # since our standart ProcWrapper uses the collected
+                    # process data from standart perspective, we need
+                    # to customize this to fit our needs for an inside
+                    # view of the pid-namespace
                     pid_handler = LocalFactory(data_dict).getProcWrapper()
                     print("PID mappings for {}".format(printstr))
                     # set variables for pid-ns mode
@@ -1125,7 +1130,7 @@ class TablePrinter(object):
                     if maxlen[k] < len(row[k]):
                         maxlen[k] = len(row[k])
             except IndexError as e:
-                exit("Error, looks like the amount of elements given in columns and data varies:\n{}".format(e))
+                exit("Error, looks like the amount of elements given in columns and data differs:\n{}".format(e))
 
         for k in range(len(self.m_columns)):
             if maxlen[k] < len(self.m_columns[k].name):

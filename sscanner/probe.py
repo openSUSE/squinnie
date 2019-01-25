@@ -159,31 +159,44 @@ class Scanner(object):
     def getUserNsInfo(self, pid):
         """
         Reads the uid and gid mapping of processes inside the namespace.
-        :return list: ID-inside-ns  ID-ouside-ns  length
+        :return dict: ID-inside-ns  ID-outside-ns  length, for uid & gid
         """
         res = {'uid': [], 'gid': []}
         path = {'uid': "/proc/{}/uid_map".format(str(pid)),
                 'gid': "/proc/{}/gid_map".format(str(pid)) }
-        for id_map in path.items():
+        for kind, path in path.items():
             try:
-                with open(id_map[1], "r") as fi:
+                with open(path, "r") as fi:
                     for line in fi:
                         val = line.split()
-                        res[id_map[0]].append(val)
+                        res[kind].append(val)
             except IOError as e:
                 # probably invalid pid
                 print("Failed to open {} : {}".format(id_map[0], e),
                       file=sys.stderr                               )
         return res
 
-    def getSubProcessInNs(self, pid, func, types):
+    def callSubProcessInNs(self, pid, func, types):
         """
-        runs the function inside a subprocess and the specified namespace
+        runs the provided function callback inside a process that is a member
+        of the namespace that 'pid' belongs to. Returns the data from the
+        callback as structured python data.
         :int pid: the pid referencing the target namespaces
         :function func: the code to run inside the namespace
         :list types: identifier of the namespace-types to join
         :return: return value of the given function, None if empty
         """
+        # since Python does not provide a wrapper for the setns() system call
+        # and we want to avoid dependencies on additional Python modules like
+        # the nsenter pip-module, we are using ctypes here to access the
+        # system call directly.
+        if 'pid' in types:
+            # pid namespaces would need another subprocess
+            # to correctly join
+            # we can most of the time still successfully iterate over process
+            # of child PID namespaces, because in the mnt namespace the
+            # appropriate /proc is mounted
+            raise ValueError("Trying to enter pid namespace is unsupported!")
         res = None
         read, write = os.pipe()
         libc = ctypes.CDLL("libc.so.6")
@@ -193,34 +206,67 @@ class Scanner(object):
             filedescs.append([
                     open("/proc/{}/ns/{}".format(pid, nstype)), 0
             ])
-        # create subprocess bevore altering with namespaces
+        # create subprocess bevore altering with namespaces to avoid
+        # unexpected behavior on parent
         child = os.fork()
         if child:
             # parent process
             os.close(write)
-            read = os.fdopen(read)
-            if read:
-                res = json.loads(read.read())
+            pipe = os.fdopen(read)
+            data = pipe.read()
+
+            _, status = os.waitpid(child, 0)
+
+            # check exit code of subprocess
+            if not data or status != 0:
+                e = ValueError("Child Process failed or returned no data!")
+                print("Failed to collect namespace-info: {}".format(e),
+                        file=sys.stderr
+                )
+                return (2, e)
+
+            res = json.loads(data)
+            return (0, res)
         else:
+            status = 0
             # child process
-            for fd in filedescs:
-                if libc.setns(fd[0].fileno(), fd[1]) == -1:
-                    e = ctypes.get_errno()
-                    print("Errno: {}".format(os.strerror(e)))
-            os.close(read)
-            res = func()
-            if not res:
-                res = self.m_proc_info
-            res_json = json.dumps(res)
-            write = os.fdopen(write, 'w')
-            write.write(res_json)
-            write.close()
-            os._exit(0)
-        return res
+            try:
+                # close the uneeded read-end
+                os.close(read)
+                for fd in filedescs:
+                    # syscalling to enter namespace with child process
+                    if libc.setns(fd[0].fileno(), fd[1]) == -1:
+                        e = ctypes.get_errno()
+                        raise ChildProcessError(
+                                "Failed to enter namespace: {}".format(
+                                        os.strerror(e)
+                                )
+                        )
+                res = func()
+                if not res:
+                    raise ValueError("Function returned empty!")
+                res_json = json.dumps(res)
+                write = os.fdopen(write, 'w')
+                write.write(res_json)
+            except:
+                e = sys.exc_info()[1]
+                print("Failed to collect namespace-info: {}".format(e),
+                file=sys.stderr
+                )
+                status = 1
+            finally:
+                # closing write fd if still open
+                try:
+                    write.close()
+                except:
+                    # fd already closed
+                    pass
+            os._exit(status)
 
     def getUtsNsInfo(self):
         """
         Collects the hostname and NIS domain name inside the Namespace.
+        libc call is nessecary, since os.uname() is lacking the domainname.
         :tuple list: hostname domainname-pair
         """
         libc = ctypes.CDLL('libc.so.6')
@@ -236,6 +282,20 @@ class Scanner(object):
         return(uts_data.nodename, uts_data.domain)
 
 
+    def checkSubProcessInNs(self, result, pid, ns_type):
+        """
+        Testing result for error codes, returning none if found
+        :tuple result: contains (status code, info)
+        """
+        if not result[0]:
+            return result[1]
+        else:
+            print("Failed to collect {}-namespace info for {}! {}".format(
+                    ns_type, pid, (result[1] if result[1] else '')
+                    ), file=sys.stderr
+            )
+        return None
+
     def getNetNsInfo(self, pid, fd):
         """
         Wrapper for collector-method
@@ -248,31 +308,27 @@ class Scanner(object):
             :return dict: the return value of collect Network Interface
             Function
             """
-            sys_path = r"/tmp/netns_{}".format(str(pid))
-            if not os.path.exists(sys_path):
-                os.makedirs(sys_path)
-            else:
-                # the temporary directory already exists
-                msg = ("Could not get Network Namespace Info, Folder"
-                        " {} already exists!".format(sys_path)
-                )
-                print(msg, file = sys.stderr)
-                return None
+            import tempfile
+            sys_path = tempfile.mkdtemp()
             args = ['/bin/mount', '-t', 'sysfs', 'none', sys_path]
-            subprocess.call(args, shell=False, close_fds=True)
-            net_path = "{}/class/net".format(sys_path)
-            res = self.collectNwInterface(nw_dir=net_path)
-            subprocess.call(['umount', sys_path], shell=False, close_fds=True)
-            os.rmdir(sys_path)
+            res = None
+            try:
+                subprocess.call(args, shell=False, close_fds=True)
+                net_path = "{}/class/net".format(sys_path)
+                res = self.collectNwInterface(nw_dir=net_path)
+            finally:
+                subprocess.call(['umount', sys_path], shell=False, close_fds=True)
+                os.rmdir(sys_path)
             return [fd, res]
-        return self.getSubProcessInNs(pid, getNetNsSub, ['net'])
+        result = self.callSubProcessInNs(pid, getNetNsSub, ['net'])
+        return self.checkSubProcessInNs(result, pid, 'net')
 
     def getRootNsPidsForType(self, namespaces, ns_type):
         """
-        This function extracts a list of pids that reside inside root
-        namespaces.
+        This function extracts a list of pids that reside inside the
+        root namespace of ns_type.
         :dict namespaces: the namespaces-dictionary
-        :string ns_type: the namespace type to create a list for
+        :string ns_type: the namespace type to create the pid list for
         """
         for ns in namespaces.items():
             if not ns[1]['pids'][0] == 1:
@@ -289,50 +345,59 @@ class Scanner(object):
         """
         res = {}
         mnt_pids = self.getRootNsPidsForType(namespaces, "mnt")
-        for ns in namespaces.items():
-            pid = ns[1]['pids'][0]
+        for fd, info in namespaces.items():
+            pid = info['pids'][0]
             if pid == 1:
-                # root-namespaces already collected
+                # skipping, since we already have an inside view of the
+                # init-process namespaces
                 continue
-            fd = ns[0]
             value = []
-            ns_type = ns[1]['type']
+            ns_type = info['type']
             if ns_type == 'net':
                 value = self.getNetNsInfo(pid, fd)
             elif ns_type == 'uts':
-                val = self.getSubProcessInNs(
+                val = self.callSubProcessInNs(
                         pid, self.getUtsNsInfo, ['uts']
                 )
-                value = [fd, val]
+                val = self.checkSubProcessInNs(val, pid, 'uts')
+                if val:
+                    value = [fd, val]
             elif ns_type == 'user':
                 val = self.getUserNsInfo(pid)
                 value = [fd, val]
-                if pid in mnt_pids:
-                    # no alias for uid/gid fetchable without mnt
-                    val = {'uids': {}, 'gids': {}}
-                else:
-                    # custom mnt-namespace present
-                    val = self.getSubProcessInNs(
+                val = {'uids': {}, 'gids': {}}
+                if not pid in mnt_pids:
+                    # alias for uid/gid only fetchable with mnt
+                    scan_val = self.callSubProcessInNs(
                             pid, self.collectUserGroupMappings,
                             ['user', 'mnt']
                     )
+                    res_val = self.checkSubProcessInNs(scan_val, pid, 'user')
+                    if res_val:
+                        val = res_val
                 value[1].update(val)
             elif ns_type == 'pid':
                 if pid in mnt_pids:
-                    # return no pid tree if no mnt-namespace is available
+                    # currently lacking the abillity to scan pid trees
+                    # if the process directory is not mounted to /proc.
                     val = None
                 else:
-                    val = self.getSubProcessInNs(
+                    # since we are expecting the correct /proc filesystem
+                    # to be mounted at the correct location inside the
+                    # mnt-namespace, only joining the mnt-namespace suffices
+                    val = self.callSubProcessInNs(
                             pid, self.collectProcessInfo,
-                            ['pid', 'mnt']
+                            ['mnt']
                     )
-                value = [fd, {'pids_info': val}]
+                value = [fd, {'pids_info': self.checkSubProcessInNs(
+                        val, pid, 'pid'
+                        )
+                    }
+                ]
             else:
                 continue
-            if ns_type in res:
-                res[ns_type][value[0]] = value[1]
-            else:
-                val_dict = {}
+            val_dict = res.setdefault(ns_type, {})
+            if value:
                 val_dict[value[0]] = value[1]
                 res[ns_type] = val_dict
         return res
@@ -343,21 +408,26 @@ class Scanner(object):
         number
         :int pid: the pid to look at
         """
-        # not so interesting, since we already have the pid hierarchy
+        # TODO: case where pid_for_children differs from pid and no child
+        # process was spawned is not yet covered.
         ignore_list = ['pid_for_children']
         result = {}
-        for symlink in os.listdir("/proc/{}/ns".format(pid)):
+        pid_ns_dir = "/proc/{}/ns".format(pid)
+        for symlink in os.listdir(pid_ns_dir):
             if symlink in ignore_list:
                 continue
-            result[symlink] = os.path.realpath("/".join((
-                    "/proc/{}/ns".format(pid), symlink
-                    ))).split("[")[-1][:-1]
+            full_path = os.path.sep.join((pid_ns_dir, symlink))
+            link = os.readlink(full_path)
+            # expected format: "$ns:[$inode]", like "pid:[4026531836]"
+            inode = link.split(':')[1].strip("[]")
+            result[symlink] = inode
         return result
 
     def collectProcessInfo(self):
         """
         Collect information about all running processes in the
-        self.m_proc_info dictionary.
+        self.m_proc_info dictionary, as well as returning its value
+        for compatibility reasons
         """
         cap_lambda = lambda a: int(a, base=16)
         gid_uid_lambda = lambda a: tuple(int(i) for i in a.split("\t"))
@@ -382,6 +452,8 @@ class Scanner(object):
         parents = {}
 
         pids_to_remove = set()
+        # expected format: $inode: {$informations}, like
+        # '4026531961': {'nbr': 1, 'pids': [1], 'type': 'net', 'uid': 0}
         namespaces = {}
         for p in self.getAllPids():
             if p == self.m_our_pid:
@@ -411,16 +483,27 @@ class Scanner(object):
 
                 ns = self.getNamespaces(p)
                 # get namespace info grouped by namespaces
+                # pids: a list of pids, which are part of the namespace
+                # uid: the uid of the first process inside the namespace
+                # nbr: a unique alias number referencing the namespace for
+                #      display purposes
                 for type_name in ns:
-                    if ns[type_name] in namespaces:
-                        namespaces[ns[type_name]]["pids"].append(p)
-                    else:
+                    if not ns[type_name] in namespaces:
                         ns_curr = {}
                         ns_curr["type"] = type_name
-                        ns_curr["pids"] = [p]
+                        ns_curr["pids"] = []
                         ns_curr["uid"] = status_pid["Uid"][3]
+                        # TODO: assigning these alias numbers should better be
+                        # done as a post-processing step after all process
+                        # information is collected.
+                        # Also we should make sure that the assignment of
+                        # display nrs. is stable i.e. subsequent runs return
+                        # likely equal numbers for equal namespaces.
                         ns_curr["nbr"] = len(namespaces)+1
                         namespaces[ns[type_name]] = ns_curr
+
+                    namespace_entry = namespaces[ns[type_name]]
+                    namespace_entry["pids"].append(p)
                 status[p] = status_pid
 
             except EnvironmentError as e:
@@ -439,6 +522,8 @@ class Scanner(object):
         self.m_proc_info["status"] = status
         self.m_proc_info["parents"] = parents
         self.m_proc_info["namespaces"] = namespaces
+
+        return self.m_proc_info
 
     @staticmethod
     def getProcessInfo(pid, tid=None):

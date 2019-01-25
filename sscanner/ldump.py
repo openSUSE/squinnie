@@ -55,8 +55,8 @@ class LocalFactory(object):
         """
         :dict data: data replacing dump data, formed as file-name value
         """
-        self.m_lDump = LocalDump(data)
-        self.m_proc_data = ProcessData(self.m_lDump, self)
+        self.m_ldump = LocalDump(data)
+        self.m_proc_data = ProcessData(self.m_ldump, self)
 
     def getProcWrapper(self):
         return self.m_proc_data

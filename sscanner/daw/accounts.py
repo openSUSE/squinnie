@@ -30,29 +30,38 @@ class AccountWrapper(object):
     def __init__(self, dumpIO, uid_gid=None):
         """
         :param dumpIO: An instance of sscanner.dio.DumpIO for loading the data
+        :dict uid_gid: contains inode: data entries of found user namespaces
         """
         self.m_dumpIO = dumpIO
         self.m_ll_data = CategoryLoader("userdata", self.m_dumpIO)
         self.m_data = self.m_ll_data.getData()
         if uid_gid:
-            for ns in uid_gid.items():
-                if not ns[1]['uid'] and not ns[1]['gid']:
-                    # empty set
+            # load additional uid/gid-mappings from inside user namespaces
+            for inode, ns_data in uid_gid.items():
+                if not ns_data['uid'] and not ns_data['gid']:
+                    # no uid-/gid-mappings inside this user-namespace
                     continue
-                uid_offset = int(ns[1]['uid'][0][1])
-                gid_offset = int(ns[1]['gid'][0][1])
-                for ids in [(uid_offset, 'uids'), (gid_offset, 'gids')]:
-                    for mapping in ns[1][ids[1]].items():
-                        value = int(mapping[0]) + ids[0]
-                        if not value in self.m_data[ids[1]]:
-                            self.m_data[ids[1]][value] = "{}(user-ns)".format(
+                # mapping-lists contain the following structure:
+                # ID-inside-ns  ID-outside-ns   length
+                # however, there can be multiple entries, we only care
+                # about the first one and the offset of the parent ids.
+                uid_offset = int(ns_data['uid'][0][1])
+                gid_offset = int(ns_data['gid'][0][1])
+                for offset, key in [
+                        (uid_offset, 'uids'), (gid_offset, 'gids')
+                ]:
+                    for mapping in ns_data[key].items():
+                        value = int(mapping[0]) + offset
+                        if not value in self.m_data[key]:
+                            # adding the ids to the ones we already know
+                            self.m_data[key][value] = "{}(user-ns)".format(
                                     mapping[1]
                             )
                         else:
                             error = """Overlapping {}: {} already exists!
                             This could be caused by misconfigured
                             uid/gid mapping on scanning target!""".format(
-                                ids[1], value
+                                key, value
                             )
                             raise ValueError(error)
 
