@@ -39,6 +39,7 @@ from sscanner.types import ProcColumns
 from sscanner.daw.fs import FsQuery
 from sscanner.dio import DumpIO
 from sscanner.daw import factory
+from sscanner.ldump import LocalFactory
 
 pickle = helper.importPickle()
 
@@ -70,6 +71,9 @@ class Viewer(object):
         self.m_indentation_width = 4
         self.m_node_label = label
         self.m_show_numeric = False
+        self.m_used_namespaces = []
+        self.m_ns_pid = None
+        self.m_account_helper = None
 
         self.m_cap_translator = cap_translator.CapTranslator(
                 self._getJsonFile("cap_data")
@@ -80,6 +84,7 @@ class Viewer(object):
         )
 
         self.m_daw_factory = daw_factory
+        self.m_proc_wrapper = self.m_daw_factory.getProcWrapper()
 
         self.m_excluded = []
         self.m_included = []
@@ -93,6 +98,13 @@ class Viewer(object):
         ])
         return json_file
 
+
+    def getAccountHelper(self):
+        if not self.m_account_helper:
+            ns_helper = self.m_daw_factory.getNamespacesWrapper()
+            uid_gid = ns_helper.getNamespaceUidGid()
+            self.m_account_helper = self.m_daw_factory.getAccountWrapper(uid_gid)
+        return self.m_account_helper
 
     def activateSettings(self, args):
         """Activates the settings found in the given argparse.Namespace
@@ -109,7 +121,7 @@ class Viewer(object):
         self.setExcludeInclude(args)
 
     def parseOwnerFilters(self, args):
-        account_helper = self.m_daw_factory.getAccountWrapper()
+        account_helper = self.getAccountHelper()
 
         if args.user:
             self.m_uid_filter = account_helper.getUidForName(args.user)
@@ -139,6 +151,9 @@ class Viewer(object):
         elif args.network_interfaces:
             # network interface information view
             self.printNetworkInterfaces()
+        elif args.namespaces:
+            # namespace information view
+            self.printNamespaces()
         else:
             # process tree view
             self.printProcessTree()
@@ -216,6 +231,8 @@ class Viewer(object):
                             choices=file_mode.getPossibleFileChars())
         description = "Show network interface information"
         parser.add_argument("--network-interfaces", action="store_true", help=description)
+        desc = "Show information about available namespaces"
+        parser.add_argument("--namespaces", action="store_true", help=desc)
 
         description = "Show values in numeric format"
         parser.add_argument("--numeric", action="store_true", help=description)
@@ -250,11 +267,21 @@ class Viewer(object):
         """Also include kernel thread PIDs in the table."""
         self.m_show_kthreads = show
 
+    def collectUsedNamespaces(self):
+        """
+        Reorders collected namespace data.
+        :list self.m_used_namespaces: contains inode/data tuples.
+        """
+        namespaces = self.m_daw_factory.getNamespacesWrapper()
+        data = namespaces.getAllNamespaceData()
+        self.m_used_namespaces = sorted(data.items(), key=lambda k: k[1]['nbr'])
+        self.m_deep_namespace_data = namespaces.getAllDeepNsData()
+
     def printFileDescriptors(self):
         """Prints all file descriptors of all processes found in the current
         data set."""
 
-        proc_wrapper = self.m_daw_factory.getProcWrapper()
+        proc_wrapper = self.m_proc_wrapper
         descriptorless_pids = []
 
         for pid, info in OrderedDict(proc_wrapper.getProcData()).items():
@@ -314,7 +341,7 @@ class Viewer(object):
         fshandler = self.m_daw_factory.getFsWrapper()
         iterator = fshandler.queryFilesystem(self.m_fsquery)
 
-        account_wrapper = self.m_daw_factory.getAccountWrapper()
+        account_wrapper = self.getAccountHelper()
 
         ret = []
 
@@ -344,7 +371,7 @@ class Viewer(object):
         process with ``pid``.
         """
 
-        proc_wrapper = self.m_daw_factory.getProcWrapper()
+        proc_wrapper = self.m_proc_wrapper
 
         pid_data = proc_wrapper.getProcessInfo(pid)
 
@@ -354,7 +381,7 @@ class Viewer(object):
         return self.formatColumnValue(column, pid, pid_data)
 
     def formatColumnValue(self, column, pid, pid_data, cap_color='red'):
-        account_wrapper = self.m_daw_factory.getAccountWrapper()
+        account_wrapper = self.getAccountHelper()
 
         column_label = ProcColumns.getLabel(column)
 
@@ -466,7 +493,7 @@ class Viewer(object):
                 result = len(pid_data["open_files"])
             else:
                 # in case we print the full fds we add a newline after each process to make it a bit more readable
-                proc_wrapper = self.m_daw_factory.getProcWrapper()
+                proc_wrapper = self.m_proc_wrapper
                 result = str(proc_wrapper.getFileDescriptorsForPid(pid)) + "\n"
         elif column == ProcColumns.umask:
             result = "{0:o}".format(pid_data['Umask']).rjust(4, '0') if 'Umask' in pid_data else ''
@@ -474,6 +501,26 @@ class Viewer(object):
         elif column in pid_data:
             # take data as is
             result = pid_data[column_label]
+
+        elif column == ProcColumns.namespace:
+            # check if namespaces differ from parent one
+            result = ''
+            if not self.m_used_namespaces:
+                self.collectUsedNamespaces()
+            for index in range(0, len(self.m_used_namespaces)):
+                ns = self.m_used_namespaces[index]
+                ns_type = ns[1]['type']
+                # check for pid namespace
+                if self.m_ns_pid:
+                    real_pid = self.m_ns_pid[pid]
+                    real_parent = self.m_ns_pid[pid_data["parent"]]
+                else:
+                    real_pid = pid
+                    real_parent = pid_data["parent"]
+                if real_pid in ns[1]['pids'] and not real_parent in ns[1]['pids']:
+                    val = "{}({})".format(ns[1]['nbr'], ns[1]['type'])
+                    result = '\n'.join((result, val))
+
         else:
             raise Exception("Unexpected column " + column_label + " encountered")
 
@@ -567,7 +614,7 @@ class Viewer(object):
 
             return False
 
-        proc_wrapper = self.m_daw_factory.getProcWrapper()
+        proc_wrapper = self.m_proc_wrapper
 
         num_procs = proc_wrapper.getProcessCount()
         logging.info("There are {} processes running on {}.".format(
@@ -649,7 +696,15 @@ class Viewer(object):
             ]
             prefix = ''
         else:
-            root_pids = [1]
+            root_pids = []
+            if self.m_ns_pid:
+                # more than one root pid could exist, if a process
+                # joins into the pid namespace
+                for parent in parents.items():
+                    if parent[1] == 0:
+                        root_pids.append(parent[0])
+            else:
+                root_pids = [1]
             if self.m_show_kthreads:
                 # for kernel threads PID2 is the root
                 root_pids.append(2)
@@ -775,7 +830,7 @@ class Viewer(object):
         formatter.writeOut()
 
     def generateThreadWarningsForPid(self, pid, column_headers, indent):
-        proc_wrapper = self.m_daw_factory.getProcWrapper()
+        proc_wrapper = self.m_proc_wrapper
         data = proc_wrapper.getProcessInfo(pid)
 
         comparison_keys = {  # eff, inh, prm
@@ -836,7 +891,21 @@ class Viewer(object):
             if empty[index] == len(data):
                 self.m_excluded.append(cnames[index])
 
-    def printNetworkInterfaces(self):
+    def printFilteredColumns(self, output, column_names):
+        """
+        Remove empty columns before printing
+        :list column_names: the column names
+        :list output: the data to print
+        """
+        self.hideEmptyColumns(output, column_names)
+        columns = []
+        for name in column_names:
+            columns.append(Column(name, [], self.m_have_tty))
+        formatter = TablePrinter(columns, data=output,
+                include=self.m_included, exclude=self.m_excluded)
+        formatter.writeOut()
+
+    def printNetworkInterfaces(self, data=None):
         # list for keys in data-dictionary, order must be matching the
         # column_name's below
         identifier = [
@@ -848,17 +917,154 @@ class Viewer(object):
             'flags', 'device_type', 'uevent_DEVTYPE', 'MAC_address',
             'IPv4_address', 'IPv6_address', 'attached'
         ]
-        nwinterfaces = self.m_daw_factory.getNwIfaceInfoWrapper()
-        data = nwinterfaces.getAllNwIfaceData()
+        if not data:
+            nwinterfaces = self.m_daw_factory.getNwIfaceInfoWrapper()
+            data = nwinterfaces.getAllNwIfaceData()
         output = self.m_nwiface_translator.getFormattedData(data,
                                                        identifier)
-        self.hideEmptyColumns(output, column_names)
-        columns = []
-        for name in column_names:
-            columns.append(Column(name, [], self.m_have_tty))
-        formatter = TablePrinter(columns, data=output,
-                include=self.m_included, exclude=self.m_excluded)
-        formatter.writeOut()
+        self.printFilteredColumns(output, column_names)
+
+    def dictKeyIntify(self, overwrite, data):
+        """
+        Small converter for converting dictionary keys back to
+        integers.
+        :list overwrite: tuples with (original name, result name) pairs
+        :dict data: the data with subdictionaries with wrong keytypes
+        """
+        res = {}
+        for intify in overwrite:
+            res[intify[1]] = {}
+            for str_val in data[intify[0]].items():
+                res[intify[1]][int(str_val[0])] = str_val[1]
+        return res
+
+    def printNamespaces(self):
+        # namespace data keys and their associated column labels
+        columns = [
+            ('nbr', 'number'),
+            ('ns', 'namespace'),
+            ('type', 'type'),
+            ('nprocs', 'number of processes'),
+            ('pid', 'pid'),
+            ('uid', 'user'),
+            ('command', 'command')
+        ]
+        labels = [ c[1] for c in columns]
+        if not self.m_used_namespaces:
+            self.collectUsedNamespaces()
+        accounts = self.getAccountHelper()
+        output = []
+        pid_filter = self.m_pid_filter
+        for ns_inode, ns_info in self.m_used_namespaces:
+            column = []
+            if pid_filter:
+                valid_col = True
+                for filtered_pid in pid_filter:
+                    if not filtered_pid in ns_info['pids']:
+                        valid_col = False
+                        break
+                if not valid_col:
+                    continue
+            for index in range(0, len(columns)):
+                col_key = columns[index][0]
+                if col_key == "nbr":
+                    column.append(str(ns_info[col_key]))
+                elif col_key == 'ns':
+                    column.append(ns_inode)
+                elif col_key == "type":
+                    column.append(str(ns_info[col_key]))
+                elif col_key == "nprocs":
+                    column.append(str(len(ns_info['pids'])))
+                elif col_key == 'pid':
+                    column.append(str(ns_info['pids'][0]))
+                elif col_key == 'uid':
+                    user = accounts.getNameForUid(
+                            ns_info['uid'], default="unknown"
+                    )
+                    column.append(user)
+                elif col_key == 'command':
+                    col_pid = ns_info['pids'][0]
+                    proc_data = self.m_proc_wrapper.getProcessInfo(col_pid)
+                    cmdline = proc_data["cmdline"].replace('\x00', ' ').strip()
+                    column.append(cmdline)
+            output.append(column)
+        self.printFilteredColumns(output, labels)
+        # start namespace-internal printing
+        data = self.m_deep_namespace_data
+        for entry in data.items():
+            for inode in entry[1].items():
+                element = []
+                # get column of current namespace
+                col = []
+                for val in output:
+                    if inode[0] == val[1]:
+                        col = val
+                        break
+                if not col:
+                    # pid-filter probably removed column
+                    continue
+                for index in range(0, len(self.m_used_namespaces)):
+                    if self.m_used_namespaces[index][0] == inode[0]:
+                        element = [index, self.m_used_namespaces[index]]
+                        break
+                if not element:
+                    raise ValueError(
+                            'namespace not included in namespace-list!'
+                    )
+                printstr = "for namespace {}(PID {}):".format(col[0], col[4])
+                if entry[0] == 'net':
+                    print("Network scan {}".format(printstr))
+                    self.printNetworkInterfaces(data=inode[1])
+                elif entry[0] == 'uts':
+                    print("Host- and Domainname {}".format(printstr))
+                    print("Hostname: {}".format(inode[1][0]))
+                    print("Domainname: {}".format(inode[1][1]))
+                elif entry[0] == 'user':
+                    if not inode[1]['gid'] or not inode[1]['uid']:
+                        # empty set
+                        continue
+                    col_names = ["startvalue inside namespace",
+                        "startvalue outside namespace(parent view)",
+                        "length"
+                    ]
+                    for curr_type in ["uid", "gid"]:
+                        curr_output = inode[1][curr_type]
+                        print("{} mapping for {}".format(curr_type, printstr))
+                        self.printFilteredColumns(curr_output, col_names)
+                elif entry[0] == 'pid' and pid_filter:
+                    if not inode[1]['pids_info']:
+                        # no internal process tree available
+                        continue
+                    # pid filter interfers if set globally
+                    self.m_pid_filter = None
+                    ext_pids = element[1][1]['pids']
+                    overwrite = [("status", "proc_data"),
+                            ("parents", "parents")
+                    ]
+                    data_dict = self.dictKeyIntify(overwrite,
+                            inode[1]['pids_info']
+                    )
+                    # since our standart ProcWrapper uses the collected
+                    # process data from standart perspective, we need
+                    # to customize this to fit our needs for an inside
+                    # view of the pid-namespace
+                    pid_handler = LocalFactory(data_dict).getProcWrapper()
+                    print("PID mappings for {}".format(printstr))
+                    # set variables for pid-ns mode
+                    if len(ext_pids) != len(data_dict["proc_data"]):
+                        raise ValueError(
+                                "Pid mapping of pid namespace {} is invalid!"
+                                .format(inode[0])
+                    )
+                    # create pid-ns mapping dict
+                    self.m_ns_pid = {0 : 0}
+                    pids_sorted = sorted(data_dict["proc_data"])
+                    for pid_index in range(0, len(pids_sorted)):
+                        self.m_ns_pid[
+                                pids_sorted[pid_index]
+                        ] = ext_pids[pid_index]
+                    self.m_proc_wrapper = pid_handler
+                    self.printProcessTree()
 
 class TablePrinter(object):
     """This class prints a table to the terminal"""
@@ -919,9 +1125,12 @@ class TablePrinter(object):
         for i in range(len(self.m_data)):
             row = self.m_data[i]
 
-            for k in range(len(self.m_columns)):
-                if maxlen[k] < len(row[k]):
-                    maxlen[k] = len(row[k])
+            try:
+                for k in range(len(self.m_columns)):
+                    if maxlen[k] < len(row[k]):
+                        maxlen[k] = len(row[k])
+            except IndexError as e:
+                exit("Error, looks like the amount of elements given in columns and data differs:\n{}".format(e))
 
         for k in range(len(self.m_columns)):
             if maxlen[k] < len(self.m_columns[k].name):

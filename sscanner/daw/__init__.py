@@ -24,4 +24,5 @@ from fs import Filesystem
 from accounts import AccountWrapper
 from networking import NetworkingWrapper
 from networkInterfaces import NetworkInterfaceWrapper
+from namespaces import NamespaceWrapper
 from factory import Factory
