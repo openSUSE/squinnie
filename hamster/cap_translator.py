@@ -27,8 +27,8 @@ from __future__ import with_statement
 import json
 import os
 
-import sscanner.helper
-import sscanner.errors
+import hamster.helper
+import hamster.errors
 
 
 class CapTranslator(object):
@@ -61,7 +61,7 @@ class CapTranslator(object):
         capfile = os.path.join(datadir, self.file_name)
 
         if not os.path.exists(capfile):
-            raise sscanner.errors.ScannerError(
+            raise hamster.errors.ScannerError(
                 "Missing capability description file at {}".format(capfile)
             )
 

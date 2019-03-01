@@ -91,7 +91,7 @@ class SscannerTest(object):
             exit(1)
 
         if self.m_params.directory == None:
-            self.m_params.directory = tempfile.mkdtemp(prefix='sscanner-test')
+            self.m_params.directory = tempfile.mkdtemp(prefix='hamster-test')
 
     def prepareTests(self):
         """Appends the test-parameters to member variable"""
@@ -234,7 +234,7 @@ class TestRun(object):
         self.name = name
         self.stdout = os.path.join(dir, "stdout-{}.txt".format(name))
         self.stderr = os.path.join(dir, "stderr-{}.txt".format(name))
-        self.cachedir = os.path.join(dir, "sscanner-cache")
+        self.cachedir = os.path.join(dir, "hamster-cache")
         self.m_arguments = ['-d', self.cachedir] + arguments
 
     def run(self):

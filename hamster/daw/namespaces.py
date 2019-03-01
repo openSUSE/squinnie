@@ -18,19 +18,30 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA 02110-1301 USA.
-from sscanner.daw.helper import CategoryLoader
+from hamster.daw.helper import CategoryLoader
 
-class NetworkInterfaceWrapper(object):
+class NamespaceWrapper(object):
     """
-    This class abstracts all information about network interfaces
+    This class abstracts all information about available namespaces.
     """
 
     def __init__(self, dumpIO):
         """
-        :param dumpIO: An instance of sscanner.dio.DumpIO
+        :param dumpIO: An instance of hamster.dio.DumpIO
         """
         self.m_dumpIO = dumpIO
-        self.m_data = CategoryLoader("nwifaces", self.m_dumpIO)
+        self.m_data = CategoryLoader("namespaces", self.m_dumpIO)
+        self.m_data_deep = CategoryLoader("namespaces_deep", self.m_dumpIO)
 
-    def getAllNwIfaceData(self):
+    def getNamespaceUidGid(self):
+        result = None
+        data = self.m_data_deep.getData()
+        if 'user' in data:
+            result = data['user']
+        return result
+
+    def getAllNamespaceData(self):
         return self.m_data.getData()
+
+    def getAllDeepNsData(self):
+        return self.m_data_deep.getData()

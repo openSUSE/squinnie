@@ -186,7 +186,7 @@ def makeValidDirname(s):
 
 def getLogger():
     """Returns the logger for the project."""
-    logging.getLogger("sscanner")
+    logging.getLogger("hamster")
 
 def changeTimeFormat(runtime):
     """Improves the readability of process-runtime.

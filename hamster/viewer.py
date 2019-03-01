@@ -30,16 +30,16 @@ import logging
 import textwrap
 from collections import OrderedDict
 # Local modules.
-import sscanner.cap_translator as cap_translator
-import sscanner.helper as helper
-import sscanner.file_mode as file_mode
-import sscanner.errors
-import sscanner.nwiface_translator as nwiface_translator
-from sscanner.types import ProcColumns
-from sscanner.daw.fs import FsQuery
-from sscanner.dio import DumpIO
-from sscanner.daw import factory
-from sscanner.ldump import LocalFactory
+import hamster.cap_translator as cap_translator
+import hamster.helper as helper
+import hamster.file_mode as file_mode
+import hamster.errors
+import hamster.nwiface_translator as nwiface_translator
+from hamster.types import ProcColumns
+from hamster.daw.fs import FsQuery
+from hamster.dio import DumpIO
+from hamster.daw import factory
+from hamster.ldump import LocalFactory
 
 pickle = helper.importPickle()
 
@@ -676,7 +676,7 @@ class Viewer(object):
                     pid = parents[pid]
 
                 if pid not in all_pids:
-                    raise sscanner.errors.ScannerError(
+                    raise hamster.errors.ScannerError(
                         "There is no process that has pid {} on this node.".format(
                             pid
                         )

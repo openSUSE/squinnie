@@ -24,7 +24,7 @@ import os.path
 import stat
 import logging
 import json
-import sscanner.file_mode as file_mode
+import hamster.file_mode as file_mode
 
 
 class Filesystem(object):
@@ -32,7 +32,7 @@ class Filesystem(object):
 
     def __init__(self, dumpIO):
         """
-        :param dumpIO: An instance of sscanner.dio.DumpIO for loading the data
+        :param dumpIO: An instance of hamster.dio.DumpIO for loading the data
         """
         self.m_dumpIO = dumpIO
         self.m_accessor = FsDatabase(self.m_dumpIO.getDumpDir())

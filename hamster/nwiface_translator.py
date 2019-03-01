@@ -50,7 +50,7 @@ class NwIfaceTranslator(object):
             with open(filePath, "r") as f:
                 return json.load(f)
         except EnvironmentError as e:
-            raise sscanner.errors.ScannerError(
+            raise hamster.errors.ScannerError(
                 "Cannot open file {}: {}".format(args.input, str(e))
             )
 

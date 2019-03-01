@@ -126,7 +126,7 @@ This is an sqlite3 database for storing the filesystem. It has a table called `i
 - `uid` and `gid`: Owner userid and groupid.
 - `caps`: The capabilities as reported by stat.
 - `mode`: The file mode as reported by stat (i.e. sticky bit, suid bit, ...).
-- `type`: A single char describing the type of the entry. The chars are as defined in `man 1p ls` and are generated via `getTypeChar(mode)` in `sscanner/file_mode.py`.
+- `type`: A single char describing the type of the entry. The chars are as defined in `man 1p ls` and are generated via `getTypeChar(mode)` in `hamster/file_mode.py`.
 - `name`: The filename.
 - `path`: The path to the file with leading slash and without filename or trailing slash. This can in theory be reconstructed by recursively querying the parents, but having this field makes the queries a lot easier.
 

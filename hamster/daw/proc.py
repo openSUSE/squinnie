@@ -18,8 +18,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA 02110-1301 USA.
-from sscanner.daw.helper import CategoryLoader
-from sscanner.daw.sockets import FdWrapper
+from hamster.daw.helper import CategoryLoader
+from hamster.daw.sockets import FdWrapper
 import logging
 
 
@@ -27,7 +27,7 @@ class ProcessData(object):
 
     def __init__(self, dumpIO, factory):
         """
-        :param dumpIO: An instance of sscanner.dio.DumpIO for loading the data
+        :param dumpIO: An instance of hamster.dio.DumpIO for loading the data
         """
         self.m_dumpIO = dumpIO
         self.m_data = {}

@@ -21,7 +21,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA 02110-1301 USA.
 
-from sscanner.daw import ProcessData
+from hamster.daw import ProcessData
 
 class LocalDump(object):
     """This class serves as DumpIO class, using given data instead of

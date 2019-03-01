@@ -30,17 +30,17 @@ import os
 import sys
 import shlex
 
-# allow importing the sscanner module from ..
+# allow importing the hamster modules from '..'
 import module_helper
 
 # Local modules
-import sscanner.dumper
-import sscanner.crowbar
-import sscanner.errors
-import sscanner.viewer
-from sscanner.types import Modes
-from sscanner.daw import Factory
-from sscanner.dio import DumpIO
+import hamster.dumper
+import hamster.crowbar
+import hamster.errors
+import hamster.viewer
+from hamster.types import Modes
+from hamster.daw import Factory
+from hamster.dio import DumpIO
 
 
 class Hamster(object):
@@ -111,7 +111,7 @@ class Hamster(object):
 
         view_group = parser.add_argument_group('view arguments')
         # definitions come from the viewer module itself
-        sscanner.viewer.Viewer.addParserArguments(view_group)
+        hamster.viewer.Viewer.addParserArguments(view_group)
 
         self.m_parser = parser
 
@@ -132,12 +132,12 @@ class Hamster(object):
         if self.m_args.mode in (Modes.susecloud, Modes.ssh):
 
             if not self.m_args.entry:
-                raise sscanner.errors.ScannerError(
+                raise hamster.errors.ScannerError(
                     "For susecloud and ssh mode the --entry argument is requried"
                 )
 
         elif self.m_args.mode == Modes.local and self.m_args.entry:
-            raise sscanner.errors.ScannerError(
+            raise hamster.errors.ScannerError(
                 "You've selected the mode local but gave a remote scan target. Please skip the target or use the mode"
                 " 'susecloud' or 'ssh'."
             )
@@ -151,14 +151,14 @@ class Hamster(object):
         data use. The result is stored in self.m_node_data
         """
         if self.m_args.mode == Modes.susecloud:
-            dumper = sscanner.dumper.SshDumper()
+            dumper = hamster.dumper.SshDumper()
             nwconfig_path = self.m_args.network
 
             if not os.path.isabs(nwconfig_path):
                 nwconfig_path = os.path.realpath(nwconfig_path)
 
             # crowbar module arguments
-            crowbar = sscanner.crowbar.Crowbar()
+            crowbar = hamster.crowbar.Crowbar()
             crowbar.setEntryNode(self.m_args.entry)
             crowbar.setUseCache(not self.m_args.nocache)
             crowbar.setConfigPath(nwconfig_path)
@@ -167,11 +167,11 @@ class Hamster(object):
             dumper.setNetworkConfig(crowbar.getNetworkInfo())
 
         elif self.m_args.mode == Modes.ssh:
-            dumper = sscanner.dumper.SshDumper()
+            dumper = hamster.dumper.SshDumper()
             dumper.setNetworkConfig({self.m_args.entry: []})
 
         elif self.m_args.mode == Modes.local:
-            dumper = sscanner.dumper.LocalDumper()
+            dumper = hamster.dumper.LocalDumper()
 
 
         dumper.setOutputDir(self.m_args.directory)
@@ -196,7 +196,7 @@ class Hamster(object):
         for config in self.m_node_data:
             dio = DumpIO(config['node'], self.m_args.directory)
 
-            viewer = sscanner.viewer.Viewer(daw_factory=Factory(dio), label=config['node'])
+            viewer = hamster.viewer.Viewer(daw_factory=Factory(dio), label=config['node'])
             viewer.activateSettings(self.m_args)
 
             print("\n\nReport for {} ...".format(config['node']))
@@ -242,11 +242,11 @@ class Hamster(object):
 
         levels = [logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG]
 
-        logger = logging.getLogger("sscanner")
+        logger = logging.getLogger("hamster")
         logger.setLevel(level=levels[self.m_args.verbose])
         logging.basicConfig(level=levels[self.m_args.verbose])
 
 
 if __name__ == "__main__":
-    hamster = Hamster()
-    sscanner.helper.executeMain(hamster.run)
+    main = Hamster()
+    hamster.helper.executeMain(main.run)

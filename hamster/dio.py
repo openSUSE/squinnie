@@ -25,8 +25,8 @@ import os
 import pprint
 import threading
 import shutil
-from sscanner import helper
-from sscanner.daw.fs import FsDatabase
+from hamster import helper
+from hamster.daw.fs import FsDatabase
 import logging
 
 

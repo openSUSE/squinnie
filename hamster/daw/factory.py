@@ -18,14 +18,14 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA 02110-1301 USA.
 
-from sscanner.daw import ProcessData
-from sscanner.daw.sysv import SysVIPC
-from sscanner.daw.fs import Filesystem
-from sscanner.daw import AccountWrapper
-from sscanner.daw import NetworkingWrapper
-from sscanner.daw.systemdata import SystemData
-from sscanner.daw import NamespaceWrapper
-from sscanner.daw import NetworkInterfaceWrapper
+from hamster.daw import ProcessData
+from hamster.daw.sysv import SysVIPC
+from hamster.daw.fs import Filesystem
+from hamster.daw import AccountWrapper
+from hamster.daw import NetworkingWrapper
+from hamster.daw.systemdata import SystemData
+from hamster.daw import NamespaceWrapper
+from hamster.daw import NetworkInterfaceWrapper
 
 class Factory(object):
     """
@@ -34,7 +34,7 @@ class Factory(object):
 
     def __init__(self, dumpIO):
         """
-        :param dumpIO: An instance of sscanner.dio.DumpIO for loading the data
+        :param dumpIO: An instance of hamster.dio.DumpIO for loading the data
         """
         self.m_dumpIO = dumpIO
         self.m_proc_data = ProcessData(self.m_dumpIO, self)

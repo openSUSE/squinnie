@@ -45,4 +45,4 @@ def tryFindModule(module):
         sys.exit(4)
 
 
-tryFindModule("sscanner")
+tryFindModule("hamster")

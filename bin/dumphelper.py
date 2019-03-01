@@ -25,7 +25,7 @@
 import pprint
 import sys
 import module_helper
-from sscanner import helper
+from hamster import helper
 
 if len(sys.argv) < 2:
     print('Usage: %s <dump.p.gz> [depth]' % sys.argv[0])
