@@ -47,7 +47,7 @@ class SecurityScanner(object):
     """main class that implements this command-line utility."""
 
     # the name for the environment variable containing parameters
-    ENVIRONMENT_PARAMETERS = "SECURITY_SCANNER"
+    ENVIRONMENT_PARAMETERS = "HAMSTER_OPTS"
 
     def __init__(self):
 
@@ -221,7 +221,7 @@ class SecurityScanner(object):
         :return: An array of arguments.
         """
         command_line_args = sys.argv[1:]  # skip $0 from the command line parameters
-        enviroment_args_str = os.environ['SECURITY_SCANNER'] if 'SECURITY_SCANNER' in os.environ else ''
+        enviroment_args_str = os.environ.get(self.ENVIRONMENT_PARAMETERS, '')
 
         if enviroment_args_str:
             # lets notify the user why there are strange arguments going on
