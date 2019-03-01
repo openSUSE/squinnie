@@ -1,19 +1,28 @@
 # Coding guidelines
 
-This project does mostly follow the guidelines as they are proposed in several PEPs (especially PEP8). However, due to personal preferences of the original creator, there are a few exceptions which are listed here.
+This project does mostly follow the guidelines as they are proposed in several
+PEPs (especially PEP8). However, there are a few exceptions which are listed
+here.
 
-## member variables
+## Member Variables
 
-Member variables of class SHOULD be prefix with `m_`. Example: `self.m_mydata = 123`. This is to easily identify class members amongst funtions, static variables and the like.
+Member variables of class SHOULD be prefix with `m_`. Example: `self.m_mydata
+= 123`. This is to easily identify class members amongst funtions, static
+variables and the like.
 
-## class method names
+## Class Method Names
 
-Class methods MUST be named in lowerCamelCase. Example: `def processUsageData(self, input)`. Private functions (that are functions which are not meant to be called from outside of the class or its descendants) SHOULD be prefix with an underscore. Example: `def _myPrivateFn(self)`.
+Class methods MUST be named in lowerCamelCase. Example: `def
+processUsageData(self, input)`. Private functions (that are functions which
+are not meant to be called from outside of the class or its descendants)
+SHOULD be prefix with an underscore. Example: `def _myPrivateFn(self)`.
 
-## File names
+## File Names
 
-Files names should not contain spaces. Ideally the should only contain alphanumeric characters and `-_.`.
+Files names should not contain spaces. Ideally the should only contain
+alphanumeric characters and `-_.`.
 
-## String formating
+## String Formatting
 
-The `%` operator should not be used. Instead, the python3 `.format()` function should be used.
+The `%` operator should not be used. Instead, the python3 `.format()` function
+should be used.
