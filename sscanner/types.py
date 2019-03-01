@@ -9,7 +9,7 @@
 # this file keeps helper types that are used across the modules
 
 class Modes(object):
-    """enum-like class for holding the different security scanner modes we
+    """enum-like class for holding the different Hamster modes we
     support"""
 
     all_modes = ["local", "ssh", "susecloud", "auto"]

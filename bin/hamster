@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # vim: ts=4 et sw=4 sts=4 :
 
-# security scanner - scan a system's security related information
+# hamster - scan a system's security related information
 
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
@@ -43,7 +43,7 @@ from sscanner.daw import Factory
 from sscanner.dio import DumpIO
 
 
-class SecurityScanner(object):
+class Hamster(object):
     """main class that implements this command-line utility."""
 
     # the name for the environment variable containing parameters
@@ -58,7 +58,7 @@ class SecurityScanner(object):
         """
         Sets available command-line arguments and parses them via argparse
         """
-        description = "Main security scanner tool. Collect and display security data of local and remote hosts."
+        description = "Hamster main script. Collect and display security data of local and remote hosts."
         parser = argparse.ArgumentParser(description=description)
 
         # General
@@ -217,7 +217,7 @@ class SecurityScanner(object):
     def _collectScannerArguments(self):
         """
         This helper method collects parameters from the command line and
-        from the SECURITY_SCANNER environment variable and combines them.
+        possibly an environment variable and combines them.
         :return: An array of arguments.
         """
         command_line_args = sys.argv[1:]  # skip $0 from the command line parameters
@@ -248,5 +248,5 @@ class SecurityScanner(object):
 
 
 if __name__ == "__main__":
-    scanner = SecurityScanner()
-    sscanner.helper.executeMain(scanner.run)
+    hamster = Hamster()
+    sscanner.helper.executeMain(hamster.run)

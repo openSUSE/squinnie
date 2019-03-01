@@ -11,8 +11,8 @@
 #include "ipc_common.h"
 
 /*
- * this test program sets up some SystemV IPC objects for inspection by the
- * security scanner.
+ * this test program sets up some SystemV IPC objects for inspection by
+ * Hamster.
  *
  * for the related APIs see `man 7 svipc`
  *

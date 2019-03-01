@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # vim: ts=4 et sw=4 sts=4 :
 
-# security scanner - scan a system's security related information
+# Hamster - scan a system's security related information
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
 # Author: Benjamin Deuter, Sebastian Kaim, Jannik Main
@@ -162,7 +162,7 @@ class Viewer(object):
     def addParserArguments(cls, parser):
         """Adds the viewer specific command line arguments to the given
         argparse.ArgumentParser object."""
-        # this is for reuse in the main security_scanner script.
+        # this is for reuse in the main Hamster script.
 
         description = "A comma-separated list of columns to include in the output."
         parser.add_argument("--cols", type=str, help=description)

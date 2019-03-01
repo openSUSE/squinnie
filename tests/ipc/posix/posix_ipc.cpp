@@ -12,8 +12,7 @@
 #include <iostream>
 
 /*
- * this test program sets up some POSIX IPC objects for inspection by the
- * security scanner.
+ * this test program sets up some POSIX IPC objects for inspection by Hamster.
  *
  * for the related APIs see `man 7 sem_overview shm_overview mq_overview`
  *

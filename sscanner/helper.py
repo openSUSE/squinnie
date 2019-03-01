@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # vim: ts=4 et sw=4 sts=4 :
 
-# security scanner - scan a system's security related information
+# Hamster - scan a system's security related information
 # contains different supporting methods mainly around pickle
 
 # Copyright (C) 2017 SUSE LINUX GmbH

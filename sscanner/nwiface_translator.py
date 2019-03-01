@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # vim: ts=4 et sw=4 sts=4 :
 
-# security scanner - scan a system's security related information
+# Hamster - scan a system's security related information
 # this translator filters, rearranges and parses collected network
 # interface data into a displayable form
 
@@ -120,7 +120,7 @@ class NwIfaceTranslator(object):
         This helper takes the collected information and selects the
         interesting data.
         :dictionary data: the Network Interface information collected
-        from security-scanner
+        from Hamster
         :list identifier: the interesting keys inside each interface
         sub-dictionary
         """

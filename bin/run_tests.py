@@ -1,9 +1,8 @@
 #!/usr/bin/env python2
 # vim: ts=4 et sw=4 sts=4 :
 
-# security scanner - scan a system's security related information
-# tests the security scanner with different parameters on local and/or
-# remote hosts
+# hamster - scan a system's security related information
+# tests Hamster with different parameters on local and/or remote hosts
 
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
@@ -32,7 +31,7 @@ import subprocess
 import tempfile
 import shutil
 
-SSCANNER_PATH = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'security_scanner.py')
+HAMSTER_PATH = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'hamster')
 
 
 class SscannerTest(object):
@@ -58,7 +57,7 @@ class SscannerTest(object):
         return self.m_has_failed_tests
 
     def _setupArgparse(self):
-        description = "Testing tool for the security scanner. Runs the scanner in several configurations and returns " \
+        description = "Testing tool for Hamster. Runs the scanner in several configurations and returns " \
                       "the exit code as well as the output."
         parser = argparse.ArgumentParser(description=description)
 
@@ -240,7 +239,7 @@ class TestRun(object):
 
     def run(self):
         """
-        running security scanner with parameters and output to logfile
+        running Hamster with parameters and output to logfile
         """
         if not os.path.exists(self.dir):
             os.mkdir(self.dir, 0o755)
@@ -248,8 +247,8 @@ class TestRun(object):
         with open(self.stdout, "w", 0o664) as stdout:
             with open(self.stderr, "w", 0o664) as stderr:
                 self.exitcode = subprocess.call(
-                    executable=SSCANNER_PATH,
-                    args=[SSCANNER_PATH] + self.m_arguments,
+                    executable=HAMSTER_PATH,
+                    args=[HAMSTER_PATH] + self.m_arguments,
                     stderr=stderr,
                     stdout=stdout
                 )

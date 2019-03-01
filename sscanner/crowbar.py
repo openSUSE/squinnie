@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # vim: ts=4 et sw=4 sts=4 :
 
-# security scanner - scan a system's security related information
+# Hamster - scan a system's security related information
 
 # Copyright (C) 2017 SUSE LINUX GmbH
 #

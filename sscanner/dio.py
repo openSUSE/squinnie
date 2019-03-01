@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # vim: ts=4 et sw=4 sts=4 :
 
-# security scanner - scan a system's security related information
+# Hamster - scan a system's security related information
 
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
@@ -36,9 +36,9 @@ class DumpIO(object):
     """
 
     FILE_EXTENSION = ".p.gz"
-    LOCK_FILE_NAME = '.security-scanner.data'
+    LOCK_FILE_NAME = '.hamster.data'
 
-    def __init__(self, target, path="/tmp/security-scanner"):
+    def __init__(self, target, path="/tmp/hamster"):
         """
         :param target: The name of target scanned (for naming the storage folders).
         :param path: The path to use for the dump data.
