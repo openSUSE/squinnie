@@ -24,7 +24,12 @@
 
 import pprint
 import sys
-import module_helper
+try:
+    # allow importing the hamster modules from '..' to run from the git
+    # checkout directly
+    import module_helper
+except ImportError:
+    pass
 from hamster import helper
 
 if len(sys.argv) < 2:

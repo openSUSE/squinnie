@@ -30,8 +30,12 @@ import os
 import sys
 import shlex
 
-# allow importing the hamster modules from '..'
-import module_helper
+try:
+    # allow importing the hamster modules from '..' to run from the git
+    # checkout directly
+    import module_helper
+except ImportError:
+    pass
 
 # Local modules
 import hamster.dumper

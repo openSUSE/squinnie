@@ -56,9 +56,7 @@ class CapTranslator(object):
 
     def getCapData(self):
 
-        thisdir = os.path.dirname(__file__)
-        datadir = os.path.join(thisdir, os.path.pardir, "etc")
-        capfile = os.path.join(datadir, self.file_name)
+        capfile = hamster.getDataFile(self.file_name)
 
         if not os.path.exists(capfile):
             raise hamster.errors.ScannerError(

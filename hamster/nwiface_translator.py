@@ -44,8 +44,9 @@ class NwIfaceTranslator(object):
         self.type_data = self._getFileData(self.m_typefile)
 
     def _getFileData(self, fileName):
-        filePath = os.path.join(os.path.join(os.path.dirname(__file__),
-                                os.path.pardir, "etc"), fileName)
+        import hamster
+        filePath = hamster.getDataFile(fileName)
+
         try:
             with open(filePath, "r") as f:
                 return json.load(f)

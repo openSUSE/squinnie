@@ -90,14 +90,7 @@ class Viewer(object):
         self.m_included = []
 
     def _getJsonFile(self, filename):
-        json_file = os.path.sep.join([
-            os.path.abspath(os.path.dirname(__file__)),
-            os.path.pardir,
-            "etc",
-            "{}.json".format(filename)
-        ])
-        return json_file
-
+        return hamster.getDataFile("{}.json".format(filename))
 
     def getAccountHelper(self):
         if not self.m_account_helper:
