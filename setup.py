@@ -39,7 +39,7 @@ try:
 
     setup(
         name = 'hamster-security',
-        version = '0.5.0',
+        version = '0.5.1',
         description = 'Hamster is a security oriented system scanning utility for Linux',
         long_description = long_desc,
         author = 'Matthias Gerstner',
