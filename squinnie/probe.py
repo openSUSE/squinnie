@@ -244,7 +244,8 @@ class Scanner(object):
                     if libc.setns(fd[0].fileno(), fd[1]) == -1:
                         e = ctypes.get_errno()
                         raise ChildProcessError(
-                                "Failed to enter namespace: {}".format(
+                                "Failed to enter namespace fd {}: {}".format(
+                                        fd[0].fileno(),
                                         os.strerror(e)
                                 )
                         )
