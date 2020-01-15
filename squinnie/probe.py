@@ -54,6 +54,12 @@ import subprocess
 def isPython2():
     return sys.version_info.major == 2
 
+if isPython2():
+
+    class ChildProcessError(OSError):
+
+        def __init__(self, *args, **kwargs):
+            super(ChildProcessError, self).__init__(*args, **kwargs)
 
 class Scanner(object):
 
