@@ -1,8 +1,8 @@
 #!/usr/bin/env python2
 # vim: ts=4 et sw=4 sts=4 :
 
-# hamster - scan a system's security related information
-# tests Hamster with different parameters on local and/or remote hosts
+# squinnie - scan a system's security related information
+# tests Squinnie with different parameters on local and/or remote hosts
 
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
@@ -31,7 +31,7 @@ import subprocess
 import tempfile
 import shutil
 
-HAMSTER_PATH = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'hamster')
+SQUINNIE_PATH = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'squinnie')
 
 
 class SscannerTest(object):
@@ -57,7 +57,7 @@ class SscannerTest(object):
         return self.m_has_failed_tests
 
     def _setupArgparse(self):
-        description = "Testing tool for Hamster. Runs the scanner in several configurations and returns " \
+        description = "Testing tool for Squinnie. Runs the scanner in several configurations and returns " \
                       "the exit code as well as the output."
         parser = argparse.ArgumentParser(description=description)
 
@@ -91,7 +91,7 @@ class SscannerTest(object):
             exit(1)
 
         if self.m_params.directory == None:
-            self.m_params.directory = tempfile.mkdtemp(prefix='hamster-test')
+            self.m_params.directory = tempfile.mkdtemp(prefix='squinnie-test')
 
     def prepareTests(self):
         """Appends the test-parameters to member variable"""
@@ -234,12 +234,12 @@ class TestRun(object):
         self.name = name
         self.stdout = os.path.join(dir, "stdout-{}.txt".format(name))
         self.stderr = os.path.join(dir, "stderr-{}.txt".format(name))
-        self.cachedir = os.path.join(dir, "hamster-cache")
+        self.cachedir = os.path.join(dir, "squinnie-cache")
         self.m_arguments = ['-d', self.cachedir] + arguments
 
     def run(self):
         """
-        running Hamster with parameters and output to logfile
+        running Squinnie with parameters and output to logfile
         """
         if not os.path.exists(self.dir):
             os.mkdir(self.dir, 0o755)
@@ -247,8 +247,8 @@ class TestRun(object):
         with open(self.stdout, "w", 0o664) as stdout:
             with open(self.stderr, "w", 0o664) as stderr:
                 self.exitcode = subprocess.call(
-                    executable=HAMSTER_PATH,
-                    args=[HAMSTER_PATH] + self.m_arguments,
+                    executable=SQUINNIE_PATH,
+                    args=[SQUINNIE_PATH] + self.m_arguments,
                     stderr=stderr,
                     stdout=stdout
                 )

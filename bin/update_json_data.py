@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # vim: ts=4 et sw=4 sts=4 :
 
-# Hamster - scan a system's security related information
+# Squinnie - scan a system's security related information
 # get available names and corresponding bit values from C headers and
 # store it in a JSON encoded format
 

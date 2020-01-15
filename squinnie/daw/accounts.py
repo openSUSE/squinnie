@@ -18,7 +18,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA 02110-1301 USA.
-from hamster.daw.helper import CategoryLoader
+from squinnie.daw.helper import CategoryLoader
 
 
 class AccountWrapper(object):
@@ -29,7 +29,7 @@ class AccountWrapper(object):
 
     def __init__(self, dumpIO, uid_gid=None):
         """
-        :param dumpIO: An instance of hamster.dio.DumpIO for loading the data
+        :param dumpIO: An instance of squinnie.dio.DumpIO for loading the data
         :dict uid_gid: contains inode: data entries of found user namespaces
         """
         self.m_dumpIO = dumpIO

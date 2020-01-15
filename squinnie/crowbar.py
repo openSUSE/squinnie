@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # vim: ts=4 et sw=4 sts=4 :
 
-# Hamster - scan a system's security related information
+# Squinnie - scan a system's security related information
 
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
@@ -32,16 +32,16 @@ import os
 import termcolor
 
 # Local modules
-import hamster.helper
-import hamster.network_config
-import hamster.errors
+import squinnie.helper
+import squinnie.network_config
+import squinnie.errors
 import logging
 
 # PyPy modules
 try:
     import execnet
 except ImportError:
-    hamster.helper.missingModule("execnet")
+    squinnie.helper.missingModule("execnet")
 
 class Crowbar(object):
     """This class can collect the crowbar network configuration from a SUSE
@@ -53,7 +53,7 @@ class Crowbar(object):
         self.m_use_cache = True
         self.m_config_path = None
         self.m_entry_node = None
-        self.m_net_config = hamster.network_config.NetworkConfig()
+        self.m_net_config = squinnie.network_config.NetworkConfig()
         self.m_info = {}
 
     def setUseCache(self, cache):
@@ -85,7 +85,7 @@ class Crowbar(object):
         }
         """
         if not self.m_entry_node:
-            raise hamster.errors.ScannerError("entry node for scanning crowbar network is required")
+            raise squinnie.errors.ScannerError("entry node for scanning crowbar network is required")
 
         group = execnet.Group()
         master = group.makegateway(
@@ -100,7 +100,7 @@ class Crowbar(object):
         try:
             crowbar_output = master.remote_exec(exec_cmd).receive()
         except execnet.RemoteError as e:
-            raise hamster.errors.ScannerError("Failed to run crowbar on {}:\n\n{}".format(
+            raise squinnie.errors.ScannerError("Failed to run crowbar on {}:\n\n{}".format(
                 self.m_entry_node, e
             ))
 
@@ -111,7 +111,7 @@ class Crowbar(object):
         try:
             node_lines.remove(self.m_entry_node)
         except ValueError:
-            raise hamster.errors.ScannerError("entry node was not found in returned crowbar data")
+            raise squinnie.errors.ScannerError("entry node was not found in returned crowbar data")
 
         return {
             self.m_entry_node: [str(item) for item in node_lines]

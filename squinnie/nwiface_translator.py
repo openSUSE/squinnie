@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # vim: ts=4 et sw=4 sts=4 :
 
-# Hamster - scan a system's security related information
+# Squinnie - scan a system's security related information
 # this translator filters, rearranges and parses collected network
 # interface data into a displayable form
 
@@ -44,14 +44,14 @@ class NwIfaceTranslator(object):
         self.type_data = self._getFileData(self.m_typefile)
 
     def _getFileData(self, fileName):
-        import hamster
-        filePath = hamster.getDataFile(fileName)
+        import squinnie
+        filePath = squinnie.getDataFile(fileName)
 
         try:
             with open(filePath, "r") as f:
                 return json.load(f)
         except EnvironmentError as e:
-            raise hamster.errors.ScannerError(
+            raise squinnie.errors.ScannerError(
                 "Cannot open file {}: {}".format(args.input, str(e))
             )
 
@@ -121,7 +121,7 @@ class NwIfaceTranslator(object):
         This helper takes the collected information and selects the
         interesting data.
         :dictionary data: the Network Interface information collected
-        from Hamster
+        from Squinnie
         :list identifier: the interesting keys inside each interface
         sub-dictionary
         """

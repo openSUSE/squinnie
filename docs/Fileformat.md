@@ -10,7 +10,7 @@ The data is saved in the directory given via `-d`, which will contain a subdirec
 
 ### networking.p.gz
 
-This file contains information on active and listening sockets for each network and socket protocol (tcp, udp for IPv4 and IPv6 as well as unix sockets). The file itself is a dict of protocols. 
+This file contains information on active and listening sockets for each network and socket protocol (tcp, udp for IPv4 and IPv6 as well as unix sockets). The file itself is a dict of protocols.
 
 The structure of the protocols is as following:
 
@@ -126,7 +126,7 @@ This is an sqlite3 database for storing the filesystem. It has a table called `i
 - `uid` and `gid`: Owner userid and groupid.
 - `caps`: The capabilities as reported by stat.
 - `mode`: The file mode as reported by stat (i.e. sticky bit, suid bit, ...).
-- `type`: A single char describing the type of the entry. The chars are as defined in `man 1p ls` and are generated via `getTypeChar(mode)` in `hamster/file_mode.py`.
+- `type`: A single char describing the type of the entry. The chars are as defined in `man 1p ls` and are generated via `getTypeChar(mode)` in `squinnie/file_mode.py`.
 - `name`: The filename.
 - `path`: The path to the file with leading slash and without filename or trailing slash. This can in theory be reconstructed by recursively querying the parents, but having this field makes the queries a lot easier.
 

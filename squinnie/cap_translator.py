@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # vim: ts=4 et sw=4 sts=4 :
 
-# Hamster - scan a system's security related information
+# Squinnie - scan a system's security related information
 # helper functions for accessing capability name and bit value information
 
 # Copyright (C) 2017 SUSE LINUX GmbH
@@ -27,8 +27,8 @@ from __future__ import with_statement
 import json
 import os
 
-import hamster.helper
-import hamster.errors
+import squinnie.helper
+import squinnie.errors
 
 
 class CapTranslator(object):
@@ -56,10 +56,10 @@ class CapTranslator(object):
 
     def getCapData(self):
 
-        capfile = hamster.getDataFile(self.file_name)
+        capfile = squinnie.getDataFile(self.file_name)
 
         if not os.path.exists(capfile):
-            raise hamster.errors.ScannerError(
+            raise squinnie.errors.ScannerError(
                 "Missing capability description file at {}".format(capfile)
             )
 

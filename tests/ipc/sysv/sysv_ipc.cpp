@@ -12,7 +12,7 @@
 
 /*
  * this test program sets up some SystemV IPC objects for inspection by
- * Hamster.
+ * Squinnie.
  *
  * for the related APIs see `man 7 svipc`
  *

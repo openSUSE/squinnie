@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # vim: ts=4 et sw=4 sts=4 :
 
-# Hamster - scan a system's security related information
+# Squinnie - scan a system's security related information
 # this program prints the contents of a dumpfile
 
 # Copyright (C) 2017 SUSE LINUX GmbH
@@ -25,12 +25,12 @@
 import pprint
 import sys
 try:
-    # allow importing the hamster modules from '..' to run from the git
+    # allow importing the squinnie modules from '..' to run from the git
     # checkout directly
     import module_helper
 except ImportError:
     pass
-from hamster import helper
+from squinnie import helper
 
 if len(sys.argv) < 2:
     print('Usage: %s <dump.p.gz> [depth]' % sys.argv[0])

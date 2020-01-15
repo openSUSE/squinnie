@@ -38,20 +38,20 @@ long_desc = getLongDesc()
 try:
 
     setup(
-        name = 'hamster-security',
+        name = 'squinnie-security',
         version = '0.5.1',
-        description = 'Hamster is a security oriented system scanning utility for Linux',
+        description = 'Squinnie is a security oriented system scanning utility for Linux',
         long_description = long_desc,
         author = 'Matthias Gerstner',
         author_email = 'matthias.gerstner@suse.com',
         license = 'GPL2',
         keywords = 'openSUSE security scanner review audit',
-        packages = ['hamster', 'hamster.daw'],
+        packages = ['squinnie', 'squinnie.daw'],
         install_requires = ['execnet', 'terminaltables', 'termcolor'],
-        url = 'https://github.com/mgerstner/hamster',
+        url = 'https://github.com/mgerstner/squinnie',
         package_data = {
-            # these paths are interpreted relative to the hamster package.
-            'hamster': ['../etc/*.json']
+            # these paths are interpreted relative to the squinnie package.
+            'squinnie': ['../etc/*.json']
         },
         classifiers = [
             'Intended Audience :: Developers',
@@ -59,7 +59,7 @@ try:
             'Programming Language :: Python :: 2.7',
             'Topic :: Security'
         ],
-        scripts = [ 'bin/hamster' ]
+        scripts = [ 'bin/squinnie' ]
     )
 finally:
     try:

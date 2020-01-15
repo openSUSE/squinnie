@@ -18,8 +18,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA 02110-1301 USA.
-from hamster.daw.helper import CategoryLoader
-import hamster.file_mode as file_mode
+from squinnie.daw.helper import CategoryLoader
+import squinnie.file_mode as file_mode
 import logging
 import datetime
 
@@ -36,7 +36,7 @@ class SysVIPC(object):
 
     def __init__(self, dumpIO, factory):
         """
-        :param dumpIO: An instance of hamster.dio.DumpIO for loading the data
+        :param dumpIO: An instance of squinnie.dio.DumpIO for loading the data
         """
         self.m_dumpIO = dumpIO
         self.m_ll_data = CategoryLoader("sysvipc", self.m_dumpIO)

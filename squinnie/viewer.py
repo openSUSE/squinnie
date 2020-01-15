@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # vim: ts=4 et sw=4 sts=4 :
 
-# Hamster - scan a system's security related information
+# Squinnie - scan a system's security related information
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
 # Author: Benjamin Deuter, Sebastian Kaim, Jannik Main
@@ -30,16 +30,16 @@ import logging
 import textwrap
 from collections import OrderedDict
 # Local modules.
-import hamster.cap_translator as cap_translator
-import hamster.helper as helper
-import hamster.file_mode as file_mode
-import hamster.errors
-import hamster.nwiface_translator as nwiface_translator
-from hamster.types import ProcColumns
-from hamster.daw.fs import FsQuery
-from hamster.dio import DumpIO
-from hamster.daw import factory
-from hamster.ldump import LocalFactory
+import squinnie.cap_translator as cap_translator
+import squinnie.helper as helper
+import squinnie.file_mode as file_mode
+import squinnie.errors
+import squinnie.nwiface_translator as nwiface_translator
+from squinnie.types import ProcColumns
+from squinnie.daw.fs import FsQuery
+from squinnie.dio import DumpIO
+from squinnie.daw import factory
+from squinnie.ldump import LocalFactory
 
 pickle = helper.importPickle()
 
@@ -90,7 +90,7 @@ class Viewer(object):
         self.m_included = []
 
     def _getJsonFile(self, filename):
-        return hamster.getDataFile("{}.json".format(filename))
+        return squinnie.getDataFile("{}.json".format(filename))
 
     def getAccountHelper(self):
         if not self.m_account_helper:
@@ -155,7 +155,7 @@ class Viewer(object):
     def addParserArguments(cls, parser):
         """Adds the viewer specific command line arguments to the given
         argparse.ArgumentParser object."""
-        # this is for reuse in the main Hamster script.
+        # this is for reuse in the main Squinnie script.
 
         description = "A comma-separated list of columns to include in the output."
         parser.add_argument("--cols", type=str, help=description)
@@ -669,7 +669,7 @@ class Viewer(object):
                     pid = parents[pid]
 
                 if pid not in all_pids:
-                    raise hamster.errors.ScannerError(
+                    raise squinnie.errors.ScannerError(
                         "There is no process that has pid {} on this node.".format(
                             pid
                         )

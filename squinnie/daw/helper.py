@@ -25,7 +25,7 @@ class CategoryLoader(object):
     def __init__(self, category, dumpIO):
         """
         :param category: The name of the category.
-        :param dumpIO: An instance of hamster.dio.DumpIO for loading the data
+        :param dumpIO: An instance of squinnie.dio.DumpIO for loading the data
         """
         self.m_dumpIO = dumpIO
         self.m_category = category
@@ -41,7 +41,7 @@ class LazyLoader(object):
     def __init__(self, category, dumpIO):
         """
         :param category: The name of the category.
-        :param dumpIO: An instance of hamster.dio.DumpIO for loading the data
+        :param dumpIO: An instance of squinnie.dio.DumpIO for loading the data
         """
         self.m_dumpIO = dumpIO
         self.m_category = category

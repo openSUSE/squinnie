@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # vim: ts=4 et sw=4 sts=4 :
 
-# Hamster - scan a system's security related information
+# Squinnie - scan a system's security related information
 
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
@@ -21,7 +21,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA 02110-1301 USA.
 
-from hamster.daw import ProcessData
+from squinnie.daw import ProcessData
 
 class LocalDump(object):
     """This class serves as DumpIO class, using given data instead of

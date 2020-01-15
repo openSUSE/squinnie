@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # vim: ts=4 et sw=4 sts=4 :
 
-# Hamster - scan a system's security related information
+# Squinnie - scan a system's security related information
 
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
@@ -29,18 +29,18 @@ import sys
 import os
 
 # local modules
-import hamster.helper
-import hamster.probe
-import hamster.network_config
-from hamster.dio import DumpIO
-from hamster.errors import ScannerError
+import squinnie.helper
+import squinnie.probe
+import squinnie.network_config
+from squinnie.dio import DumpIO
+from squinnie.errors import ScannerError
 
 # foreign modules
 try:
     import execnet
     import termcolor
 except ImportError as e:
-    hamster.helper.missingModule(ex=e)
+    squinnie.helper.missingModule(ex=e)
 
 
 class Dumper(object):
@@ -174,7 +174,7 @@ class SshDumper(Dumper):
         """Reads the target network configuration from the given JSON file and
         stores it in the object for further use during collect().
         """
-        self.m_network = hamster.network_config.NetworkConfig().load(file_name)
+        self.m_network = squinnie.network_config.NetworkConfig().load(file_name)
         import pprint
         logging.debug("Parsing network: {}".format(pprint.pformat(self.m_network)))
 
@@ -246,7 +246,7 @@ class SshDumper(Dumper):
             except execnet.HostNotFound as e:
                 raise ScannerError("Failed to connect to remote host: " + str(e))
 
-            config['data'] = group[node].remote_exec(hamster.probe).receive()
+            config['data'] = group[node].remote_exec(squinnie.probe).receive()
 
 
 class LocalDumper(Dumper):
@@ -299,7 +299,7 @@ class LocalDumper(Dumper):
 
         # gzip has a bug in python2, it can't stream, because it tries
         # to seek *sigh*
-        use_pipe = hamster.helper.isPython3()
+        use_pipe = squinnie.helper.isPython3()
 
         if not use_pipe:
             import tempfile
@@ -324,7 +324,7 @@ class LocalDumper(Dumper):
 
         if use_pipe:
             try:
-                node_data = hamster.helper.readPickle(fileobj=slave_proc.stdout)
+                node_data = squinnie.helper.readPickle(fileobj=slave_proc.stdout)
             finally:
                 if slave_proc.wait() != 0:
                     raise Exception("Failed to run probe.py")
@@ -333,7 +333,7 @@ class LocalDumper(Dumper):
                 if slave_proc.wait() != 0:
                     raise Exception("Failed to run probe.py")
                 tmpfile.seek(0)
-                node_data = hamster.helper.readPickle(fileobj=tmpfile)
+                node_data = squinnie.helper.readPickle(fileobj=tmpfile)
             finally:
                 tmpfile.close()
 

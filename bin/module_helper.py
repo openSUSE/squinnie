@@ -1,8 +1,8 @@
 #!/usr/bin/env python2
 # vim: ts=4 et sw=4 sts=4 :
 
-# Hamster - scan a system's security related information
-# helper module to execute Hamster programs without having to
+# Squinnie - scan a system's security related information
+# helper module to execute Squinnie programs without having to
 # fully install the accompanying python modules
 
 # Copyright (C) 2017 SUSE LINUX GmbH
@@ -45,4 +45,4 @@ def tryFindModule(module):
         sys.exit(4)
 
 
-tryFindModule("hamster")
+tryFindModule("squinnie")

@@ -1,13 +1,13 @@
-Hamster
+Squinnie
 =======
 
-This is Hamster, a security oriented system scanning utility for Linux
+This is Squinnie, a security oriented system scanning utility for Linux
 systems. It is a terminal program that collects relevant low level system data
 from a local machine, remote host or SUSE Cloud instance. The collected data
 is cached in an application specific format on disk and can be analysed and
 viewed according to command line parameters.
 
-The purpose of Hamster is to:
+The purpose of Squinnie is to:
 
 - identify possible security issues by inspecting privileges of running
   processes, opened file descriptors, files on disk etc.
@@ -15,15 +15,15 @@ The purpose of Hamster is to:
   running system, for identifying possible interesting interfaces and software
   parts that are worth further investigation.
 
-Hamster allows to look into a running system in a black box fashion. This can
+Squinnie allows to look into a running system in a black box fashion. This can
 be helpful for reviewing large and complex systems where a code review is not
 feasible.
 
-Hamster can highlight certain spots of interest in its different view modes
+Squinnie can highlight certain spots of interest in its different view modes
 (e.g. world readable files, unusual capability settings or similar). This
 highlighting is currently done by way of terminal colors. These are just
-pointers, however. Hamster will not perform an automatical security analysis
-like other tools do (e.g. Lynis). Hamster rather provides a large data
+pointers, however. Squinnie will not perform an automatical security analysis
+like other tools do (e.g. Lynis). Squinnie rather provides a large data
 collection and a means to navigate it that allows a security expert to
 interactively dig deeper and uncover possible security issues.
 
@@ -31,13 +31,13 @@ interactively dig deeper and uncover possible security issues.
 
 The additional python module requirements for this project can be found in the
 PIP requirements file `requirements.txt`. These requirements are only for the
-host system that runs Hamster. The target systems scanned by Hamster don't
+host system that runs Squinnie. The target systems scanned by Squinnie don't
 require any additional Python modules. For them the only requirement is that a
 fairly recent Python 2 interpreter is available.
 
 ## Structure
 
-The main program is `bin/hamster`. It's concerned with two different groups of
+The main program is `bin/squinnie`. It's concerned with two different groups of
 command line arguments for scanning and viewing. Scanning is the process of
 collecting data from one or more hosts. Viewing is the process of extracting
 relevant bits of data from an existing data collection and displaying them in
@@ -45,7 +45,7 @@ a human readable manner.
 
 ## Data Collection Approach
 
-Hamster collects a snapshot of data from the target host(s). Most of this
+Squinnie collects a snapshot of data from the target host(s). Most of this
 cannot be done in an atomic way i.e. there can be some inconsistencies when
 e.g. processes are spawned and ended or files appear and disappear. Thus the
 data collection is by design not a perfect information approach. It can make
@@ -74,27 +74,27 @@ information available to the scanner will be very limited then, however.
 
 ## Usage
 
-Please see the online help output produced by `./hamster -h`.
+Please see the online help output produced by `./squinnie -h`.
 
-Hamster scans localhost by default, collecting relevant information that will
+Squinnie scans localhost by default, collecting relevant information that will
 be cached and subsequently displayed, depending on the provided command-line
 arguments.
 
 ```
-# Hamster will cache collected data here
+# Squinnie will cache collected data here
 $ mkdir -p /tmp/my_test_scan/
 
 # Main view
-$ hamster --mode ssh --entry root@host -d /tmp/my_test_scan
+$ squinnie --mode ssh --entry root@host -d /tmp/my_test_scan
 
 # Show open file descriptors
-$ hamster --mode ssh --entry root@host -d /tmp/my_test_scan --fd
+$ squinnie --mode ssh --entry root@host -d /tmp/my_test_scan --fd
 
 # Show all files on the filesystem
-$ hamster --mode ssh --entry root@host -d /tmp/my_test_scan/ --filesystem
+$ squinnie --mode ssh --entry root@host -d /tmp/my_test_scan/ --filesystem
 ```
 
-For scanning localhost Hamster will invoke `sudo` to gain root privileges. For
+For scanning localhost Squinnie will invoke `sudo` to gain root privileges. For
 scanning remote systems `ssh` is utilized and either interactive
 authentication or public key authentication will be required to access them,
 depending on the configuration of the remote SSH server.
@@ -104,35 +104,35 @@ hosts at the same time. Each host will be stored and looked up in a
 subdirectory based on its hostname.
 
 To avoid having to specify the same parameters again and again there exists
-also an environment variable `HAMSTER_OPTS` that can be used like this:
+also an environment variable `SQUINNIE_OPTS` that can be used like this:
 
 ```
-$ export HAMSTER_OPTS="--mode ssh --entry root@host -d /tmp/my_test_scan"
-$ hamster --filesystem
+$ export SQUINNIE_OPTS="--mode ssh --entry root@host -d /tmp/my_test_scan"
+$ squinnie --filesystem
 ```
 
 ## Advanced Usage
 
 Show which processes run with which capabilities:
 ```
-$ hamster -d /tmp/my_test_scan/ | grep CAP_
+$ squinnie -d /tmp/my_test_scan/ | grep CAP_
 ```
 
 Show which files on the filesystem have which capabilities set (usually e.g. `/bin/ping`):
 ```
-$ hamster -d /tmp/my_test_scan/ --filesystem --capabilities
+$ squinnie -d /tmp/my_test_scan/ --filesystem --capabilities
 ```
 
 ## SUSE OpenStack Cloud 7
 
 To scan many nodes of a SUSE OpenStack Cloud instance interactively, use:
 ```
-$ hamster -d /tmp/my_test_scan/ -m susecloud -e <ip-of-cloud-admin-node>
+$ squinnie -d /tmp/my_test_scan/ -m susecloud -e <ip-of-cloud-admin-node>
 ```
 
 By default, all nodes are scanned, but only the results of the admin node are shown. To show all, you can use:
 ```
-$ hamster -d /tmp/my_test_scan/ -m susecloud -e <ip-of-cloud-admin-node> -a
+$ squinnie -d /tmp/my_test_scan/ -m susecloud -e <ip-of-cloud-admin-node> -a
 ```
 
 ## Future Development
@@ -140,6 +140,13 @@ $ hamster -d /tmp/my_test_scan/ -m susecloud -e <ip-of-cloud-admin-node> -a
 This software is not yet feature complete. More security sensitive contexts
 can be identified, additional relevant data collected and especially a
 graphical display of the collected data are on the whishlist.
+
+## Name Change
+
+This project was formerly known as "Hamster", but it turned out that a larger
+open-source project under that name already exists. Therefore it was renamed
+to Squinnie, one of the few rodent names not yet widely used in software
+projects.
 
 ## Authors and Contact
 

@@ -18,7 +18,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA 02110-1301 USA.
-from hamster.daw.helper import CategoryLoader
+from squinnie.daw.helper import CategoryLoader
 
 class NamespaceWrapper(object):
     """
@@ -27,7 +27,7 @@ class NamespaceWrapper(object):
 
     def __init__(self, dumpIO):
         """
-        :param dumpIO: An instance of hamster.dio.DumpIO
+        :param dumpIO: An instance of squinnie.dio.DumpIO
         """
         self.m_dumpIO = dumpIO
         self.m_data = CategoryLoader("namespaces", self.m_dumpIO)

@@ -12,7 +12,7 @@
 #include <iostream>
 
 /*
- * this test program sets up some POSIX IPC objects for inspection by Hamster.
+ * this test program sets up some POSIX IPC objects for inspection by Squinnie.
  *
  * for the related APIs see `man 7 sem_overview shm_overview mq_overview`
  *

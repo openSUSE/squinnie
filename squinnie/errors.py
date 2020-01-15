@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # vim: ts=4 et sw=4 sts=4 :
 
-# Hamster - scan a system's security related information
+# Squinnie - scan a system's security related information
 # Copyright (C) 2017 SUSE LINUX GmbH
 #
 # Author:     Matthias Gerstner

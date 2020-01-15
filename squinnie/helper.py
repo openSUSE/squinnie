@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # vim: ts=4 et sw=4 sts=4 :
 
-# Hamster - scan a system's security related information
+# Squinnie - scan a system's security related information
 # contains different supporting methods mainly around pickle
 
 # Copyright (C) 2017 SUSE LINUX GmbH
@@ -186,7 +186,7 @@ def makeValidDirname(s):
 
 def getLogger():
     """Returns the logger for the project."""
-    logging.getLogger("hamster")
+    logging.getLogger("squinnie")
 
 def changeTimeFormat(runtime):
     """Improves the readability of process-runtime.

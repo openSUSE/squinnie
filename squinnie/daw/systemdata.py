@@ -18,7 +18,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA 02110-1301 USA.
-from hamster.daw.helper import CategoryLoader
+from squinnie.daw.helper import CategoryLoader
 import logging
 import datetime
 
@@ -28,7 +28,7 @@ class SystemData(object):
 
     def __init__(self, dumpIO):
         """
-        :param dumpIO: An instance of hamster.dio.DumpIO for loading the data
+        :param dumpIO: An instance of squinnie.dio.DumpIO for loading the data
         """
         self.m_dumpIO = dumpIO
         self.m_ll_data = CategoryLoader("systemdata", self.m_dumpIO)
