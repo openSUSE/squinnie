@@ -258,7 +258,7 @@ class Scanner(object):
             except:
                 e = sys.exc_info()[1]
                 print("Failed to collect namespace-info: {}".format(e),
-                file=sys.stderr
+                    file=sys.stderr
                 )
                 status = 1
             finally:
